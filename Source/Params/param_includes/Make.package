@@ -1,0 +1,4 @@
+CEXE_headers += PSAMR_params.H
+CEXE_headers += PSAMR_queries.H
+CEXE_headers += PSAMR_defaults.H
+

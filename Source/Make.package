@@ -1,0 +1,9 @@
+#C++ files
+CEXE_sources += main.cpp
+CEXE_sources += PSAMR.cpp
+CEXE_sources += PSAMR_advance.cpp
+CEXE_sources += PSAMR_react.cpp
+CEXE_sources += PSAMR_sources.cpp
+
+#C++ headers
+CEXE_headers += PSAMR.H

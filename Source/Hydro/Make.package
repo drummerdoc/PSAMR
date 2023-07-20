@@ -1,0 +1,18 @@
+#C++ files
+CEXE_sources += GravitySrc.cpp
+CEXE_sources += PSAMR_adjust_fluxes.cpp
+CEXE_sources += PSAMR_construct_hydro_source.cpp
+CEXE_sources += PSAMR_consup.cpp
+CEXE_sources += PSAMR_hydro.cpp
+
+ifeq ($(USE_EB), TRUE)
+CEXE_sources += PSAMR_hydro_eb.cpp
+endif
+
+#C++ headers
+CEXE_headers += hydro_artif_visc.H
+CEXE_headers += Hydro_cmpflx.H
+CEXE_headers += Hydro_riemann.H
+CEXE_headers += PSAMR_ctoprim.H
+CEXE_headers += PSAMR_hydro.H
+
