@@ -1,5 +1,5 @@
-#ifndef _HYDRO_H_
-#define _HYDRO_H_
+#ifndef HYDRO_H
+#define HYDRO_H
 
 #include "PSAMR.H"
 #include "IndexDefines.H"

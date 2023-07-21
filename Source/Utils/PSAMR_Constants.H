@@ -1,5 +1,5 @@
-#ifndef _PSAMR_CONSTANTS_H_
-#define _PSAMR_CONSTANTS_H_
+#ifndef PSAMR_CONSTANTS_H
+#define PSAMR_CONSTANTS_H
 
 #include <AMReX_REAL.H>
 
