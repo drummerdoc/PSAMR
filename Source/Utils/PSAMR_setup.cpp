@@ -132,7 +132,7 @@ PSAMR::variableSetUp()
         amrex::Gpu::hostToDevice, h_pass_map, h_pass_map + 1, d_pass_map);
 
     amrex::Vector<amrex::Real> center(AMREX_SPACEDIM, 0.0);
-    amrex::ParmParse ppc("PSAMR");
+    amrex::ParmParse ppc("psamr");
     ppc.queryarr("center", center, 0, AMREX_SPACEDIM);
 
     amrex::Interpolater* interp;
