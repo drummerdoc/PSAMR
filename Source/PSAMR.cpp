@@ -63,7 +63,7 @@ PSAMR::read_params()
 
   read_params_done = true;
 
-  amrex::ParmParse pp("psamr");
+  amrex::ParmParse pp("PSAMR");
 
 #include "PSAMR_queries.H"
 
