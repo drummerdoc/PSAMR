@@ -124,8 +124,8 @@ PSAMR::errorEst (TagBoxArray& tags,
                    int          clearval,
                    int          tagval,
                    Real         time,
-                   int          n_error_buf,
-                   int          ngrow)
+                   int          /*n_error_buf*/,
+                   int          /*ngrow*/)
 {
 #ifdef AMREX_USE_EB
     // Enforce that the EB not cross the coarse-fine boundary
