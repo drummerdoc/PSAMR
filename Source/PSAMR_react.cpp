@@ -7,7 +7,7 @@ using std::string;
 using namespace amrex;
 
 void
-PSAMR::react(MultiFab& S)
+PSAMR::react(MultiFab& /*S*/)
 {
     BL_PROFILE("PSAMR::react()");
 
