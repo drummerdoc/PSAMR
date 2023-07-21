@@ -17,20 +17,20 @@ amr.n_cell           =    32 32 32
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-psamr.lo_bc       =  Outflow  SlipWall   SlipWall
-psamr.hi_bc       =  Outflow  SlipWall   SlipWall
+PSAMR.lo_bc       =  Outflow  SlipWall   SlipWall
+PSAMR.hi_bc       =  Outflow  SlipWall   SlipWall
 
-psamr.cfl = 0.3  # cfl number for hyperbolic system
+PSAMR.cfl = 0.3  # cfl number for hyperbolic system
 
-psamr.do_mol = 1
+PSAMR.do_mol = 1
 
-psamr.v = 2
+PSAMR.v = 2
 amr.v = 1
 
-psamr.sum_interval = 1
+PSAMR.sum_interval = 1
 
-psamr.redistribution_type = FluxRedist
-psamr.redistribution_type = StateRedist
+PSAMR.redistribution_type = FluxRedist
+PSAMR.redistribution_type = StateRedist
 
 # LOAD BALANCE
 amr.loadbalance_with_workestimates = 0
@@ -57,7 +57,7 @@ amr.plot_int          = -1      # number of timesteps between plotfiles
 amr.derive_plot_vars  = x_velocity y_velocity z_velocity vfrac
 
 # EB
-psamr.geometry = "sphere"
+PSAMR.geometry = "sphere"
 sphere.radius        = 0.125
 sphere.center        = 0.6 0.5 0.5
 sphere.center        = 0.7 0.5 0.5
