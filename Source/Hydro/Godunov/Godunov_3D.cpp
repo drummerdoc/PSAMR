@@ -34,8 +34,8 @@ PSAMR_umeth_3D(
   const int ppm_type,
   const int use_pslope,
   const int use_flattening,
-  const int l_transverse_reset_density,
-  const int iorder)
+  const int iorder,
+  const int l_transverse_reset_density)
 {
   BL_PROFILE("PSAMR::PSAMR_umeth_3D()");
 
