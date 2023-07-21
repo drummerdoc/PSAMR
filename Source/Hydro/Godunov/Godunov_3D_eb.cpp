@@ -36,7 +36,7 @@ PSAMR_umeth_3D_eb(
   const int iorder,
   const int l_transverse_reset_density)
 {
-  BL_PROFILE("PSAMR::PSAMR_umeth_3D()");
+  BL_PROFILE("PSAMR::PSAMR_umeth_3D_eb()");
   amrex::Abort("Not implemented yet");
 
   amrex::Real const dx = del[0];
