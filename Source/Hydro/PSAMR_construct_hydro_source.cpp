@@ -162,7 +162,7 @@ PSAMR::construct_hydro_source (const MultiFab& S,
               amrex::Gpu::hostToDevice, bcs.begin(), bcs.end(), bcs_d.begin());
 
             // Return hyd_src - centered at old-time
-            const auto& dxInv = geom.InvCellSizeArray();                
+            const auto& dxInv = geom.InvCellSizeArray();
             PSAMR_umdrv_eb(bx, mfi, geom, &ebfact,
                           phys_bc.lo(), phys_bc.hi(),
                           sarr, qarr, hyd_src, qauxar,
