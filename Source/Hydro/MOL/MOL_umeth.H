@@ -1,5 +1,5 @@
-#ifndef _MOLHYDRO_H_
-#define _MOLHYDRO_H_
+#ifndef MOLHYDRO_H
+#define MOLHYDRO_H
 
 #include "PSAMR.H"
 #include "IndexDefines.H"

@@ -49,5 +49,5 @@ int PSAMR::bndry_func_thread_safe = 1;
 int PSAMR::sum_interval = -1;
 amrex::Real PSAMR::sum_per = -1.0e0;
 int PSAMR::hard_cfl_limit = 1;
-std::string PSAMR::job_name = "";
+std::string PSAMR::job_name;
 int PSAMR::write_eb = 0;
