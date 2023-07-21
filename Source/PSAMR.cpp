@@ -302,10 +302,6 @@ PSAMR::init_stuff(amrex::Amr& papa,
   }
 }
 
-PSAMR::~PSAMR()
-{
-}
-
 void
 PSAMR::buildMetrics()
 {
