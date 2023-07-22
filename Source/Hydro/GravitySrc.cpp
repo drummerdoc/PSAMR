@@ -1,7 +1,7 @@
 #include "PSAMR.H"
 
 void
-PSAMR::construct_old_grav_source(amrex::Real /*time*/, amrex::Real /*dt*/)
+PSAMR::construct_old_grav_source (amrex::Real /*time*/, amrex::Real /*dt*/)
 {
   old_sources[grav_src]->setVal(0.0);
 
@@ -17,7 +17,7 @@ PSAMR::construct_old_grav_source(amrex::Real /*time*/, amrex::Real /*dt*/)
 }
 
 void
-PSAMR::construct_new_grav_source(amrex::Real /*time*/, amrex::Real /*dt*/)
+PSAMR::construct_new_grav_source (amrex::Real /*time*/, amrex::Real /*dt*/)
 {
   new_sources[grav_src]->setVal(0.0);
 
@@ -33,13 +33,13 @@ PSAMR::construct_new_grav_source(amrex::Real /*time*/, amrex::Real /*dt*/)
 }
 
 void
-PSAMR::fill_grav_source(
-  const amrex::MultiFab& state,
-  amrex::MultiFab& grav_src, int ng)
+PSAMR::fill_grav_source (const amrex::MultiFab& S,
+                        amrex::MultiFab& grav_src,
+                        int ng)
 {
 #ifdef AMREX_USE_EB
   auto const& fact =
-    dynamic_cast<amrex::EBFArrayBoxFactory const&>(state.Factory());
+    dynamic_cast<amrex::EBFArrayBoxFactory const&>(S.Factory());
   auto const& flags = fact.getMultiEBCellFlagFab();
 #endif
 
@@ -60,7 +60,7 @@ PSAMR::fill_grav_source(
     }
 #endif
 
-    auto const& s   = state.array(mfi);
+    auto const& s   = S.array(mfi);
     auto const& src = grav_src.array(mfi);
 
     // Evaluate gravity-related source terms (assuming gravity only in z-direction)
