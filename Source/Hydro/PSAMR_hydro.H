@@ -275,7 +275,8 @@ void PSAMR_consup(
 
 #ifdef AMREX_USE_EB
 void
-PSAMR_umdrv_eb( const bool do_mol, amrex::Box const& bx, const amrex::MFIter& mfi,
+PSAMR_umdrv_eb( const bool do_mol, amrex::Box const& bx,
+               amrex::Box const& bxg_i, const amrex::MFIter& mfi,
                amrex::Geometry const& geom,
                const amrex::EBFArrayBoxFactory* ebfact,
                const int* bclo, const int* bchi,
