@@ -1,11 +1,9 @@
 #include "PSAMR.H"
-#include "MOL_umeth.H"
-#include "PSAMR_hydro.H"
+#include "PSAMR_utils_K.H"
 #include "hydro_artif_visc.H"
 
 #ifdef AMREX_USE_EB
-#include "MOL_hydro_eb_K.H"
-#include "MOL_eb_divu_K.H"
+#include "PSAMR_utils_eb_K.H"
 #endif
 
 using namespace amrex;

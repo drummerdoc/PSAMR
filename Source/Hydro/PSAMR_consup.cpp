@@ -1,10 +1,10 @@
 #include "PSAMR.H"
 #include "MOL_umeth.H"
 #include "PSAMR_hydro.H"
+#include "PSAMR_utils_K.H"
 
 #ifdef AMREX_USE_EB
-#include "MOL_eb_divop_K.H"
-#include "MOL_eb_pdivu_K.H"
+#include "PSAMR_utils_eb_K.H"
 #endif
 
 using namespace amrex;
@@ -52,7 +52,7 @@ PSAMR_consup_eb( const Box& bx,
 {
     const Box& bxg_i  = Box(divc_arr);
 
-    // These are the fluxes we computed in mol_umeth_eb and modified in adjust_fluxes_eb
+    // These are the fluxes we computed in MOL_umeth_eb and modified in adjust_fluxes_eb
     //  -- they live at face centers
     AMREX_D_TERM(auto const& fx_in_arr = flux_tmp[0];,
                  auto const& fy_in_arr = flux_tmp[1];,

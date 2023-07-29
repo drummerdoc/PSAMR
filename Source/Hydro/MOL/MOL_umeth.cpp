@@ -1,6 +1,6 @@
 #include "MOL_hydro_K.H"
 #include "MOL_riemann_K.H"
-#include "Godunov.H"
+#include "PSAMR_utils_K.H"
 #include "IndexDefines.H"
 #include "AMReX_MultiFabUtil.H"
 
@@ -12,7 +12,7 @@
 using namespace amrex;
 
 void
-mol_umeth (const Box& bx,
+MOL_umeth (const Box& bx,
            const int* bclo,
            const int* bchi,
            const int* domlo,
@@ -35,7 +35,7 @@ mol_umeth (const Box& bx,
            const amrex::Real small_pres,
            const int iorder)
 {
-    BL_PROFILE("PSAMR::mol_umeth()");
+    BL_PROFILE("PSAMR::MOL_umeth()");
 
     AMREX_D_TERM(const int bclx = bclo[0];,
                  const int bcly = bclo[1];,
