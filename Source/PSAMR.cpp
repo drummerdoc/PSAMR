@@ -935,7 +935,7 @@ PSAMR::normalize_species(amrex::MultiFab& S)
 #endif
          });
     }
-    S.FillBoundary(amrex::DefaultGeometry().periodicity());
+    S.FillBoundary(geom.periodicity());
 }
 
 void
