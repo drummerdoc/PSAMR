@@ -1,0 +1,40 @@
+PSAMR_HOME      ?= ../../../
+AMREX_HOME     ?= ../../../../amrex
+
+# AMReX
+DIM = 3
+COMP = gnu
+PRECISION = DOUBLE
+
+# Profiling
+PROFILE = FALSE
+#TINY_PROFILE = TRUE
+COMM_PROFILE = FALSE
+TRACE_PROFILE = FALSE
+MEM_PROFILE = FALSE
+USE_GPROF = FALSE
+
+# Performance
+USE_MPI = TRUE
+USE_OMP = FALSE
+USE_CUDA = FALSE
+USE_HIP = FALSE
+USE_SYCL = FALSE
+
+# Debugging
+DEBUG = FALSE
+DEBUG = FALSE
+
+#TEST = TRUE
+#USE_ASSERTION = TRUE
+
+# PSAMR
+USE_EB = TRUE
+USE_MOVING_EB = TRUE
+Eos_Model := GammaLaw
+
+# GNU Make
+Bpack := ./Make.package
+Blocs := .
+
+include $(PSAMR_HOME)/Exec/Make.PSAMR

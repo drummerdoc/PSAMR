@@ -580,6 +580,10 @@ PSAMR::writePlotFile(
    amrex::EB_set_covered(plotMF,0.0);
 #endif
 
+#ifdef PSAMR_USE_MOVING_EB
+    ZeroingOutForPlotting(plotMF);
+#endif
+
   // Use the Full pathname when naming the MultiFab.
   std::string TheFullPath = FullPath;
   TheFullPath += BaseName;
