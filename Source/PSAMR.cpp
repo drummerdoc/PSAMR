@@ -759,11 +759,9 @@ void PSAMR::post_init(amrex::Real /*stop_time*/)
 
   // Average data down from finer levels
   // so that conserved data is consistent between levels.
-  if (do_avg_down != 0) {
-    int finest_level = parent->finestLevel();
-    for (int k = finest_level - 1; k >= 0; k--) {
+  int finest_level = parent->finestLevel();
+  for (int k = finest_level - 1; k >= 0; k--) {
       getLevel(k).avgDown();
-    }
   }
 
   if (cumtime != 0.0) {
@@ -1262,10 +1260,10 @@ PSAMR::clean_state(amrex::MultiFab& S)
   computeTemp(S,ng);
 }
 
+#ifdef PSAMR_USE_MOVING_EB
 void
 PSAMR::ZeroingOutForPlotting(amrex::MultiFab& S)
 {
-#ifdef PSAMR_USE_MOVING_EB
   auto const& fact =
     dynamic_cast<amrex::EBFArrayBoxFactory const&>(S.Factory());
   auto const& vfrac = fact.getVolFrac();
@@ -1297,8 +1295,8 @@ PSAMR::ZeroingOutForPlotting(amrex::MultiFab& S)
 
     });
   }
-#endif
 }
+#endif
 
 bool
 PSAMR::time_to_sum_integrated(amrex::Real time)
