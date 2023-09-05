@@ -19,6 +19,7 @@ extern "C" {
         pp.query("rho_r", PSAMR::h_prob_parm->rho_r);
         pp.query("u_l",   PSAMR::h_prob_parm->u_l);
         pp.query("u_r",   PSAMR::h_prob_parm->u_r);
+        pp.query("interface",   PSAMR::h_prob_parm->interface);
 
         amrex::Gpu::copy(amrex::Gpu::hostToDevice, PSAMR::h_prob_parm, PSAMR::h_prob_parm+1, PSAMR::d_prob_parm);
     }
