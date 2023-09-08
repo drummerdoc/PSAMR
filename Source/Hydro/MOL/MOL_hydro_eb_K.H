@@ -1,7 +1,6 @@
 #ifndef MOL_HYDRO_EB_K_H
 #define MOL_HYDRO_EB_K_H
 
-#include "PSAMR.H"
 #include <AMReX_FArrayBox.H>
 #include "IndexDefines.H"
 #include <cmath>

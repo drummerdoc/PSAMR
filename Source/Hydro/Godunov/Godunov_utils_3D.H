@@ -19,7 +19,7 @@
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-PSAMR_transdo (
+hydro_transdo (
   const int i,
   const int j,
   const int k,
@@ -242,7 +242,7 @@ PSAMR_transdo (
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-PSAMR_transdd (
+hydro_transdd (
   const int i,
   const int j,
   const int k,
