@@ -4,6 +4,7 @@ CEXE_sources += PSAMR.cpp
 CEXE_sources += PSAMR_advance.cpp
 CEXE_sources += PSAMR_react.cpp
 CEXE_sources += PSAMR_sources.cpp
+CEXE_sources += GravitySrc.cpp
 
 #C++ headers
 CEXE_headers += PSAMR.H
