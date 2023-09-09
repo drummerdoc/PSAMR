@@ -164,101 +164,6 @@ plm_pslope (
   }
 }
 
-
-#ifdef AMREX_USE_EB
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-amrex::Real
-plm_slope_eb (
-  const int i,
-  const int j,
-  const int k,
-  const int n,
-  const int dir,
-  amrex::Array4<amrex::EBCellFlag const> const& flags,
-  amrex::Array4<const amrex::Real> const& q,
-  amrex::Real flat,
-  const int order)
-{
-  const amrex::IntVect iv{AMREX_D_DECL(i, j, k)};
-  const amrex::IntVect dvec(amrex::IntVect::TheDimensionVector(dir));
-  const amrex::IntVect ivm2(iv - 2 * dvec);
-  const amrex::IntVect ivm(iv - dvec);
-  const amrex::IntVect ivp(iv + dvec);
-  const amrex::IntVect ivp2(iv + 2 * dvec);
-
-  // We have enough cells in the x-direction to do 4th order slopes
-  // centered on (i,j,k)
-  if ( (order == 4) &&
-       !flags(iv).isCovered() &&
-       !flags(ivm).isCovered() &&
-       !flags(ivm2).isCovered() &&
-       !flags(ivp).isCovered() &&
-       !flags(ivp2).isCovered())
-  {
-    return plm_slope(i, j, k, n, dir, q, flat, order);
-  }
-  // We have enough cells in the x-direction to do 2nd order slopes
-  // centered on (i,j,k)
-  else if ( (order > 1) &&
-            !flags(iv).isCovered() &&
-            !flags(ivm).isCovered() &&
-            !flags(ivp).isCovered())
-  {
-    return plm_slope(i, j, k, n, dir, q, flat, 2);
-  } else {
-    return 0.0;
-  }
-}
-
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-amrex::Real
-plm_pslope_eb (
-  const int i,
-  const int j,
-  const int k,
-  const int n,
-  const int dir,
-  amrex::Array4<amrex::EBCellFlag const> const& flags,
-  amrex::Array4<const amrex::Real> const& q,
-  const amrex::Real dx,
-  amrex::Array4<const amrex::Real> const& srcQ,
-  amrex::Real flat,
-  const int order)
-{
-  const amrex::IntVect iv{AMREX_D_DECL(i, j, k)};
-  const amrex::IntVect dvec(amrex::IntVect::TheDimensionVector(dir));
-  const amrex::IntVect ivm2(iv - 2 * dvec);
-  const amrex::IntVect ivm(iv - dvec);
-  const amrex::IntVect ivp(iv + dvec);
-  const amrex::IntVect ivp2(iv + 2 * dvec);
-
-  // We have enough cells in the x-direction to do 4th order slopes
-  // centered on (i,j,k) with all values at cell centers
-  if ((order == 4) &&
-      !flags(iv).isCovered() &&
-      !flags(ivm).isCovered() &&
-      !flags(ivm2).isCovered() &&
-      !flags(ivp).isCovered() &&
-      !flags(ivp2).isCovered())
-  {
-    return plm_pslope(i, j, k, n, dir, q, dx, srcQ, flat, order);
-  }
-  // We have enough cells in the x-direction to do 2nd order slopes
-  // centered on (i,j,k) with all values at cell centers
-  else if ((order > 1) &&
-           !flags(iv).isCovered() &&
-           !flags(ivm).isCovered() &&
-           !flags(ivp).isCovered())
-  {
-    return plm_pslope(i, j, k, n, dir, q, dx, srcQ, flat, 2);
-  } else {
-    return 0.0;
-  }
-}
-#endif
-
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -276,11 +181,7 @@ hydro_plm_d (
   amrex::Real const dt,
   amrex::Real const small_dens,
   amrex::Real const small_pres,
-  PassMap const& pmap
-#ifdef AMREX_USE_EB
-  , amrex::Array4<const amrex::Real> const& area = {}
-#endif
-)
+  PassMap const& pmap)
 {
   amrex::ignore_unused(k);
   const amrex::IntVect iv{AMREX_D_DECL(i, j, k)};
@@ -314,9 +215,6 @@ hydro_plm_d (
     vel[dir] - cc, vel[dir], vel[dir] + cc};
 
   //  Construct the right state on the i-1/2 interface
-#ifdef AMREX_USE_EB
-  if(area(iv) > 0.0)
-#endif
   {
   const amrex::Real rho_ref =
     rho - 0.5 * (1.0 + dtdx * std::min(wv[0], 0.0)) * drho;
@@ -361,18 +259,8 @@ hydro_plm_d (
   qp(iv, QPRES) = std::max( qp(iv, QPRES), small_pres);
   qp(iv, QREINT) = rhoe_ref + (apright + amright) * enth * cs + azeright;
   }
-#ifdef AMREX_USE_EB
-  else {
-    for(int n = 0; n < QVAR; n++){
-      qp(iv, n) = 0.0;
-    }
-  }
-#endif
 
   //  Construct the left state on the i+1/2 interface
-#ifdef AMREX_USE_EB
-  if(area(ivp) > 0.0)
-#endif
   {
   const amrex::Real rho_ref =
     rho + 0.5 * (1.0 - dtdx * std::max(wv[2], 0.0)) * drho;
@@ -415,47 +303,22 @@ hydro_plm_d (
   qm(ivp, QPRES) = std::max( qm(ivp, QPRES), small_pres);
   qm(ivp, QREINT) = rhoe_ref + (apleft + amleft) * enth * cs + azeleft;
   }
-#ifdef AMREX_USE_EB
-  else {
-    for(int n = 0; n < QVAR; n++){
-      qm(ivp, n) = 0.0;
-    }
-  }
-#endif
 
   // Upwind the passive variables
   for (int ipassive = 0; ipassive < NPASSIVE; ++ipassive) {
     const int n = pmap.qpassMap[ipassive];
     const amrex::Real vel_ad = q(iv, QU + l_idx[0]);
     // Right state
-#ifdef AMREX_USE_EB
-    if (area(iv) > 0.0)
-#endif
     {
       const amrex::Real spzero = (vel_ad > 0) ? -1.0 : vel_ad * dtdx;
       const amrex::Real acmprght = 0.5 * (-1.0 - spzero) * slope[n];
       qp(iv, n) = q(iv, n) + acmprght;
     }
-#ifdef AMREX_USE_EB
-    else {
-      qp(iv, n) = 0.0;
-    }
-#endif
-
-#ifdef AMREX_USE_EB
-    if (area(iv) > 0.0)
-#endif
     {
       const amrex::Real spzero = vel_ad >= 0 ? vel_ad * dtdx : 1.0;
       const amrex::Real acmpleft = 0.5 * (1.0 - spzero) * slope[n];
       qm(ivp, n) = q(iv, n) + acmpleft;
     }
-#ifdef AMREX_USE_EB
-    else {
-      qm(ivp, n) = 0.0;
-    }
-#endif
   }
 }
-
 #endif
