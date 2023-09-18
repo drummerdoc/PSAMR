@@ -109,7 +109,7 @@ main(int argc, char* argv[])
 
 #ifdef AMREX_USE_EB
     amrex::AmrLevel::SetEBSupportLevel(amrex::EBSupport::full); // need both area and volume fractions
-    amrex::AmrLevel::SetEBMaxGrowCells(PSAMR::numGrow(), 7, 7);
+    amrex::AmrLevel::SetEBMaxGrowCells(PSAMR::numGrow(), PSAMR::numGrow(), PSAMR::numGrow());
 
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(), amrptr->maxLevel(), 0.0);
 #endif
