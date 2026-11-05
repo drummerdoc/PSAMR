@@ -42,4 +42,4 @@ Work on `co2-eos`; do not commit to `development` (this overrides the upstream p
 
 ## Licence and citation
 
-Licence terms are those of upstream PSAMR (AMReX-Fluids): the contribution grant is in `CONTRIBUTING.md`, and the upstream `LICENSE` and citation entry apply to this branch unchanged. The model follows Pelanti and Shyue (J. Comput. Phys. 259, 2014); the AMR treatment follows Berger and LeVeque (SIAM J. Numer. Anal. 35, 1998).
+The code this one derives from, and its developers, are credited in `ACKNOWLEDGEMENTS.md`. Licence terms are those of that code: the contribution grant is in `CONTRIBUTING.md`, and its `LICENSE` and citation entry apply here unchanged. The model follows Pelanti and Shyue (J. Comput. Phys. 259, 2014); the AMR treatment follows Berger and LeVeque (SIAM J. Numer. Anal. 35, 1998).
