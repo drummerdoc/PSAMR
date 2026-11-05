@@ -1,4 +1,4 @@
-# CAMR Code of Conduct
+# PSAMR Code of Conduct
 
 ## Our Pledge
 

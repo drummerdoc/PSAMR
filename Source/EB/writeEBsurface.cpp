@@ -1,8 +1,8 @@
-#include <CAMR.H>
+#include <PSAMR.H>
 #include <AMReX_WriteEBSurface.H>
 
 #if (AMREX_SPACEDIM == 3)
-void CAMR::WriteMyEBSurface ()
+void PSAMR::WriteMyEBSurface ()
 {
   using namespace amrex;
 

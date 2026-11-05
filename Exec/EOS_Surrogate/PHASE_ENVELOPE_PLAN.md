@@ -29,4 +29,4 @@ Goal: one figure and one sentence that turn "multi-component is the outlook" int
 
 ## What it buys the talk
 
-The outlook slide stops being a promise: a picture of the phase envelope family in the solver's own coordinates, the statement that the harvester, the ledger, the loci features and the seed-plus-polish structure carry over unchanged with $z$ as an extra coordinate, and an honest line that a mixture *backend* in CAMR is the real work (GERG-2008 is already the pure-fluid limit of the mixture model, so GERGTab is the natural host).
+The outlook slide stops being a promise: a picture of the phase envelope family in the solver's own coordinates, the statement that the harvester, the ledger, the loci features and the seed-plus-polish structure carry over unchanged with $z$ as an extra coordinate, and an honest line that a mixture *backend* in PSAMR is the real work (GERG-2008 is already the pure-fluid limit of the mixture model, so GERGTab is the natural host).

@@ -1,7 +1,7 @@
 #ifndef EOS_H
 #define EOS_H
 // =====================================================================
-//  GERG-2008 pure-CO2 EOS backend for CAMR (Eos_Model := GERG; also
+//  GERG-2008 pure-CO2 EOS backend for PSAMR (Eos_Model := GERG; also
 //  GERGTab under USE_GERGTAB_EOS, which adds a table seed).
 //
 //  Algorithm: every entry routes through the guarded GERG evaluator
@@ -23,8 +23,8 @@
 //  fallback: the PR header is included only for the hem::Phase3 /
 //  hem::State interface types; no PR function is called.
 //
-//  Dials: CAMR.gerg_ext_c (1) via gerg_ext_c_init(); under GERGTab
-//  CAMR.eos_table (1), CAMR.eos_table_auto (1), CAMR.eos_diag (0).
+//  Dials: PSAMR.gerg_ext_c (1) via gerg_ext_c_init(); under GERGTab
+//  PSAMR.eos_table (1), PSAMR.eos_table_auto (1), PSAMR.eos_diag (0).
 //  Units: SI.
 // =====================================================================
 
@@ -51,23 +51,23 @@ namespace EOS {
 
 #ifdef USE_GERGTAB_EOS
   // Host runtime gates; the device path is always the table.
-  // CAMR.eos_table (1): table seed on all hot paths; 0 = analytic
+  // PSAMR.eos_table (1): table seed on all hot paths; 0 = analytic
   // bisection, so one GERGTab build reproduces GERG.
 #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__) && !defined(__SYCL_DEVICE_ONLY__)
   inline bool gergtab_enabled()
   {
       static const bool e = []() {
-          int v = 1; amrex::ParmParse pp("CAMR");
+          int v = 1; amrex::ParmParse pp("PSAMR");
           pp.query("eos_table", v); return v != 0;
       }();
       return e;
   }
-  // CAMR.eos_table_auto (1): table seed on the auto path too; 0 =
+  // PSAMR.eos_table_auto (1): table seed on the auto path too; 0 =
   // analytic there.
   inline bool gergtab_auto_enabled()
   {
       static const bool a = []() {
-          int v = 1; amrex::ParmParse pp("CAMR");
+          int v = 1; amrex::ParmParse pp("PSAMR");
           pp.query("eos_table_auto", v); return v != 0;
       }();
       return a;
@@ -75,24 +75,24 @@ namespace EOS {
 #endif
 #endif
 
-  // CAMR.gerg_ext_c (1): continuous extension sound speed; 0 = 50 m/s
+  // PSAMR.gerg_ext_c (1): continuous extension sound speed; 0 = 50 m/s
   // throughout the extension (reproduction and bisection only).  The
   // guard header is AMReX-free, so the read lives here and is pushed
   // down; the resolved value is added to the ParmParse table so every
   // job_info records which surface produced the plotfile.  Called once
-  // from CAMR::read_params(), before any hydro.  A plain host function:
+  // from PSAMR::read_params(), before any hydro.  A plain host function:
   // not guarded on __CUDA_ARCH__, because nvcc's device pass still parses
-  // the host call in CAMR.cpp and needs the declaration.
+  // the host call in PSAMR.cpp and needs the declaration.
   inline void gerg_ext_c_init()
   {
       int v = 1;
-      amrex::ParmParse pp("CAMR");
+      amrex::ParmParse pp("PSAMR");
       pp.query("gerg_ext_c", v);
       gerg::set_ext_c(v != 0);
       pp.add("gerg_ext_c", v);                    // ensure it reaches job_info
       amrex::Print() << "  GERG: extension sound speed "
-                     << (v != 0 ? "CONTINUOUS (CAMR.gerg_ext_c=1, default)"
-                                : "LEGACY sqrt(CSQ_FLOOR)=50 m/s (CAMR.gerg_ext_c=0)")
+                     << (v != 0 ? "CONTINUOUS (PSAMR.gerg_ext_c=1, default)"
+                                : "LEGACY sqrt(CSQ_FLOOR)=50 m/s (PSAMR.gerg_ext_c=0)")
                      << std::endl;
   }
 
@@ -344,7 +344,7 @@ namespace EOS {
 
 #if defined(USE_GERGTAB_EOS) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__) && !defined(__SYCL_DEVICE_ONLY__)
   // =================================================================
-  //  Table-vs-analytic census for GERGTab (CAMR.eos_diag).  At every
+  //  Table-vs-analytic census for GERGTab (PSAMR.eos_diag).  At every
   //  call through the caches the analytic state (pure bisection) is also
   //  computed and relative dP/dT/dc accumulated by call site x path
   //  (auto/branchL/branchV) x regime, plus the fraction of traffic the
@@ -416,11 +416,11 @@ namespace EOS {
     }
   } // namespace gdiag
 
-  // CAMR.eos_diag (0): 1 enables the census above (doubles the EOS cost).
+  // PSAMR.eos_diag (0): 1 enables the census above (doubles the EOS cost).
   inline bool gergtab_diag_enabled()
   {
       static const bool d = []() {
-          int v = 0; amrex::ParmParse pp("CAMR");
+          int v = 0; amrex::ParmParse pp("PSAMR");
           pp.query("eos_diag", v);
           if (v != 0) { gdiag::tbl(); std::atexit(&gdiag::dump); }
           return v != 0;
@@ -747,7 +747,7 @@ namespace EOS {
 
   // ================================================================
   //  Ideal-gas heat capacities / energies / enthalpies from alpha0
-  //  (differences from Tref=298.15, matching CAMR conventions).
+  //  (differences from Tref=298.15, matching PSAMR conventions).
   // ================================================================
   AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
   double g_cv0(double T)                 // J/kg/K, ideal-gas cv

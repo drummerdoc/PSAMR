@@ -3,7 +3,7 @@
 #include <AMReX_ParmParse.H>
 
 #include <algorithm>
-#include <CAMR.H>
+#include <PSAMR.H>
 
 using namespace amrex;
 
@@ -19,7 +19,7 @@ void make_eb_converging_nozzle (const Geometry& geom, int required_coarsening_le
   // axis argument, so the same expression below builds an unrelated geometry
   // rather than a nozzle.
   amrex::ignore_unused(geom, required_coarsening_level);
-  amrex::Abort("CAMR.geometry = converging-nozzle is an axisymmetric (lathe) geometry and requires DIM = 3");
+  amrex::Abort("PSAMR.geometry = converging-nozzle is an axisymmetric (lathe) geometry and requires DIM = 3");
 #else
   amrex::Real d_inlet = 8;
   amrex::Real l_inlet = 24;

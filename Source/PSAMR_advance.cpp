@@ -1,16 +1,16 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "IndexDefines.H"
 #ifdef USE_PS_HYDRO
 #include "PS_relaxation.H"
 #include "PS_sources.H"
-#include "PS_validate.H"   // gated invariant tripwire (CAMR.ps_validate)
+#include "PS_validate.H"   // gated invariant tripwire (PSAMR.ps_validate)
 #endif
 
 #include <cmath>
 #include <AMReX_ParallelDescriptor.H>        // reductions in the PS-MASS probe
 #ifdef USE_PS_HYDRO
 #include "Hydro/PelantiShyue/PS_counters.H"  // PsCounters (guard / face / fold audits)
-#include "Hydro/PelantiShyue/PS_dials.H"     // ps_dial_int (CAMR.* reads)
+#include "Hydro/PelantiShyue/PS_dials.H"     // ps_dial_int (PSAMR.* reads)
 #include "Hydro/PelantiShyue/PS_hllc.H"      // PS_FL_NCAUSE / PS_FL_OK (face-audit labels)
 #include "Hydro/PelantiShyue/PS_umeth.H"    // dial accessors
 #endif
@@ -20,7 +20,7 @@ using std::string;
 using namespace amrex;
 
 amrex::Real
-CAMR::advance(
+PSAMR::advance(
   amrex::Real time, amrex::Real dt, int amr_iteration, int amr_ncycle)
 {
   // The main driver for a single level implementing the time advance.
@@ -32,7 +32,7 @@ CAMR::advance(
   //                        counter starts at 1
   //        @param amr_ncycle  the number of subcycles at this level
 
-    BL_PROFILE("CAMR::advance()");
+    BL_PROFILE("PSAMR::advance()");
 
     if (do_mol) {
         amrex::Print() << "Doing MOL Advance" << std::endl;
@@ -50,13 +50,13 @@ CAMR::advance(
     }
 
     amrex::Real dt_new;
-    dt_new = CAMR_advance(time, dt, amr_iteration, amr_ncycle);
+    dt_new = PSAMR_advance(time, dt, amr_iteration, amr_ncycle);
 
     return dt_new;
 }
 
 amrex::Real
-CAMR::CAMR_advance (Real time,
+PSAMR::PSAMR_advance (Real time,
                     Real dt,
                     int  amr_iteration,
                     int  amr_ncycle)
@@ -74,7 +74,7 @@ CAMR::CAMR_advance (Real time,
   //    amr_ncycle    : the number of subcycles at this level
 
 {
-    BL_PROFILE("CAMR::CAMR_advance()");
+    BL_PROFILE("PSAMR::PSAMR_advance()");
 
     amrex::ignore_unused(amr_iteration);
     amrex::ignore_unused(amr_ncycle);
@@ -117,15 +117,15 @@ CAMR::CAMR_advance (Real time,
     // Pelanti-Shyue reaction operator (resyncs, folds, floor, relaxation,
     // finite-rate sources; docs/MODEL_AND_ALGORITHM.md §8.5) and its
     // splitting controls.
-    //   CAMR.ps_do_relax (1): run the relaxation operator
+    //   PSAMR.ps_do_relax (1): run the relaxation operator
     //     (ps_apply_relaxation, the whole mechanical/thermal/mass-transfer
     //     kernel selected by ps_relax_mode); 0 = frozen, for no-relaxation
     //     tests.
-    //   CAMR.ps_strang (0): 0 = Lie (full-step reaction after hydro, first
+    //   PSAMR.ps_strang (0): 0 = Lie (full-step reaction after hydro, first
     //     order in time); 1 = Strang (half steps before and after hydro,
     //     second order; needed to keep do_mol=1 second order with
     //     relaxation/sources on).
-    //   CAMR.ps_class_compact (1): the launch form of the reaction step's
+    //   PSAMR.ps_class_compact (1): the launch form of the reaction step's
     //     per-cell operators (PS_classes.H): 1 = one class pass and one
     //     compact launch per operator over the admitted cells only; 0 = the
     //     whole-box launches (the A/B arm); 2 = the class pass with the
@@ -141,7 +141,7 @@ CAMR::CAMR_advance (Real time,
         //  running it.  Refuse the contradictory configuration.
         if (v == 0 && ps_relax_owns_mt() &&
             ps_source_dials().mt_tau > amrex::Real(0.0)) {
-            amrex::Abort("CAMR.ps_do_relax=0 with ps_relax_mode=5/6 and "
+            amrex::Abort("PSAMR.ps_do_relax=0 with ps_relax_mode=5/6 and "
                          "ps_mt_tau>0: mode 5's X3 kernel owns mass transfer "
                          "and is disabled, so no operator would run it. "
                          "Set ps_mt_tau=0 (A/C-style no-phase-change run) or "
@@ -151,7 +151,7 @@ CAMR::CAMR_advance (Real time,
         return v;
     }();
     static const int ps_strang_cached = ps_dial_int("ps_strang", 0);
-    // CAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
+    // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
     // advection/C-F (high on entry).
@@ -162,15 +162,15 @@ CAMR::CAMR_advance (Real time,
                        << ": alpha1 in [" << S.min(UALPHA1, 0) << ", "
                        << S.max(UALPHA1, 0) << "]\n";
     };
-    // ---- Mass-consistency probe (CAMR.ps_diag_mass=1) --------------------
+    // ---- Mass-consistency probe (PSAMR.ps_diag_mass=1) --------------------
     // The state stores mixture mass twice, URHO and UM1RHO1 + UM2RHO2, and
     // the hydro lets them drift.  The probe reports the drift, and the guard
     // and fold counters, at each stage of the reaction sequence so the
     // responsible operator can be named.  Reads the state, changes nothing.
     // See docs/MODEL_AND_ALGORITHM.md §8.6 for every line printed here.
-#ifdef CAMR_PS_DIAG
+#ifdef PSAMR_PS_DIAG
 #define PS_CELL_PROBE(S,L) cell_probe((S),(L))
-    // CAMR.ps_cell_diag (-1 = off): dump one cell's PS state at every stage
+    // PSAMR.ps_cell_diag (-1 = off): dump one cell's PS state at every stage
     // of the reaction sequence.  Reads only; not nested in the ps_diag_mass
     // gate.
     auto cell_probe = [&](const amrex::MultiFab& S, const char* label) {
@@ -200,12 +200,12 @@ CAMR::CAMR_advance (Real time,
     };
 #else
 #define PS_CELL_PROBE(S,L) ((void)0)
-#endif  // CAMR_PS_DIAG
+#endif  // PSAMR_PS_DIAG
     auto diag_mass = [&](amrex::MultiFab& S, const char* label) {
-        // Invariant tripwire (CAMR.ps_validate, 0 = off), independent of
+        // Invariant tripwire (PSAMR.ps_validate, 0 = off), independent of
         // the ps_diag_mass gate.
         ps_validate_state(S, label);
-        // CAMR.ps_diag_mass (0): the probe's gate.
+        // PSAMR.ps_diag_mass (0): the probe's gate.
         static const int dgm = ps_dial_int("ps_diag_mass", 0);
         if (dgm == 0) return;
         //  Per-cell contributions, each >= 0 (the extrema start at 0 and
@@ -316,7 +316,7 @@ CAMR::CAMR_advance (Real time,
                            << " nscbc_flash=" << nf_
                            << " pmix_fail=" << nm_ << "\n";
             pc.reset_guards();
-            // Face audit, gated on CAMR.ps_face_diag (0); the counters
+            // Face audit, gated on PSAMR.ps_face_diag (0); the counters
             // themselves cost a few compares per face.  The health lines
             // ([PS-RELAXFB], [PS-PROMOTE], [PS-FLCAUSE]) print under
             // ps_diag_mass alone; their counters reset at the same cadence
@@ -488,7 +488,7 @@ CAMR::CAMR_advance (Real time,
         diag_mass(S, "B post floor/fold/clean");
         PS_CELL_PROBE(S, "B  post clean_state    ");
         diag_a1(S, "reaction pre-relax");   // entering: reflects hydro/advection/C-F
-        ps_harvest_cells(S, ng, dt_r);       // CAMR.ps_harvest_cells: the operator's cell inputs (read-only, host builds)
+        ps_harvest_cells(S, ng, dt_r);       // PSAMR.ps_harvest_cells: the operator's cell inputs (read-only, host builds)
         if (ps_do_relax_cached != 0) {
             ps_apply_relaxation(S, dt_r, ng, do_print);   // dt_r for the finite-rate legs
             clean_state(S, ng, false); // intermediate: skip the UTEMP diagnostic sweep
@@ -496,11 +496,11 @@ CAMR::CAMR_advance (Real time,
         diag_mass(S, "C post relaxation (P/T/MT)");
         PS_CELL_PROBE(S, "C  post relaxation     ");
         diag_a1(S, "reaction post-relax");  // jump here => MT/relaxation is the driver
-        ps_harvest_states(S, ng);            // CAMR.ps_harvest: EOS-input harvest (read-only, host builds)
+        ps_harvest_states(S, ng);            // PSAMR.ps_harvest: EOS-input harvest (read-only, host builds)
         ps_apply_sources(S, dt_r, ng);
         diag_mass(S, "D post sources (flash)");
-#ifdef CAMR_PS_DIAG
-        {   // CAMR.ps_floor_diag (0): per-step census of the EOS repairs.
+#ifdef PSAMR_PS_DIAG
+        {   // PSAMR.ps_floor_diag (0): per-step census of the EOS repairs.
             // Not nested in ps_diag_mass.
             static const int fc = ps_dial_int("ps_floor_diag", 0);
             if (fc != 0) {
@@ -580,7 +580,7 @@ CAMR::CAMR_advance (Real time,
         // The stage-1 intermediate reaches the stage-2 flux, so vanished
         // phases are folded on it too (the standalone clamps after both RK
         // stages).  The fold is gated inside the wrapper by
-        // CAMR.ps_presence_vanish.
+        // PSAMR.ps_presence_vanish.
         if (ps_hydro != 0) { ps_apply_vanish_fold(S_new, 0); }
 #endif
 
@@ -634,7 +634,7 @@ CAMR::CAMR_advance (Real time,
     // applied here.  In Lie mode (ps_strang=0) this is the full-step
     // reaction after hydro; in Strang mode it is the second half step
     // completing R(dt/2)·H(dt)·R(dt/2).  The finite-rate sources default
-    // on (CAMR.ps_flash_tau = CAMR.ps_mt_tau = 1e-7 s; see PS_sources.H).
+    // on (PSAMR.ps_flash_tau = PSAMR.ps_mt_tau = 1e-7 s; see PS_sources.H).
     if (ps_hydro != 0) {
         diag_a1(S_new, "post-hydro");    // high here (w/o relax) => advection/C-F, not MT
         const amrex::Real dt_react =

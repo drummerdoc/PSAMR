@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """#42 active-learning EOS sampler -- aggregate the in-situ harvest shards.
 
-The CAMR harvester (CAMR.ps_harvest=1) writes per-rank shards
+The PSAMR harvester (PSAMR.ps_harvest=1) writes per-rank shards
     <file>_r<rank>.csv     columns: phase,rho,e,alpha,T,valid,count
 each a bucket-deduplicated slice of the (rho,e,phase) states the per-phase PR
 EOS was actually inverted at during the run (the DEPLOYMENT distribution).

@@ -1,5 +1,5 @@
 
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "EOS.H"
 
 using std::string;
@@ -7,9 +7,9 @@ using std::string;
 using namespace amrex;
 
 void
-CAMR::react(MultiFab& /*S*/)
+PSAMR::react(MultiFab& /*S*/)
 {
-    BL_PROFILE("CAMR::react()");
+    BL_PROFILE("PSAMR::react()");
 
     if (do_react) {
         amrex::Print() << "This is a stub for reactions but nothing is happening yet" << std::endl;

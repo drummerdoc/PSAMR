@@ -2,15 +2,15 @@
 #define UTILITIES_H
 
 #include <AMReX_FArrayBox.H>
-#include "CAMR_Constants.H"
+#include "PSAMR_Constants.H"
 #include "IndexDefines.H"
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "EOS.H"
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_reset_internal_e(
+PSAMR_reset_internal_e(
   const int i,
   const int j,
   const int k,

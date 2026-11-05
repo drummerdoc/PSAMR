@@ -37,7 +37,7 @@
 //  no box waits on a host sync and boxes keep overlapping across streams.
 //  The totals are copied to the host once per sweep for the census.
 //
-//  Dial (CAMR.ps_class_compact, default 1): 0 = the whole-box launches
+//  Dial (PSAMR.ps_class_compact, default 1): 0 = the whole-box launches
 //  (the A/B arm for the bitwise check and the bench), 1 = the compact
 //  list launches, 2 = the class pass with a whole-box launch gated on the
 //  class byte (separates the pass's cost from the compaction's gain).
@@ -67,13 +67,13 @@ constexpr unsigned char FLASH = 2;   // the nucleator's admission (one phase pre
 constexpr unsigned char MT    = 4;   // the split transfer source's admission (both Independent; modes 0/2)
 }
 
-//  CAMR.ps_class_compact (1): see the header.  Single read site.
+//  PSAMR.ps_class_compact (1): see the header.  Single read site.
 inline int ps_class_compact()
 {
     static const int v = []() -> int {
         const int c = ps_dial_int("ps_class_compact", 1);
         if (c < 0 || c > 2) {
-            amrex::Abort("CAMR.ps_class_compact = " + std::to_string(c) +
+            amrex::Abort("PSAMR.ps_class_compact = " + std::to_string(c) +
                          " is not a launch form (0 whole-box, 1 compact lists, "
                          "2 class pass with whole-box launch)");
         }

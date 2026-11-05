@@ -1,6 +1,6 @@
 #C++ files
 CEXE_sources += Hydro_adjust_fluxes.cpp
-CEXE_sources += CAMR_construct_hydro_source.cpp
+CEXE_sources += PSAMR_construct_hydro_source.cpp
 CEXE_sources += Hydro_consup.cpp
 CEXE_sources += Hydro_umdrv.cpp
 

@@ -15,12 +15,12 @@
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
-#include "CAMR.H"
-#include "CAMR_io.H"
+#include "PSAMR.H"
+#include "PSAMR_io.H"
 #include "IndexDefines.H"
 
 void
-CAMR::restart(amrex::Amr& papa, std::istream& is, bool bReadSpecial)
+PSAMR::restart(amrex::Amr& papa, std::istream& is, bool bReadSpecial)
 {
   AmrLevel::restart(papa, is, bReadSpecial);
 
@@ -42,7 +42,7 @@ CAMR::restart(amrex::Amr& papa, std::istream& is, bool bReadSpecial)
 }
 
 void
-CAMR::checkPoint(
+PSAMR::checkPoint(
   const std::string& dir,
   std::ostream& os,
   amrex::VisMF::How how,
@@ -84,11 +84,11 @@ CAMR::checkPoint(
 }
 
 void
-CAMR::setPlotVariables()
+PSAMR::setPlotVariables()
 {
   amrex::AmrLevel::setPlotVariables();
 
-  amrex::ParmParse pp("CAMR");
+  amrex::ParmParse pp("PSAMR");
 
   // Species are dropped from the default ("all state variables") plot list
   // unless plot_rhoy is set.  If the user gave an explicit amr.plot_vars list
@@ -121,7 +121,7 @@ CAMR::setPlotVariables()
 }
 
 void
-CAMR::writeJobInfo(const std::string& dir)
+PSAMR::writeJobInfo(const std::string& dir)
 {
   // job_info file with details about the run
   std::ofstream jobInfoFile;
@@ -137,7 +137,7 @@ CAMR::writeJobInfo(const std::string& dir)
 
   // job information
   jobInfoFile << PrettyLine;
-  jobInfoFile << " CAMR Job Information\n";
+  jobInfoFile << " PSAMR Job Information\n";
   jobInfoFile << PrettyLine;
 
   jobInfoFile << "job name: " << job_name << "\n\n";
@@ -203,13 +203,13 @@ CAMR::writeJobInfo(const std::string& dir)
   const char* githash2 = amrex::buildInfoGetGitHash(2);
   const char* githash3 = amrex::buildInfoGetGitHash(3);
   if (strlen(githash1) > 0) {
-    jobInfoFile << "CAMR       git hash: " << githash1 << "\n";
+    jobInfoFile << "PSAMR       git hash: " << githash1 << "\n";
   }
   if (strlen(githash2) > 0) {
     jobInfoFile << "AMReX       git hash: " << githash2 << "\n";
   }
   if (strlen(githash3) > 0) {
-    jobInfoFile << "CAMRPhysics git hash: " << githash3 << "\n";
+    jobInfoFile << "PSAMRPhysics git hash: " << githash3 << "\n";
   }
 
   const char* buildgithash = amrex::buildInfoGetBuildGitHash();
@@ -241,7 +241,7 @@ CAMR::writeJobInfo(const std::string& dir)
   jobInfoFile << " Boundary conditions\n";
   amrex::Vector<std::string> lo_bc_out(AMREX_SPACEDIM);
   amrex::Vector<std::string> hi_bc_out(AMREX_SPACEDIM);
-  amrex::ParmParse pp("CAMR");
+  amrex::ParmParse pp("PSAMR");
   pp.getarr("lo_bc", lo_bc_out, 0, AMREX_SPACEDIM);
   pp.getarr("hi_bc", hi_bc_out, 0, AMREX_SPACEDIM);
 
@@ -283,11 +283,11 @@ CAMR::writeJobInfo(const std::string& dir)
   jobInfoFile.close();
 }
 
-// CAMR::writeBuildInfo
+// PSAMR::writeBuildInfo
 // Similar to writeJobInfo, but the subset of information that makes sense
 // without an input file to enable --describe in format similar to CASTRO
 void
-CAMR::writeBuildInfo(std::ostream& os)
+PSAMR::writeBuildInfo(std::ostream& os)
 {
   // NOTE: this routine is called from main() *before* amrex::Initialize, so
   //       everything here must write to "os" -- amrex::Print() cannot be used
@@ -299,7 +299,7 @@ CAMR::writeBuildInfo(std::ostream& os)
 
   // build information
   os << PrettyLine;
-  os << " CAMR Build Information\n";
+  os << " PSAMR Build Information\n";
   os << PrettyLine;
 
   os << "build date:    " << amrex::buildInfoGetBuildDate() << "\n";
@@ -337,13 +337,13 @@ CAMR::writeBuildInfo(std::ostream& os)
   const char* githash2 = amrex::buildInfoGetGitHash(2);
   const char* githash3 = amrex::buildInfoGetGitHash(3);
   if (strlen(githash1) > 0) {
-    os << "CAMR       git hash: " << githash1 << "\n";
+    os << "PSAMR       git hash: " << githash1 << "\n";
   }
   if (strlen(githash2) > 0) {
     os << "AMReX       git hash: " << githash2 << "\n";
   }
   if (strlen(githash3) > 0) {
-    os << "CAMRPhysics git hash: " << githash3 << "\n";
+    os << "PSAMRPhysics git hash: " << githash3 << "\n";
   }
 
   const char* buildgithash = amrex::buildInfoGetBuildGitHash();
@@ -353,10 +353,10 @@ CAMR::writeBuildInfo(std::ostream& os)
   }
 
   os << "\n";
-  os << " CAMR Compile time variables: \n";
+  os << " PSAMR Compile time variables: \n";
 
   os << "\n";
-  os << " CAMR Defines: \n";
+  os << " PSAMR Defines: \n";
 #ifdef _OPENMP
   os << std::setw(35) << std::left << "_OPENMP " << std::setw(6) << "ON"
      << std::endl;
@@ -400,7 +400,7 @@ CAMR::writeBuildInfo(std::ostream& os)
 }
 
 void
-CAMR::buildAndWritePlotMF(
+PSAMR::buildAndWritePlotMF(
   const amrex::Vector<std::pair<int, int>>& plot_var_map,
   const std::list<std::string>& derive_names,
   int n_data_items,
@@ -444,7 +444,7 @@ CAMR::buildAndWritePlotMF(
    amrex::EB_set_covered(plotMF,0.0);
 #endif
 
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
     ZeroingOutForPlotting(plotMF);
 #endif
 
@@ -455,7 +455,7 @@ CAMR::buildAndWritePlotMF(
 }
 
 void
-CAMR::writePlotFile(
+PSAMR::writePlotFile(
   const std::string& dir, std::ostream& os, amrex::VisMF::How how)
 {
   // The list of indices of State to write to plotfile.
@@ -601,7 +601,7 @@ CAMR::writePlotFile(
 }
 
 void
-CAMR::writeSmallPlotFile(
+PSAMR::writeSmallPlotFile(
   const std::string& dir, std::ostream& os, amrex::VisMF::How how)
 {
   // The list of indices of State to write to plotfile.

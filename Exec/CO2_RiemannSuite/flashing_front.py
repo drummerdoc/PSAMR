@@ -28,14 +28,14 @@ implementation (docs/VERIFICATION.md).
 
 Usage:  [EXE=...] [FLASH_V2E_EXE=...] [FLASH_OUT=...] python3 flashing_front.py
         EXE defaults to the 1-D executable discovered by full_suite.py
-        (newest ./CAMR1d.*.ex, or CAMR_EXE).
+        (newest ./PSAMR1d.*.ex, or PSAMR_EXE).
 """
 import os, sys, glob, subprocess
 import numpy as np
 import ps_plotfile as R
 import full_suite as F           # main-guarded; provides the exe discovery
 
-EXE  = os.environ.get('EXE') or F.CAMR
+EXE  = os.environ.get('EXE') or F.PSAMR
 V2E  = os.environ.get('FLASH_V2E_EXE', '')
 OUT  = os.environ.get('FLASH_OUT', './flash_red_runs')
 os.makedirs(OUT, exist_ok=True)
@@ -43,23 +43,23 @@ os.makedirs(OUT, exist_ok=True)
 T_SCORE = 8.0e-5           # scoring time (the reference dies just past it)
 RED = {'ref': 2.3428, 'leg': 2.1022, 'v2e': 1.4838, 'v2s': 2.4081}   # v2s re-pinned at B-5 (was 2.2474)
 
-COMMON = ['inputs', 'CAMR.cfl=0.25', 'prob.alpha_trace=1.0e-6',
+COMMON = ['inputs', 'PSAMR.cfl=0.25', 'prob.alpha_trace=1.0e-6',
           'prob.u_L=0', 'prob.u_R=0', 'stop_time=2.5e-4',
           'amr.plot_int=-1', 'amr.plot_per=2.0e-5',
-          'amr.v=0', 'CAMR.v=1', 'CAMR.ps_diag_mass=1']
+          'amr.v=0', 'PSAMR.v=1', 'PSAMR.ps_diag_mass=1']
 TUBE = ['geometry.prob_lo=0.0', 'geometry.prob_hi=1.0', 'amr.n_cell=256',
         'prob.x_diaph=0.5',
         'prob.phase_L=1', 'prob.T_L=320', 'prob.p_L=1.0e7', 'prob.x_qual_L=0.0',
         'prob.phase_R=1', 'prob.T_R=320', 'prob.p_R=1.0e7', 'prob.x_qual_R=0.0',
-        'CAMR.lo_bc=SlipWall', 'CAMR.hi_bc=Inflow',
-        'prob.p_amb=1.0e5', 'CAMR.ps_bc_use_nscbc=1']
+        'PSAMR.lo_bc=SlipWall', 'PSAMR.hi_bc=Inflow',
+        'prob.p_amb=1.0e5', 'PSAMR.ps_bc_use_nscbc=1']
 LEGS = {
   'ref': (2.0, ['geometry.prob_lo=0.0', 'geometry.prob_hi=2.0', 'amr.n_cell=512',
                 'prob.x_diaph=0.5',   # FRACTION of x-extent -> interface at x=1
                 'prob.phase_L=1', 'prob.T_L=320', 'prob.p_L=1.0e7', 'prob.x_qual_L=0.0',
                 'prob.phase_R=0', 'prob.T_R=300', 'prob.p_R=1.0e5', 'prob.x_qual_R=1.0',
-                'CAMR.lo_bc=SlipWall', 'CAMR.hi_bc=Inflow', 'prob.p_amb=1.0e5']),
-  'leg': (1.0, TUBE + ['CAMR.ps_bc_nscbc_v2=0']),   # historical; not run
+                'PSAMR.lo_bc=SlipWall', 'PSAMR.hi_bc=Inflow', 'prob.p_amb=1.0e5']),
+  'leg': (1.0, TUBE + ['PSAMR.ps_bc_nscbc_v2=0']),   # historical; not run
   'v2s': (1.0, TUBE),
   'v2e': (1.0, TUBE),
 }

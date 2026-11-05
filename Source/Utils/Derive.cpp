@@ -1,14 +1,14 @@
 #include "EOS.H"
 #include "Derive.H"
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "IndexDefines.H"
-#include "CAMR_Constants.H"
+#include "PSAMR_Constants.H"
 #ifdef USE_PS_HYDRO
 #include <AMReX_ParmParse.H>
 #include "PS_ctoprim.H"   // ps_mixture_pressure_from_cons
 #include "PS_wavespeed.H" // ps_frozen_cmix_from_state
 
-//  CAMR.ps_hydro, one cached read (see CAMR::read_params).  CAMR::ps_hydro
+//  PSAMR.ps_hydro, one cached read (see PSAMR::read_params).  PSAMR::ps_hydro
 //  is a protected static, unreadable from these free functions.  The
 //  sound-speed derives need it because, unlike derpres, their PS routing
 //  must not engage when the six-equation slots are carried as passive
@@ -18,7 +18,7 @@ int ps_derive_ps_hydro()
 {
     static const int v = []() -> int {
         int r = 0;
-        amrex::ParmParse pp("CAMR");
+        amrex::ParmParse pp("PSAMR");
         pp.query("ps_hydro", r);
         return r;
     }();
@@ -28,7 +28,7 @@ int ps_derive_ps_hydro()
 #endif
 
 void
-CAMR_dervelx(
+PSAMR_dervelx(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -57,7 +57,7 @@ amrex::Real local_small_den = 1.e-20;
 
 #if (AMREX_SPACEDIM >= 2)
 void
-CAMR_dervely(
+PSAMR_dervely(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -87,7 +87,7 @@ amrex::Real local_small_den = 1.e-20;
 
 #if (AMREX_SPACEDIM == 3)
 void
-CAMR_dervelz(
+PSAMR_dervelz(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -116,7 +116,7 @@ amrex::Real local_small_den = 1.e-20;
 #endif
 
 void
-CAMR_dermagvel(
+PSAMR_dermagvel(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -149,7 +149,7 @@ amrex::Real local_small_den = 1.e-20;
 }
 
 void
-CAMR_dermagmom(
+PSAMR_dermagmom(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -172,7 +172,7 @@ CAMR_dermagmom(
 }
 
 void
-CAMR_derkineng(
+PSAMR_derkineng(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -204,7 +204,7 @@ amrex::Real local_small_den = 1.e-20;
 }
 
 void
-CAMR_dereint1(
+PSAMR_dereint1(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -238,7 +238,7 @@ amrex::Real local_small_den = 1.e-20;
 }
 
 void
-CAMR_dereint2(
+PSAMR_dereint2(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -267,7 +267,7 @@ amrex::Real local_small_den = 1.e-20;
 }
 
 void
-CAMR_derlogden(
+PSAMR_derlogden(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -296,7 +296,7 @@ amrex::Real local_small_den = 1.e-20;
 
 #ifdef USE_PS_HYDRO
 void
-CAMR_der_ps_alpha1(
+PSAMR_der_ps_alpha1(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -308,7 +308,7 @@ CAMR_der_ps_alpha1(
   const int /*level*/)
 {
   // datfab carries the full state (URHO..NVAR, see the registration in
-  // CAMR_setup.cpp); read the UALPHA1 slot.
+  // PSAMR_setup.cpp); read the UALPHA1 slot.
   auto const dat = datfab.const_array();
   auto vf = derfab.array();
   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
@@ -318,7 +318,7 @@ CAMR_der_ps_alpha1(
 #endif
 
 void
-CAMR_derspec(
+PSAMR_derspec(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -345,7 +345,7 @@ CAMR_derspec(
 }
 
 void
-CAMR_dermagvort(
+PSAMR_dermagvort(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -429,7 +429,7 @@ CAMR_dermagvort(
 }
 
 void
-CAMR_derdivu(
+PSAMR_derdivu(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -506,7 +506,7 @@ CAMR_derdivu(
 }
 
 void
-CAMR_derenstrophy(
+PSAMR_derenstrophy(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -594,7 +594,7 @@ CAMR_derenstrophy(
 }
 
 void
-CAMR_dernull(
+PSAMR_dernull(
   const amrex::Box& /*bx*/,
   amrex::FArrayBox& /*derfab*/,
   int /*dcomp*/,
@@ -609,7 +609,7 @@ CAMR_dernull(
 }
 
 void
-CAMR_dersoundspeed(
+PSAMR_dersoundspeed(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -667,7 +667,7 @@ CAMR_dersoundspeed(
 }
 
 void
-CAMR_dermachnumber(
+PSAMR_dermachnumber(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -682,7 +682,7 @@ CAMR_dermachnumber(
   auto mach = derfab.array();
 
 #ifdef USE_PS_HYDRO
-  //  Same routing as CAMR_dersoundspeed above.
+  //  Same routing as PSAMR_dersoundspeed above.
   const int    l_ps   = ps_derive_ps_hydro();
   const PsPres l_pres = ps_presence_params();   // one host read
 #endif
@@ -725,7 +725,7 @@ CAMR_dermachnumber(
 }
 
 void
-CAMR_derpres(
+PSAMR_derpres(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -784,7 +784,7 @@ CAMR_derpres(
 // Per-phase temperatures temp_1 (liquid) / temp_2 (vapor).  A vanished
 // phase reports the mixture temperature UTEMP (ps_phase_temp_from_cons) so
 // the field stays physical and continuous.
-static void CAMR_dertemp_phase(
+static void PSAMR_dertemp_phase(
   const amrex::Box& bx, amrex::FArrayBox& derfab, const amrex::FArrayBox& datfab,
   int phase)
 {
@@ -797,20 +797,20 @@ static void CAMR_dertemp_phase(
   });
 }
 void
-CAMR_dertemp1(
+PSAMR_dertemp1(
   const amrex::Box& bx, amrex::FArrayBox& derfab, int /*dcomp*/, int /*ncomp*/,
   const amrex::FArrayBox& datfab, const amrex::Geometry& /*geomdata*/,
   amrex::Real /*time*/, const int* /*bcrec*/, const int /*level*/)
 {
-  CAMR_dertemp_phase(bx, derfab, datfab, 1);
+  PSAMR_dertemp_phase(bx, derfab, datfab, 1);
 }
 void
-CAMR_dertemp2(
+PSAMR_dertemp2(
   const amrex::Box& bx, amrex::FArrayBox& derfab, int /*dcomp*/, int /*ncomp*/,
   const amrex::FArrayBox& datfab, const amrex::Geometry& /*geomdata*/,
   amrex::Real /*time*/, const int* /*bcrec*/, const int /*level*/)
 {
-  CAMR_dertemp_phase(bx, derfab, datfab, 2);
+  PSAMR_dertemp_phase(bx, derfab, datfab, 2);
 }
 #endif
 
@@ -818,11 +818,11 @@ CAMR_dertemp2(
 // the mass ACTUALLY transferred during the reaction substep (dm1/dt); on the
 // stored post-step state there is nothing left mid-flash to measure (near-
 // instant MT flashes cells fully out of the two-phase band within one step).
-// It is therefore recorded in CAMR::flash_src during advance and served via
-// the CAMR::derive("flash_rate") override (mirrors the EB "vfrac" pattern).
+// It is therefore recorded in PSAMR::flash_src during advance and served via
+// the PSAMR::derive("flash_rate") override (mirrors the EB "vfrac" pattern).
 
 void
-CAMR_dertemp(
+PSAMR_dertemp(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,
@@ -842,7 +842,7 @@ CAMR_dertemp(
 }
 
 void
-CAMR_dercp(
+PSAMR_dercp(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int /*dcomp*/,

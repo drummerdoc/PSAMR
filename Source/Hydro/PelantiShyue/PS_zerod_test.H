@@ -6,17 +6,17 @@
 //  mass-transfer kernels on the production EOS callback.  Run from
 //  main() after AMReX/EOS initialisation, without time-stepping; each
 //  returns a failure count that main() turns into the exit code, so a
-//  CI step is `<exe> <inputs> CAMR.ps_ptg_selftest=1 CAMR.ps_relax_sweep=1
+//  CI step is `<exe> <inputs> PSAMR.ps_ptg_selftest=1 PSAMR.ps_relax_sweep=1
 //  max_step=0` (exit 0 = pass).  See docs/VERIFICATION.md.
 //
-//    CAMR.ps_ptg_selftest=1  ps_ptg_zerod_selftest: off-equilibrium
+//    PSAMR.ps_ptg_selftest=1  ps_ptg_zerod_selftest: off-equilibrium
 //        two-phase cells must reach P1 = P2, g1 = g2 with exact mass and
 //        energy conservation under hem::ps_mass_transfer_relax_cell.
-//    CAMR.ps_relax_sweep=1   ps_relax_corner_sweep: every relaxation
+//    PSAMR.ps_relax_sweep=1   ps_relax_corner_sweep: every relaxation
 //        solver, on the corners a demo never exercises, leaves a finite
 //        state that is valid or gracefully refused; never "claims ok but
 //        invalid".
-//    CAMR.ps_x3_test=1       ps_x3_fixedpoint_test: the X3 coupled source
+//    PSAMR.ps_x3_test=1       ps_x3_fixedpoint_test: the X3 coupled source
 //        reaches one fixed point independent of route and basin, equal
 //        to the HEM flash of the cell invariants.
 //
@@ -71,7 +71,7 @@ inline double ps_zt_e_of_rhoT(const hem::PsPhaseAPI& eos, int phase,
 // on-dome and the dm sign are informational.
 inline int ps_ptg_zerod_selftest()
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-0D] EOS API invalid\n"; return 1; }
 
     amrex::Print() << "\n===== PS 0-D mass-transfer-equilibrium self-test =====\n";
@@ -154,7 +154,7 @@ inline int ps_ptg_zerod_selftest()
 
 
 // ---------------------------------------------------------------------
-//  ps_x3_fixedpoint_test (CAMR.ps_x3_test=1): acceptance test of the X3
+//  ps_x3_fixedpoint_test (PSAMR.ps_x3_test=1): acceptance test of the X3
 //  coupled relaxation source on six reference states, three routes each:
 //    A: constant dt = 1e-4 to a fixed point;
 //    B: geometric dt ladder 1e-7 -> 1e-2 (route independence);
@@ -166,13 +166,13 @@ inline int ps_ptg_zerod_selftest()
 //  1e-3 rel.  The harness rate constants set the approach speed only;
 //  the endpoint may not depend on them.  Returns the failing-state count.
 // ---------------------------------------------------------------------
-//  op = 0: the nested X3 operator (CAMR.ps_x3_test=1); op = 1: the
-//  flattened X3F operator with the production dials (CAMR.ps_x3_test=2):
+//  op = 0: the nested X3 operator (PSAMR.ps_x3_test=1); op = 1: the
+//  flattened X3F operator with the production dials (PSAMR.ps_x3_test=2):
 //  the same six states, routes and acceptance, so the two operators are
 //  held to one fixed point.
 inline int ps_x3_fixedpoint_test(int op = 0)
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-X3] EOS API invalid\n"; return 1; }
 
     amrex::Print() << "\n===== PS " << (op == 1 ? "X3F (flattened)" : "X3")
@@ -302,7 +302,7 @@ inline int ps_x3_fixedpoint_test(int op = 0)
 
 
 // ---------------------------------------------------------------------
-//  ps_relax_corner_sweep (CAMR.ps_relax_sweep=1): robustness map of the
+//  ps_relax_corner_sweep (PSAMR.ps_relax_sweep=1): robustness map of the
 //  relaxation Newton solves in the corners a demo never exercises:
 //  deep-trace alpha, metastable/spinodal per-phase states, cross-critical,
 //  cold near-triple.  For each state every solver runs on a copy and the
@@ -361,7 +361,7 @@ inline int ps_relax_corner_report(const char* label, hem::V6 U0,
 // Driver over the corner table; returns the UNSAFE count (0 = all safe).
 inline int ps_relax_corner_sweep()
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-sweep] EOS API invalid\n"; return 1; }
     amrex::Print() << "\n===== PS relaxation CORNER sweep (#41) =====\n";
     amrex::Print() << "  solvers: isoP=iso pressure, isoT=iso thermal, MT(g)=Gibbs mass-xfer, mechP=alpha-adjust pressure\n";
@@ -400,25 +400,25 @@ inline int ps_relax_corner_sweep()
 
 
 // ---------------------------------------------------------------------
-//  ps_x3_replay_bench (CAMR.ps_x3_replay=<cells.csv>): replay the X3
+//  ps_x3_replay_bench (PSAMR.ps_x3_replay=<cells.csv>): replay the X3
 //  relaxation operator, off-line, on the cell inputs a run harvested
-//  (CAMR.ps_harvest_cells, PS_harvest.H).  The development loop of
+//  (PSAMR.ps_harvest_cells, PS_harvest.H).  The development loop of
 //  docs/DESIGN_DECISIONS.md O-28: change the operator, replay the same
 //  cells, compare outcome and cost without re-running the deck.
-//    Operators (CAMR.ps_x3_replay_ops, default "x3,x3f,x3f_fixed"):
+//    Operators (PSAMR.ps_x3_replay_ops, default "x3,x3f,x3f_fixed"):
 //      x3         the nested operator ps_x3_relax_cell
 //      x3f        the flattened operator ps_x3f_relax_cell, adaptive Newton
 //      x3f_fixed  the flattened operator at a fixed Newton count
-//                 (CAMR.ps_x3_replay_fixed_n, 6): the thread-divergence probe
-//    Per cell and operator: the harvested V6 and dt (CAMR.ps_x3_replay_dt
-//    > 0 overrides it, CAMR.ps_x3_replay_dt_scale multiplies it: the dt
+//                 (PSAMR.ps_x3_replay_fixed_n, 6): the thread-divergence probe
+//    Per cell and operator: the harvested V6 and dt (PSAMR.ps_x3_replay_dt
+//    > 0 overrides it, PSAMR.ps_x3_replay_dt_scale multiplies it: the dt
 //    ladder), the operator dials as the run had them
 //    (ps_x3_params_from_dials), the outcome class, sub-steps, Newton
 //    iterations, path evaluations (X3) or forward EOS pairs (X3F), the
 //    band-exit code, and the exit state.  Host builds time each cell
-//    serially (best of CAMR.ps_x3_replay_reps); GPU builds run every
+//    serially (best of PSAMR.ps_x3_replay_reps); GPU builds run every
 //    operator as one ParallelFor over the cells replicated
-//    CAMR.ps_x3_replay_gpu_rep times, in harvested order and in an order
+//    PSAMR.ps_x3_replay_gpu_rep times, in harvested order and in an order
 //    sorted by X3 cost (a warp-homogeneous order: the ratio is the
 //    divergence penalty), and report ns per cell-visit.
 //    A cell file written by the same X3 operator carries the in-situ
@@ -426,7 +426,7 @@ inline int ps_relax_corner_sweep()
 //    deterministic and history-free), every cell that does not is
 //    counted and fails the gate.  X3F is compared to X3 on the exit
 //    states (alpha_1, P_1, T_1, T_2) over the cells both integrated.
-//    Written: CAMR.ps_x3_replay_out (default <cells.csv>.replay.csv).
+//    Written: PSAMR.ps_x3_replay_out (default <cells.csv>.replay.csv).
 //  Returns the X3 fidelity failures (0 when the file carries no in-situ
 //  outcome), or 1 when the file cannot be read.
 // ---------------------------------------------------------------------
@@ -477,7 +477,7 @@ inline void run_cell(const double* U8, double dt, int iters,
 inline int ps_x3_replay_bench(const std::string& file)
 {
     using namespace ps_replay;
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-X3] EOS API invalid\n"; return 1; }
 
     // ---- the cells

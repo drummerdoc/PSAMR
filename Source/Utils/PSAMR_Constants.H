@@ -1,9 +1,9 @@
-#ifndef CAMR_CONSTANTS_H
-#define CAMR_CONSTANTS_H
+#ifndef PSAMR_CONSTANTS_H
+#define PSAMR_CONSTANTS_H
 
 #include <AMReX_REAL.H>
 
-struct CAMRConstants
+struct PSAMRConstants
 {
     static constexpr amrex::Real small     = 1.e-12;
     static constexpr amrex::Real smallu    = 1.e-12;

@@ -1,4 +1,4 @@
-CAMR_HOME      ?= ../..
+PSAMR_HOME      ?= ../..
 AMREX_HOME     ?= ../../../amrex
 
 # AMReX
@@ -27,7 +27,7 @@ DEBUG = FALSE
 #TEST = TRUE
 #USE_ASSERTION = TRUE
 
-# CAMR
+# PSAMR
 USE_EB = FALSE
 
 # Phase 1 wiring:  PR is a γ=1.4 clone of GammaLaw so this
@@ -40,4 +40,4 @@ Eos_Model := PR
 Bpack := ./Make.package
 Blocs := .
 
-include $(CAMR_HOME)/Exec/Make.CAMR
+include $(PSAMR_HOME)/Exec/Make.PSAMR

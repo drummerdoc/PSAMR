@@ -1,7 +1,7 @@
 #ifndef PS_HARVEST_H
 #define PS_HARVEST_H
 // =====================================================================
-//  PS_harvest.H — in-situ EOS state harvester (CAMR.ps_harvest, default
+//  PS_harvest.H — in-situ EOS state harvester (PSAMR.ps_harvest, default
 //  0).  Records the (rho_k, e_k, phase) inputs the branch-locked EOS is
 //  actually inverted at during a run, as the deployment distribution for
 //  training or benchmarking an EOS surrogate.  States are quantised into
@@ -29,7 +29,7 @@
 
 #ifdef USE_PS_HYDRO
 
-#include "PS_relax.H"      // ps_make_camr_eos_api, PS_util.H (ps_kinetic_energy), PS_dials.H
+#include "PS_relax.H"      // ps_make_psamr_eos_api, PS_util.H (ps_kinetic_energy), PS_dials.H
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -40,21 +40,21 @@
 #include <unordered_map>
 #include <algorithm>
 
-// CAMR.ps_harvest (0): 1 = harvest the per-phase EOS inputs after the
+// PSAMR.ps_harvest (0): 1 = harvest the per-phase EOS inputs after the
 // relaxation operator every step.
 inline int ps_harvest()
 {
     static const int v = ps_dial_int("ps_harvest", 0);
     return v;
 }
-// CAMR.ps_harvest_trace (0): 1 also records the trace phase of a near-pure
+// PSAMR.ps_harvest_trace (0): 1 also records the trace phase of a near-pure
 // cell, whose rho = m/alpha and e = UE/m are numerical noise; audit only.
 inline int ps_harvest_trace()
 {
     static const int v = ps_dial_int("ps_harvest_trace", 0);
     return v;
 }
-// CAMR.ps_harvest_afloor (1e-4): a phase is recorded only where its own
+// PSAMR.ps_harvest_afloor (1e-4): a phase is recorded only where its own
 // volume fraction exceeds this; matches the aggregator's MINALPHA.
 inline amrex::Real ps_harvest_afloor()
 {
@@ -62,7 +62,7 @@ inline amrex::Real ps_harvest_afloor()
     return v;
 }
 
-// CAMR.ps_harvest_corridor (0): what to do with a Corridor phase
+// PSAMR.ps_harvest_corridor (0): what to do with a Corridor phase
 // (PS_presence.H regime): 0 = skip (its quotient is host-slaved, not an
 // EOS input), 1 = record it collapsed onto the host's (rho, e) bucket with
 // presence = 1, 2 = record the raw quotient (audit of the pre-presence
@@ -73,7 +73,7 @@ inline int ps_harvest_corridor()
     return v;
 }
 
-//  CAMR.ps_harvest_cells (0): also record whole relaxation inputs (the
+//  PSAMR.ps_harvest_cells (0): also record whole relaxation inputs (the
 //  cell harvest, below).  1 records the cells the X3 operator would
 //  enter, with the operator's own outcome alongside.
 inline int ps_harvest_cells()
@@ -87,11 +87,11 @@ struct PsHarvestReservoir
     struct Rec { double rho, e, alpha, T; int phase; int valid; int presence; long count; };
     long n_corridor_skipped = 0;   // Corridor records dropped (mode 0)
     std::unordered_map<std::uint64_t, Rec> buckets;
-    double dlr = 0.05;      // CAMR.ps_harvest_dlr: log10(rho) bucket width
-    double de  = 2.0e3;     // CAMR.ps_harvest_de: e bucket width [J/kg]
-    long   flush_stride = 0;// CAMR.ps_harvest_flush: > 0 also flushes every N calls
+    double dlr = 0.05;      // PSAMR.ps_harvest_dlr: log10(rho) bucket width
+    double de  = 2.0e3;     // PSAMR.ps_harvest_de: e bucket width [J/kg]
+    long   flush_stride = 0;// PSAMR.ps_harvest_flush: > 0 also flushes every N calls
     long   ncalls = 0;
-    std::string base = "ps_harvest";   // CAMR.ps_harvest_file
+    std::string base = "ps_harvest";   // PSAMR.ps_harvest_file
     bool configured = false;
 
     static PsHarvestReservoir& get() { static PsHarvestReservoir R; return R; }
@@ -102,7 +102,7 @@ struct PsHarvestReservoir
         dlr  = ps_dial_real("ps_harvest_dlr", dlr);
         de   = ps_dial_real("ps_harvest_de",  de);
         base = ps_dial_string("ps_harvest_file", base.c_str());
-        amrex::ParmParse pp("CAMR");
+        amrex::ParmParse pp("PSAMR");
         pp.query("ps_harvest_flush", flush_stride);   // long: no int helper applies
         configured = true;
     }
@@ -162,7 +162,7 @@ ps_harvest_states(amrex::MultiFab& S_new, int nghost = 0)
     if (ps_harvest() == 0) return;
     PsHarvestReservoir& R = PsHarvestReservoir::get();
     R.configure();
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     const bool trace = (ps_harvest_trace() != 0);
     const Real afloor = ps_harvest_afloor();
     const int  cmode = ps_harvest_corridor();
@@ -218,7 +218,7 @@ ps_harvest_states(amrex::MultiFab& S_new, int nghost = 0)
 }
 
 // ---------------------------------------------------------------------
-//  The cell harvest (CAMR.ps_harvest_cells=1): the whole six-equation
+//  The cell harvest (PSAMR.ps_harvest_cells=1): the whole six-equation
 //  input of the X3 relaxation operator, cell by cell, as it enters
 //  ps_apply_relaxation, so the operator can be developed off-line
 //  (docs/DESIGN_DECISIONS.md O-28) against the states a run produces
@@ -235,7 +235,7 @@ ps_harvest_states(amrex::MultiFab& S_new, int nghost = 0)
 //  ps_harvest_de widths, crossed with the decade of the smaller volume
 //  fraction, first representative + count; one CSV shard per rank,
 //  <ps_harvest_file>_cells_r<rank>.csv, readable by the replay bench
-//  (CAMR.ps_x3_replay=<file>, PS_zerod_test.H).  Read-only on the state:
+//  (PSAMR.ps_x3_replay=<file>, PS_zerod_test.H).  Read-only on the state:
 //  the operator runs on a copy, and the counters it touches are restored.
 // ---------------------------------------------------------------------
 struct PsCellReservoir
@@ -312,7 +312,7 @@ ps_harvest_cells(amrex::MultiFab& S_new, int nghost, amrex::Real dt)
     R.configure();
     PsCellReservoir& C = PsCellReservoir::get();
     C.configure(R);
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     const PsPres pr = ps_presence_params();
     const hem::PsX3Params xp = ps_x3_params_from_dials();
     constexpr Real alpha_floor = ps_const::ALPHA_ROUNDOFF;

@@ -14,7 +14,7 @@ Development generally follows the following ideas:
        * We suggest asking questions through GitHub Discussions.
        * All contributions should be done via pull requests.
          A pull request should be generated from your fork of
-         CAMR and target the `development` branch. See below for
+         PSAMR and target the `development` branch. See below for
          details on how this process works.
 
          In general we squash commits upon merge to have a clean history.
@@ -36,7 +36,7 @@ Development generally follows the following ideas:
 
 ## Git workflow
 
-CAMR uses [git](https://git-scm.com) for version control. If you
+PSAMR uses [git](https://git-scm.com) for version control. If you
 are new to git, you can follow one of these tutorials:
 - [Learn git with bitbucket](https://www.atlassian.com/git/tutorials/learn-git-with-bitbucket-cloud)
 - [git - the simple guide](http://rogerdudler.github.io/git-guide/)
@@ -48,27 +48,27 @@ The basic workflow is:
 - Implement your changes and push them on a new branch `<branch_name>` on
 your fork.
 - Create a Pull Request from branch `<branch_name>` on your fork to branch
-`development` on the main CAMR repository.
+`development` on the main PSAMR repository.
 
 First, let us setup your local git repo. To make your own fork of the main
-repository, press the fork button on the [CAMR Github page](https://github.com/AMReX-Fluids/CAMR).
+repository, press the fork button on the [PSAMR Github page](https://github.com/AMReX-Fluids/PSAMR).
 
-Then, clone CAMR on your local computer. If you plan on doing a lot of CAMR development,
+Then, clone PSAMR on your local computer. If you plan on doing a lot of PSAMR development,
 we recommend configuring your clone to use ssh access so you won't have to enter your Github
 password every time, which you can do using these commands:
 
 ```
-git clone git@github.com:AMReX-Fluids/CAMR.git
-cd CAMR
+git clone git@github.com:AMReX-Fluids/PSAMR.git
+cd PSAMR
 
 # Add your own fork.
 # Here <Jane> is the name you give to your fork. It does not need to be your github name.
 # <myGithubUsername> is your GitHub name.
-git remote add <Jane> git@github.com:<myGithubUsername>/CAMR.git
+git remote add <Jane> git@github.com:<myGithubUsername>/PSAMR.git
 git fetch <Jane>
 
 # Don't push to the main repo. Instead pushes go to your fork.
-git remote set-url --push origin git@github.com:<myGithubUsername>/CAMR.git
+git remote set-url --push origin git@github.com:<myGithubUsername>/PSAMR.git
 ```
 
 For instructions on setting up SSH access to your Github account on a new
@@ -78,17 +78,17 @@ machine, see
 If you instead prefer to use HTTPS authentication, configure your local clone as follows:
 
 ```
-git clone https://github.com/AMReX-Fluids/CAMR.git
-cd CAMR
+git clone https://github.com/AMReX-Fluids/PSAMR.git
+cd PSAMR
 
 # Add your own fork.
 # Here <Jane> is the name you give to your fork. It does not need to be your github name.
 # <myGithubUsername> is your GitHub name.
-git remote add <Jane> https://github.com/<myGithubUsername>/CAMR.git
+git remote add <Jane> https://github.com/<myGithubUsername>/PSAMR.git
 git fetch <Jane>
 
 # Don't push to the main repo. Instead pushes go to your fork.
-git remote set-url --push origin https://github.com/<myGithubUsername>/CAMR.git
+git remote set-url --push origin https://github.com/<myGithubUsername>/PSAMR.git
 ```
 
 Now you are free to play with your fork (for additional information, you can visit the
@@ -101,7 +101,7 @@ Make sure you are on the `development` branch with
 git checkout development
 git pull
 ```
-in the CAMR directory.
+in the PSAMR directory.
 
 Create a branch `<branch_name>` (the branch name should reflect the piece
 of code you want to add, like `high_order_interpolation`) with
@@ -133,7 +133,7 @@ If you want to synchronize your branch with the `development` branch (this is us
 when `development` is being modified while you are working on
 `<branch_name>`), you can use
 ```
-# merge CAMR main repo's development into current branch
+# merge PSAMR main repo's development into current branch
 git pull origin development
 ```
 and fix any conflicts that may occur.
@@ -145,7 +145,7 @@ matching branch in the main repository after your PR is merged.
 ### Submit a Pull Request
 
 A Pull Request is the way to efficiently visualize the changes you made
-and to propose your new feature/improvement/fix to the CAMR project.
+and to propose your new feature/improvement/fix to the PSAMR project.
 Right after you push changes, a banner should appear on the Github page of
 your fork, with your `<branch_name>`.
 - Click on the `compare & pull request` button to prepare your PR.
@@ -164,7 +164,7 @@ For example, if find typos in the documentation open a pull request that only fi
 If you want to fix a bug, make a small pull request that only fixes a bug.
 If you want to implement a large feature, write helper functionality first, test it and submit those as a first pull request.
 If you want to implement a feature and are not too sure how to split it,
-just open a discussion about your plans and ping other CAMR developers on it to chime in.
+just open a discussion about your plans and ping other PSAMR developers on it to chime in.
 
 Even before your work is ready to merge, it can be convenient to create a PR
 (so you can use Github tools to visualize your changes). In this case, please
@@ -184,11 +184,11 @@ git push <Jane> --delete <branch_name>
 
 Generally speaking, you want to follow the following rules.
 
-  * Do not merge your branch for PR into your local `development` branch that tracks CAMR
-    `development` branch.  Otherwise your local `development` branch will diverge from CAMR
+  * Do not merge your branch for PR into your local `development` branch that tracks PSAMR
+    `development` branch.  Otherwise your local `development` branch will diverge from PSAMR
     `development` branch.
 
-  * Do not commit in your `development` branch that tracks CAMR `development` branch.
+  * Do not commit in your `development` branch that tracks PSAMR `development` branch.
 
   * Always create a new branch based off the latest `development` branch for
     each pull request, unless you are going to use git to fix it later.
@@ -200,14 +200,14 @@ git checkout development
 git fetch origin
 git reset --hard origin/development
 ```
-After this, the local `development` should be in sync with CAMR `development` and your recent
+After this, the local `development` should be in sync with PSAMR `development` and your recent
 commits have been saved in `new_branch` branch.
 
-## CAMR Coding Style Guide
+## PSAMR Coding Style Guide
 
 ### Code Guidelines
 
-CAMR developers should adhere to the following coding guidelines:
+PSAMR developers should adhere to the following coding guidelines:
   * Indentations should use 4 spaces, not tabs.
   * Use curly braces for single statement blocks. For example:
 ```cpp
@@ -243,5 +243,5 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
 ```cpp
        amrex::Real m_variable;
 ```
-These guidelines should be adhered to in new contributions to CAMR, but
+These guidelines should be adhered to in new contributions to PSAMR, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HEM-limit test + tau-sweep approach rate (docs/VERIFICATION.md 6.1).
 
-Runs CAMR on B4/B9 (the two cases with stored HEM analytic refs,
+Runs PSAMR on B4/B9 (the two cases with stored HEM analytic refs,
 exact_<case>_pr.csv) with the suite's own TWO_PHASE config (relax mode 2)
 and ps_theta_tau = ps_mt_tau = tau swept toward 0.  Reports rel-L2
 (rho, u, P) against the HEM analytic, same metric as err_vs_analytic.py.
@@ -23,7 +23,7 @@ N = int(os.environ.get('PS_N', 64))
 # HEM_MODE:  relax mode for the sweep (2 = pressure plus finite-rate thermal;
 #            4 = canonical chain).  HEM_FLASH=1 also runs the flash source at
 #            tau, at the code default of the flash undershoot margin
-#            (CAMR.ps_flash_metastable_margin = 0.10); there is no
+#            (PSAMR.ps_flash_metastable_margin = 0.10); there is no
 #            environment knob for that margin.
 MODE  = int(os.environ.get('HEM_MODE', 2))
 FLASH = os.environ.get('HEM_FLASH', '0') == '1'
@@ -33,25 +33,25 @@ def load_exact(name):
     d = np.loadtxt(f)          # columns: x rho u P T
     return dict(x=d[:,0], rho=d[:,1], u=d[:,2], P=d[:,3])
 
-def run_camr(name, tau, pref):
+def run_psamr(name, tau, pref):
     c = F.CD[name]; tf = c[3]
     ov = {'amr.n_cell':N,'geometry.prob_lo':0.0,'geometry.prob_hi':1.0,
           'prob.x_diaph':0.5,'prob.alpha_trace':1.0e-6,'prob.p_amb':5.0e6,
-          'CAMR.ps_flux':'wp','CAMR.ps_wp_order':2,'CAMR.cfl':0.25,'CAMR.do_mol':0,'CAMR.ps_do_relax':1,
+          'PSAMR.ps_flux':'wp','PSAMR.ps_wp_order':2,'PSAMR.cfl':0.25,'PSAMR.do_mol':0,'PSAMR.ps_do_relax':1,
           # HEM-limit configuration: both relaxation times -> tau; mode from
           # HEM_MODE (2 = pressure plus finite-rate thermal, 4 = canonical chain).
-          'CAMR.ps_relax_mode':MODE,'CAMR.ps_theta_tau':tau,'CAMR.ps_mt_tau':tau,
+          'PSAMR.ps_relax_mode':MODE,'PSAMR.ps_theta_tau':tau,'PSAMR.ps_mt_tau':tau,
           'stop_time':tf}
-    if FLASH: ov['CAMR.ps_flash_tau'] = tau
-    ov.update(F.camr_side(c[1],'L')); ov.update(F.camr_side(c[2],'R'))
-    cmd = [F.CAMR,'inputs']+[f'{k}={v}' for k,v in ov.items()]
+    if FLASH: ov['PSAMR.ps_flash_tau'] = tau
+    ov.update(F.psamr_side(c[1],'L')); ov.update(F.psamr_side(c[2],'R'))
+    cmd = [F.PSAMR,'inputs']+[f'{k}={v}' for k,v in ov.items()]
     cmd += ['amr.plot_int=-1', f'amr.plot_per={tf}', f'amr.plot_file={pref}',
-            'amr.v=0','CAMR.v=0']
+            'amr.v=0','PSAMR.v=0']
     r = subprocess.run(cmd, stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL, timeout=300)
     return r.returncode
 
-def load_camr(pref):
+def load_psamr(pref):
     g = [p for p in glob.glob(pref+'*') if os.path.isdir(p)]
     if not g: return None
     p = max(g, key=os.path.getmtime)
@@ -76,8 +76,8 @@ if __name__ == '__main__':
         print(f"{'tau':>10s} {'rho':>10s} {'u':>10s} {'P':>10s}")
         for tau in taus:
             pref = f'hem_{nm}_{tau:.0e}_'
-            rc = run_camr(nm, tau, pref)
-            m = load_camr(pref)
+            rc = run_psamr(nm, tau, pref)
+            m = load_psamr(pref)
             if rc != 0 or m is None:
                 print(f'{tau:10.1e}   RUN FAILED (rc={rc})'); continue
             if not all(np.all(np.isfinite(m[k])) for k in ('rho','u','P')):

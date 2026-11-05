@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build gpu_bench against a device-callable copy of CAMR's PR headers.
+# Build gpu_bench against a device-callable copy of PSAMR's PR headers.
 # The HEM_NO_AMREX shim in Source/EOS/PR/hem_saturation_amrex.H defines the
 # AMReX qualifier macros as empty and its amrex::max/min/abs helpers as plain
 # host inlines; for nvcc both must be __host__ __device__.  The copies live in

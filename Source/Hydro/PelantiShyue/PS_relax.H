@@ -2,7 +2,7 @@
 #define PS_RELAX_H
 // =====================================================================
 //  PS_relax.H — the relaxation dispatch of the six-equation Pelanti–Shyue
-//  model on the CAMR grid: the EOS callback (ps_make_camr_eos_api), the
+//  model on the PSAMR grid: the EOS callback (ps_make_psamr_eos_api), the
 //  presence relax gate and entry gate, the per-mode cell wrappers over
 //  the hem kernels (modes 0, 2 and the default coupled X3, mode 5),
 //  the relaxation dials, and ps_apply_relaxation with its sweep reports
@@ -21,7 +21,7 @@
 #include "PS_constants.H"  // ps_const:: shared numeric floors
 #include "PS_util.H"       // ps_kinetic_energy, ps_pack_v6 / ps_unpack_v6
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
-#include "PS_dials.H"      // ps_dial_int / ps_dial_real (CAMR.* reads)
+#include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include "PS_classes.H"    // cell classes, compact per-box launches (ps_class_compact)
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
@@ -38,13 +38,13 @@
 // ---------------------------------------------------------------------
 inline PsPresDiag&  ps_pres_diag_data() { return ps_counters().pres; }
 
-// CAMR.ps_pres_diag: see hem::ps_diag_pres (the single read site).
+// PSAMR.ps_pres_diag: see hem::ps_diag_pres (the single read site).
 inline int ps_pres_diag() {
     return hem::ps_diag_pres();
 }
 
 // -----------------------------------------------------------------
-//  ps_make_camr_eos_api — the PsPhaseAPI value every hem kernel here
+//  ps_make_psamr_eos_api — the PsPhaseAPI value every hem kernel here
 //  uses.  Fluid metadata (critical and triple points, density domain,
 //  molar mass) comes from the EOS, so no kernel carries a fluid
 //  constant; the branch-locked phase query is hem::ps_eos_phase_state
@@ -52,7 +52,7 @@ inline int ps_pres_diag() {
 //  (hem::ps_kernel_dials).  Host-only; the result is captured by copy.
 // -----------------------------------------------------------------
 inline hem::PsPhaseAPI
-ps_make_camr_eos_api()
+ps_make_psamr_eos_api()
 {
     hem::PsPhaseAPI api;
     //  The EOS queries themselves are PsPhaseAPI member functions
@@ -74,7 +74,7 @@ ps_make_camr_eos_api()
         amrex::Real Yw[NUM_SPECIES];
         ps_pure_species(Yw);
         amrex::Real wbar = amrex::Real(0.0);
-        EOS::Y2WBAR(Yw, wbar);            // [kg/mol] in every CAMR backend
+        EOS::Y2WBAR(Yw, wbar);            // [kg/mol] in every PSAMR backend
         api.M_kg_mol = double(wbar);
     }
     return api;
@@ -280,7 +280,7 @@ inline int ps_coexist_action();
 //  both masses and UE1/UE2; mixture rho, momentum and E are invariant.
 //  xp0 carries the host-resolved rate, carrier and policy dials
 //  (ps_x3_params); pres_diag is ps_pres_diag().
-//  Docs/MODEL_AND_ALGORITHM.md §5.1; 0-D harness CAMR.ps_x3_test.
+//  Docs/MODEL_AND_ALGORITHM.md §5.1; 0-D harness PSAMR.ps_x3_test.
 // -----------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE
 inline void
@@ -336,7 +336,7 @@ ps_x3_grid_relax_cell(int i, int j, int k,
     ps_x3_grid_relax_admitted(i, j, k, U, eos, alpha1_in, m1, m2, xp0, pres_diag, dt);
 }
 
-// CAMR.ps_relax_mode (6): 6 = the coupled operator flattened, X3F
+// PSAMR.ps_relax_mode (6): 6 = the coupled operator flattened, X3F
 // (ps_x3f_grid_relax_cell: one Newton in (alpha, T1, T2, q, dm) on the
 // forward EOS with step-doubling control, docs/DESIGN_DECISIONS.md O-28
 // and O-29; the default since 2026-10-27); 5 = the nested X3 operator
@@ -356,12 +356,12 @@ inline int ps_relax_mode()
     static const int m = []() -> int {
         const int v = ps_dial_int("ps_relax_mode", 6);
         if (v == 1 || v == 3 || v == 4) {
-            amrex::Abort("CAMR.ps_relax_mode = " + std::to_string(v) +
+            amrex::Abort("PSAMR.ps_relax_mode = " + std::to_string(v) +
                          " is retired: use 6 (flattened X3F), 5 (coupled X3), 2 (finite-rate "
                          "thermal + split transfer) or 0 (mechanical only)");
         }
         if (v != 0 && v != 2 && v != 5 && v != 6) {
-            amrex::Abort("CAMR.ps_relax_mode = " + std::to_string(v) +
+            amrex::Abort("PSAMR.ps_relax_mode = " + std::to_string(v) +
                          " is not a mode (valid: 0,2,5,6)");
         }
         return v;
@@ -375,7 +375,7 @@ inline int ps_relax_mode()
 inline bool ps_relax_owns_mt() { const int m = ps_relax_mode(); return m == 5 || m == 6; }
 
 // -----------------------------------------------------------------
-//  CAMR.ps_coexist_action (0): the thermal leg's response when a phase
+//  PSAMR.ps_coexist_action (0): the thermal leg's response when a phase
 //  leaves the coexistence band (T outside (T_triple, T_crit)), modes 4
 //  and 5 (PsX3Params.coexist_action).  One predicate gates thermal
 //  relaxation, mass transfer and the flash, so a cell whose vapour has
@@ -391,12 +391,12 @@ inline int ps_coexist_action()
     static const int a = []() -> int {
         const int v = ps_dial_int("ps_coexist_action", 0);
         if (v == 2 || v == 3 || v == 4) {
-            amrex::Abort("CAMR.ps_coexist_action=" + std::to_string(v)
+            amrex::Abort("PSAMR.ps_coexist_action=" + std::to_string(v)
                 + " is retired: the thermal leg stands on a band exit "
                   "(the runaway clause is always active); use 0 or 1");
         }
         if (v != 0 && v != 1) {
-            amrex::Abort("CAMR.ps_coexist_action must be 0 or 1");
+            amrex::Abort("PSAMR.ps_coexist_action must be 0 or 1");
         }
 #if defined(AMREX_USE_GPU)
         //  Action 1 is a diagnosis mode: its abort is raised inside the
@@ -404,7 +404,7 @@ inline int ps_coexist_action()
         //  counters (compiled out on GPU builds), so it would silently act
         //  as 0 here.
         if (v == 1) {
-            amrex::Abort("CAMR.ps_coexist_action=1 needs the host counters "
+            amrex::Abort("PSAMR.ps_coexist_action=1 needs the host counters "
                          "and the per-cell abort; run it on a CPU build");
         }
 #endif
@@ -412,7 +412,7 @@ inline int ps_coexist_action()
     return a;
 }
 
-// CAMR.ps_theta_tau (1e-7 s): thermal relaxation time, modes 2 and 5.
+// PSAMR.ps_theta_tau (1e-7 s): thermal relaxation time, modes 2 and 5.
 //   theta > 0   finite backward-Euler rate (the linearised T1-T2 decay time).
 //   theta <= 0  instantaneous thermal equilibrium: at mode 5, T1 = T2 joins
 //               the P1 = P2 constraint.  It never means "thermal off" —
@@ -448,10 +448,10 @@ ps_x3_params_from_dials()
 // -----------------------------------------------------------------
 //  ps_x3f_params_from_dials — the mode-6 operator settings: the X3 rate
 //  and carrier dials, plus the flattened solve's own:
-//    CAMR.ps_x3f_jac (0): 0 analytic Jacobian, 1 forward differences
-//    CAMR.ps_x3f_fixed_newton (0): > 0 = fixed Newton count per solve
-//    CAMR.ps_x3f_max_newton (25), CAMR.ps_x3f_tol (1e-10)
-//    CAMR.ps_x3f_step_tol_a (1e-3), CAMR.ps_x3f_step_tol_e (1e-4), CAMR.ps_x3f_step_rtol (0.1):
+//    PSAMR.ps_x3f_jac (0): 0 analytic Jacobian, 1 forward differences
+//    PSAMR.ps_x3f_fixed_newton (0): > 0 = fixed Newton count per solve
+//    PSAMR.ps_x3f_max_newton (25), PSAMR.ps_x3f_tol (1e-10)
+//    PSAMR.ps_x3f_step_tol_a (1e-3), PSAMR.ps_x3f_step_tol_e (1e-4), PSAMR.ps_x3f_step_rtol (0.1):
 //      the step-doubling error control of the sub-step ladder (tol_a <= 0 disables)
 //  Shared with the replay bench (PS_zerod_test.H).
 // -----------------------------------------------------------------
@@ -520,7 +520,7 @@ ps_x3f_grid_relax_admitted(int i, int j, int k,
             amrex::AllPrint()
                 << "\n[PS-X3F] COEXISTENCE BAND EXIT (ps_coexist_action=1 -> abort)"
                 << "  cell (" << i << "," << j << "," << k << ")  exit bits " << exit_code << "\n";
-            amrex::Abort("PS-X3F: phase left the coexistence band (CAMR.ps_coexist_action=1)");
+            amrex::Abort("PS-X3F: phase left the coexistence band (PSAMR.ps_coexist_action=1)");
         }
     }
     if (pres_diag != 0 && dt_pre >= 0.0 && dt_post >= 0.0) {
@@ -557,11 +557,11 @@ ps_x3f_grid_relax_cell(int i, int j, int k,
 //  once, resets the per-sweep counters, dispatches every cell to the
 //  kernel for ps_relax_mode, then prints the gated reports ([PS-PRES],
 //  [PS-GATE], [PS-DT], [PS-X3], and the class census [PS-CLASS]).
-//  Called from apply_ps_reaction under CAMR.ps_do_relax; do_print is
+//  Called from apply_ps_reaction under PSAMR.ps_do_relax; do_print is
 //  accepted for the Strang pre-half step, which prints nothing else.
 //  Every dial it needs is resolved here and captured by value.
 //
-//  Launch forms (CAMR.ps_class_compact, PS_classes.H):
+//  Launch forms (PSAMR.ps_class_compact, PS_classes.H):
 //    0  one ParallelFor over every cell of every box: corridor projection,
 //       then the mode's gated wrapper (the whole-box form);
 //    1  per box, the class pass (projection, then ps_relax_entry_gate into
@@ -578,10 +578,10 @@ ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
                     int nghost = 0, bool do_print = true)
 {
     // EOS-heavy (branch-locked solves per phase per cell): the dominant
-    // physics cost of CAMR_advance.
+    // physics cost of PSAMR_advance.
     BL_PROFILE("PS::ps_apply_relaxation()");
 
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
 
     // Reset the per-sweep counters.
     ps_counters().n_gate_presence = 0;

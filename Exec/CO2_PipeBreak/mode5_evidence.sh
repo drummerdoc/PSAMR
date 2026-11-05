@@ -18,8 +18,8 @@
 set -eu
 cd "$(dirname "$0")"
 STAGE=${1:-}; NR=${2:-6}
-EXE=$(ls -t ./CAMR2d.*.MPI.PS.PR.ex | head -1)
-MODE5="CAMR.ps_relax_mode=5 CAMR.ps_theta_tau=1e-7 CAMR.ps_mt_tau=1e-7 CAMR.ps_flash_tau=1e-7"
+EXE=$(ls -t ./PSAMR2d.*.MPI.PS.PR.ex | head -1)
+MODE5="PSAMR.ps_relax_mode=5 PSAMR.ps_theta_tau=1e-7 PSAMR.ps_mt_tau=1e-7 PSAMR.ps_flash_tau=1e-7"
 OUT=runs/mode5_evidence
 newest=$(find ../../Source . -type f \( -name '*.H' -o -name '*.cpp' \) -not -path '*/tmp_build_dir/*' -newer "$EXE" | head -1)
 [ "$STAGE" = report ] || [ -z "$newest" ] || { echo "STALE EXE: $newest is newer than $EXE (rebuild first)"; exit 2; }
@@ -43,7 +43,7 @@ health() {   # $1 = run dir: guard/feedback/refusal line counts and the max of e
 
 case "$STAGE" in
 demo2)
-    K="amr.check_int=-1 amr.plot_int=50 CAMR.ps_validate=1"
+    K="amr.check_int=-1 amr.plot_int=50 PSAMR.ps_validate=1"
     run $OUT/demo2_mode2 inputs.satjet_demo2 $K
     run $OUT/demo2_mode5 inputs.satjet_demo2 $K $MODE5
     ;;
@@ -51,23 +51,23 @@ demo2-mode5)
     d=$OUT/demo2_mode5; mkdir -p "$d"
     last=$(ls -d "$d"/chk_sj2_* 2>/dev/null | sort | tail -1)
     R=""; [ -n "$last" ] && { R="amr.restart=$(basename "$last")"; echo "resuming from $last"; }
-    run $d inputs.satjet_demo2 amr.check_int=100 amr.plot_int=50 CAMR.ps_validate=1 $MODE5 $R
+    run $d inputs.satjet_demo2 amr.check_int=100 amr.plot_int=50 PSAMR.ps_validate=1 $MODE5 $R
     ;;
 windows)
     for w in 3550:3605 3650:3700; do
         s=${w%:*}; e=${w#*:}
         run $OUT/w${s}_${e}_mode5 inputs.satjet_demo2 amr.restart=../../../demo2_final/chk_sj2_0$s \
             max_step=$e stop_time=1.0 amr.plot_int=5 amr.check_int=-1 \
-            CAMR.ps_validate=1 CAMR.ps_diag_mass=1 $MODE5
+            PSAMR.ps_validate=1 PSAMR.ps_diag_mass=1 $MODE5
     done
     ;;
 demo3)
-    K="max_step=50 amr.check_int=-1 amr.plot_int=50 CAMR.ps_validate=1"
+    K="max_step=50 amr.check_int=-1 amr.plot_int=50 PSAMR.ps_validate=1"
     run $OUT/demo3_mode2 inputs.satjet_demo3 $K
     run $OUT/demo3_mode5 inputs.satjet_demo3 $K $MODE5
     ;;
 sym)
-    K="amr.max_level=0 max_step=50 amr.check_int=-1 amr.plot_int=50 CAMR.ps_validate=0"
+    K="amr.max_level=0 max_step=50 amr.check_int=-1 amr.plot_int=50 PSAMR.ps_validate=0"
     run $OUT/sym_mode2 inputs.satjet_demo2 $K
     run $OUT/sym_mode5 inputs.satjet_demo2 $K $MODE5
     ;;

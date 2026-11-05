@@ -10,23 +10,23 @@ Olivia is a SLURM cluster. Account `nn12019k`. Partitions: `small` (default; x86
 ## 0. Layout that works on Olivia (learned 2026-10-23)
 
 - **Use bash.** The interactive shells there may start in tcsh; `backend_bench.sh`, the build loops and every command below are bash. Type `bash` first.
-- **One checkout per architecture.** The build directory and the executable names do not encode the CPU architecture, and both node types see the same filesystem, so a tree touched by both ends in `ld: ... file in wrong format`. Keep `~/src/CAMR` for the x86 (zen5) CPU executables, built in a CPU allocation, and `~/src/CAMR-gh200` for the CUDA executables, built in an `accel` allocation on a GH200 node. Both trees need the four generated table files (section 3).
+- **One checkout per architecture.** The build directory and the executable names do not encode the CPU architecture, and both node types see the same filesystem, so a tree touched by both ends in `ld: ... file in wrong format`. Keep `~/src/PSAMR` for the x86 (zen5) CPU executables, built in a CPU allocation, and `~/src/PSAMR-gh200` for the CUDA executables, built in an `accel` allocation on a GH200 node. Both trees need the four generated table files (section 3).
 - **The zen5 GCCcore/13.3.0 module cannot compile `<mutex>` under `-pthread`**: its `include-fixed/pthread.h` is a fixincludes copy from an older glibc than the node's, and AMReX always passes `-pthread`. Workaround without admin rights: `mkdir -p ~/fixinc && ln -sf /usr/include/pthread.h ~/fixinc/pthread.h && export CPATH=$HOME/fixinc${CPATH:+:$CPATH}` (the CPU sbatch does this when `~/fixinc` exists). Worth reporting to the site. The `neoverse_v2` GCC is fine.
 - Confirmed modules: CPU `NRIS/CPU GCC/13.3.0 OpenMPI/5.0.3-GCC-13.3.0`; GPU `NRIS/GPU GCC/13.3.0 OpenMPI/5.0.3-GCC-13.3.0 CUDA/12.6.0` (NRIS/GPU is the accel nodes' default; NRIS/Login is the login nodes' and NRIS/CPU warns on a GPU node). Lmod is hierarchical: `module purge` removes the `NRIS/<stack>` module and with it the visibility of `GCC/13.3.0`, so the sbatch scripts do not purge. Account `nn12019k`; partitions `small` (CPU, used with `--qos=devel` interactively) and `accel` (GPU).
 - **Interactive allocations for building** (`devel` QOS: 2 h, high priority). `salloc` opens a shell on the node; if the prompt still shows a login node, `srun --pty bash`. Run `bash` once there. The allocation dies with the login shell, so start it inside `tmux`.
   ```bash
-  # x86 CPU build, in ~/src/CAMR
+  # x86 CPU build, in ~/src/PSAMR
   salloc --account=nn12019k --partition=small --qos=devel --ntasks=1 --cpus-per-task=16 --mem=32G --time=02:00:00
-  # GH200 CUDA build, in ~/src/CAMR-gh200 (a GPU must be requested on accel; it also lets AMReX probe the arch)
+  # GH200 CUDA build, in ~/src/PSAMR-gh200 (a GPU must be requested on accel; it also lets AMReX probe the arch)
   salloc --account=nn12019k --partition=accel --qos=devel --nodes=1 --ntasks=1 --cpus-per-task=16 --mem=64G --gpus=1 --time=02:00:00
   ```
 
 ## 1. Sources
 
 ```bash
-cd $HOME/src   # or a project area with enough space; AMReX and CAMR side by side
+cd $HOME/src   # or a project area with enough space; AMReX and PSAMR side by side
 git clone git@github.com:AMReX-Codes/amrex.git && (cd amrex && git checkout 65db2e4e6)   # peart: 26.06-5-g65db2e4e6
-git clone git@github.com:drummerdoc/CAMR.git && (cd CAMR && git checkout co2-eos)       # 18e96a3 or later
+git clone git@github.com:drummerdoc/PSAMR.git && (cd PSAMR && git checkout co2-eos)       # 18e96a3 or later
 ```
 
 ## 2. Environment (per shell / per job)
@@ -37,14 +37,14 @@ module load GCC/13.3.0 OpenMPI/5.0.3-GCC-13.3.0     # both trees; plain MPI is e
 module load CUDA/12.6.0                            # GH200 tree only; nvcc + nvlink needed for -rdc
 [ -d "$HOME/fixinc" ] && export CPATH=$HOME/fixinc${CPATH:+:$CPATH}   # x86 only; the include-fixed/pthread.h workaround of section 0
 module load Python/3          # for `make tables` (numpy + scipy) and the analysis scripts; see section 3 if it dies on the login node
-python3 -m venv $HOME/camr_py && source $HOME/camr_py/bin/activate && pip install numpy scipy
+python3 -m venv $HOME/psamr_py && source $HOME/psamr_py/bin/activate && pip install numpy scipy
 export AMREX_HOME=$HOME/src/amrex
 ```
 
 ## 3. Tables (once per checkout, host only)
 
 ```bash
-cd $HOME/src/CAMR/Exec/CO2_PipeBreak
+cd $HOME/src/PSAMR/Exec/CO2_PipeBreak
 make tables            # PRTab: builds tools/gen_table (g++) and runs build_table.py (numpy/scipy), ~1 min
 make gergtab-tables    # GERGTab: builds and runs tools/gen_gergtab 256 (g++), ~10 s
 ```
@@ -53,11 +53,11 @@ If `make tables` dies with `Illegal instruction (core dumped)` before printing `
 
 - copy the generated tables from peart — they are deterministic text generated from the same sources, so this is exactly equivalent to generating them:
   ```bash
-  scp marcusd@peart:src/CAMR/Source/EOS/PRTab/prtab_table_{data.cpp,params.H} $HOME/src/CAMR/Source/EOS/PRTab/
-  scp marcusd@peart:src/CAMR/Source/EOS/GERGTab/gergtab_table_{data.cpp,params.H} $HOME/src/CAMR/Source/EOS/GERGTab/
+  scp marcusd@peart:src/PSAMR/Source/EOS/PRTab/prtab_table_{data.cpp,params.H} $HOME/src/PSAMR/Source/EOS/PRTab/
+  scp marcusd@peart:src/PSAMR/Source/EOS/GERGTab/gergtab_table_{data.cpp,params.H} $HOME/src/PSAMR/Source/EOS/GERGTab/
   ```
 - or generate on a compute node, where the module's ISA is supported: `srun --account=nn12019k --partition=small --qos=devel --ntasks=1 --mem=8G --time=00:10:00 make tables`
-- or use a venv with generic wheels instead of the module (unload it first): `module purge; module load Python/3; python3 -m venv $HOME/camr_py; source $HOME/camr_py/bin/activate; pip install numpy scipy; make tables`.
+- or use a venv with generic wheels instead of the module (unload it first): `module purge; module load Python/3; python3 -m venv $HOME/psamr_py; source $HOME/psamr_py/bin/activate; pip install numpy scipy; make tables`.
 
 `make gergtab-tables` needs only g++ and is unaffected.
 
@@ -66,21 +66,21 @@ If `make tables` dies with `Illegal instruction (core dumped)` before printing `
 Inside the `small` allocation of section 0 (x86 tree):
 
 ```bash
-cd $HOME/src/CAMR/Exec/CO2_PipeBreak
+cd $HOME/src/PSAMR/Exec/CO2_PipeBreak
 for eos in PR PRTab GERG GERGTab; do
   make -j16 DIM=2 USE_CUDA=FALSE TINY_PROFILE=TRUE Eos_Model=$eos
 done
-ls CAMR2d.gnu.TPROF.MPI.PS.*.ex      # expect 4
+ls PSAMR2d.gnu.TPROF.MPI.PS.*.ex      # expect 4
 ```
 
 Inside the `accel` allocation (GH200 tree, `CUDA/12.6.0` loaded):
 
 ```bash
-cd $HOME/src/CAMR-gh200/Exec/CO2_PipeBreak
+cd $HOME/src/PSAMR-gh200/Exec/CO2_PipeBreak
 for eos in PR PRTab GERG GERGTab; do
   make -j16 DIM=2 USE_CUDA=TRUE CUDA_ARCH=90 TINY_PROFILE=TRUE Eos_Model=$eos
 done
-ls CAMR2d.gnu.TPROF.MPI.CUDA.PS.*.ex # expect 4
+ls PSAMR2d.gnu.TPROF.MPI.CUDA.PS.*.ex # expect 4
 ```
 
 Never build both in one tree (section 0: `file in wrong format`). If the Grace CPUs are to be timed as well, build `USE_CUDA=FALSE` in the GH200 tree after a `make clean`, or in a third tree.
@@ -89,17 +89,17 @@ Never build both in one tree (section 0: `file in wrong format`). If the Grace C
 
 `bench/backend_bench.sh` takes its settings from the environment (see its header). `CORES` is passed to `taskset`; inside a SLURM allocation leave it empty (`CORES=""`) and let SLURM bind. `GPU_CORE` likewise.
 
-GPU job (one rank, one GPU, both tags), submitted from anywhere; it runs in `~/src/CAMR-gh200` (override with `CAMR_GPU_TREE`):
+GPU job (one rank, one GPU, both tags), submitted from anywhere; it runs in `~/src/PSAMR-gh200` (override with `PSAMR_GPU_TREE`):
 
 ```bash
-sbatch ~/src/CAMR-gh200/Exec/CO2_PipeBreak/bench/olivia_gpu.sbatch
+sbatch ~/src/PSAMR-gh200/Exec/CO2_PipeBreak/bench/olivia_gpu.sbatch
 ```
 
-CPU jobs, run in `~/src/CAMR` (override with `CAMR_CPU_TREE`): 8 ranks to compare with peart's 8 EPYC ranks, and one full node for the "all cores" number:
+CPU jobs, run in `~/src/PSAMR` (override with `PSAMR_CPU_TREE`): 8 ranks to compare with peart's 8 EPYC ranks, and one full node for the "all cores" number:
 
 ```bash
-sbatch ~/src/CAMR/Exec/CO2_PipeBreak/bench/olivia_cpu.sbatch
-TAGSUFFIX=_fullnode sbatch --ntasks=<cores on the node> ~/src/CAMR/Exec/CO2_PipeBreak/bench/olivia_cpu.sbatch
+sbatch ~/src/PSAMR/Exec/CO2_PipeBreak/bench/olivia_cpu.sbatch
+TAGSUFFIX=_fullnode sbatch --ntasks=<cores on the node> ~/src/PSAMR/Exec/CO2_PipeBreak/bench/olivia_cpu.sbatch
 ```
 
 Expected costs from peart, for sizing the time limits: `L0_200` CPU 8 ranks: PR 26 s, PRTab 21 s, GERG 342 s, GERGTab 51 s; GPU: PR 22 s, PRTab 19 s, GERG 1658 s (derated FP64 — expect a large improvement on H100), GERGTab 167 s. `L0big_200` is 16× the cells: PR/PRTab a few minutes; GERG at that size was not run on peart.
@@ -119,15 +119,15 @@ sacct --starttime today -X --format=JobID,JobName%14,Partition,State,ExitCode,El
 sacct -j <jobid> -X --format=JobID,State,ExitCode,Elapsed,MaxRSS
 ```
 
-Both sbatch scripts run under `set -euo pipefail`, so any failing step ends the job as `FAILED` with a non-zero exit code; `TIMEOUT` means the time limit hit (GERG is the slow backend). The job's stdout is `camr_eos_{cpu,gpu}_<jobid>.out` in the directory `sbatch` was run from; its last lines are the `summary.txt` of the second tag, and each finished run has `runs/bench/<tag>/<platform>_<eos>/run.log` ending in the TinyProfiler table. For a mail at the end: `sbatch --mail-type=END,FAIL --mail-user=<address> ...`. To follow live: `watch -n 60 squeue --me`, or `tail -f` the `.out` file.
+Both sbatch scripts run under `set -euo pipefail`, so any failing step ends the job as `FAILED` with a non-zero exit code; `TIMEOUT` means the time limit hit (GERG is the slow backend). The job's stdout is `psamr_eos_{cpu,gpu}_<jobid>.out` in the directory `sbatch` was run from; its last lines are the `summary.txt` of the second tag, and each finished run has `runs/bench/<tag>/<platform>_<eos>/run.log` ending in the TinyProfiler table. For a mail at the end: `sbatch --mail-type=END,FAIL --mail-user=<address> ...`. To follow live: `watch -n 60 squeue --me`, or `tail -f` the `.out` file.
 
 ## 7. The EOS microbenchmark
 
 Needs the harvested deployment states, which are generated files; copy them from peart rather than regenerating:
 
 ```bash
-scp -r marcusd@peart:src/CAMR/Exec/EOS_Surrogate/data $HOME/src/CAMR/Exec/EOS_Surrogate/
-cd $HOME/src/CAMR/Exec/EOS_Surrogate
+scp -r marcusd@peart:src/PSAMR/Exec/EOS_Surrogate/data $HOME/src/PSAMR/Exec/EOS_Surrogate/
+cd $HOME/src/PSAMR/Exec/EOS_Surrogate
 ARCH=sm_90 ./build_gpu_bench.sh                       # on a node with nvcc; needs the PRTab tables of step 3
 srun --account=nn12019k --partition=accel --qos=devel --gpus=1 --mem=16G --time=00:10:00 ./gpu_bench 2097152 data/deploy.csv | tee results/gpu_bench_h100.txt
 ```
@@ -135,7 +135,7 @@ srun --account=nn12019k --partition=accel --qos=devel --gpus=1 --mem=16G --time=
 ## 8. What to bring back
 
 ```bash
-cd $HOME/src/CAMR
+cd $HOME/src/PSAMR
 tar czf olivia_bench_$(date +%F).tgz \
     Exec/CO2_PipeBreak/runs/bench/*/README.txt Exec/CO2_PipeBreak/runs/bench/*/summary.txt \
     Exec/CO2_PipeBreak/runs/bench/*/*/run.log Exec/EOS_Surrogate/results/gpu_bench_*.txt \

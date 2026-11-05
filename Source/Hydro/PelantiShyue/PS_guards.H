@@ -134,7 +134,7 @@ amrex::Real clamp_phase_density(amrex::Real rho,
 //                   a hit means the arithmetic itself produced inf*0 or
 //                   the like, a class the input guards cannot see.
 //    reflux_cap   : the reflux alpha_1 co-move rate limit |d alpha_1| <= 0.05
-//                   engaged at a coarse-fine cell (CAMR::reflux).
+//                   engaged at a coarse-fine cell (PSAMR::reflux).
 //    reflux_clamp : the co-moved alpha_1 hit the [amin, 1-amin] clamp.
 //  The reflux counters accumulate in post_timestep and appear on the
 //  following step's [PS-GUARD] line.

@@ -1,7 +1,7 @@
 // =====================================================================
 //  PS_umeth.cpp  —  Pelanti-Shyue six-equation hydro interior.
 //
-//  Algorithm: Berger-LeVeque wave propagation (CAMR.ps_flux=wp, the only
+//  Algorithm: Berger-LeVeque wave propagation (PSAMR.ps_flux=wp, the only
 //  interior flux).  ps_wp_face forms the A±ΔQ fluctuations per face from
 //  raw cell averages via the HLLC fan of PS_hllc.H; an optional limited
 //  correction flux (LeVeque, one scalar limiter per wave) gives second
@@ -17,7 +17,7 @@
 //  identities survive.  A face whose star state is refused falls back to
 //  an identity-consistent local Lax-Friedrichs flux; no state is repaired.
 //
-//  Dials (CAMR.*, each read once at its accessor below): ps_flux (wp),
+//  Dials (PSAMR.*, each read once at its accessor below): ps_flux (wp),
 //  ps_wp_order (2), ps_wp_limiter (vanleer), ps_lw_skip_contact (2),
 //  ps_wp_transverse (0), ps_mu (0).
 // =====================================================================
@@ -219,8 +219,8 @@ ps_wp_face(int idir, int i, int j, int k, int iL, int jL, int kL,
             Am[UALPHA1] = Real(0.5) * ubar * da - halfa;
             Ap[UALPHA1] = Real(0.5) * ubar * da + halfa;
         }
-#if !defined(AMREX_USE_GPU) && defined(CAMR_PS_DIAG)
-        //  CAMR.ps_llf_diag (0): print each face where the LLF fallback
+#if !defined(AMREX_USE_GPU) && defined(PSAMR_PS_DIAG)
+        //  PSAMR.ps_llf_diag (0): print each face where the LLF fallback
         //  fired, with lam decomposed on the left state that sets it.
         {
             static const int lld = ps_dial_int("ps_llf_diag", 0);
@@ -351,7 +351,7 @@ ps_wp_tvterm(int d, int t, int i, int j, int k,
 //  grid-scale odd-even.  Flux form (refluxes), symmetric; viscous heating
 //  partitioned to UE1/UE2 by mass fraction.  Transverse gradients from the
 //  two straddling cells; skipped within one cell of a transverse domain
-//  edge.  mu = CAMR.ps_mu [Pa s] (see PS_umeth).  docs §3.6.
+//  edge.  mu = PSAMR.ps_mu [Pa s] (see PS_umeth).  docs §3.6.
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -418,7 +418,7 @@ ps_viscous_face(int d, int i, int j, int k,
 //  ParmParse read per key, process-wide; the resolved value is force-added
 //  so job_info records what actually ran.
 // ---------------------------------------------------------------------
-//  CAMR.ps_flux (wp): the interior flux.  wp is the only interior flux
+//  PSAMR.ps_flux (wp): the interior flux.  wp is the only interior flux
 //  (docs/DESIGN_DECISIONS.md H-2); any other name aborts so a deck
 //  that names a flux that does not exist fails loudly.  The key survives
 //  so decks can state the flux explicitly and job_info records it.
@@ -426,10 +426,10 @@ int ps_flux_selector()
 {
     static const int v = []() -> int {
         std::string s = "wp";
-        amrex::ParmParse pp("CAMR");
+        amrex::ParmParse pp("PSAMR");
         pp.query("ps_flux", s);
         if (!(s == "wp" || s.empty())) {
-            amrex::Abort("CAMR.ps_flux must be 'wp'");
+            amrex::Abort("PSAMR.ps_flux must be 'wp'");
         }
         pp.add("ps_flux", std::string("wp"));
         return 2;   // wp's selector value
@@ -490,7 +490,7 @@ PS_umeth(const Box& bx,
     // kernel (see ps_presence_params, PS_presence.H).
     const PsPres l_pres = ps_presence_params();
 
-    // CAMR.ps_wp_order (2): 2 = first-order fluctuations plus the limited
+    // PSAMR.ps_wp_order (2): 2 = first-order fluctuations plus the limited
     // correction fluxes on all three waves (second order in smooth flow,
     // first order at discontinuities) — the acceptance order; 1 = the
     // first-order fluctuations alone, for comparisons.  Any other value aborts.
@@ -499,14 +499,14 @@ PS_umeth(const Box& bx,
         static const int cached = []() -> int {
             const int v = ps_dial_int("ps_wp_order", 2);
             if (v != 1 && v != 2) {
-                amrex::Abort("CAMR.ps_wp_order must be 1 or 2");
+                amrex::Abort("PSAMR.ps_wp_order must be 1 or 2");
             }
             return v; }();
         return cached;
     };
     const int wp_order = ps_wp_order_cached();
 
-    // CAMR.ps_wp_limiter (vanleer): "none"/"unlimited" sets φ=1 (pure
+    // PSAMR.ps_wp_limiter (vanleer): "none"/"unlimited" sets φ=1 (pure
     // Lax-Wendroff correction).  Unlimited is not monotone and is meant only
     // for smooth order-of-accuracy checks, where van Leer clips extrema.
     // Any other string aborts.
@@ -516,13 +516,13 @@ PS_umeth(const Box& bx,
             const std::string s = ps_dial_string("ps_wp_limiter", "vanleer");
             if (s == "vanleer") return 0;
             if (s == "none" || s == "unlimited") return 1;
-            amrex::Abort("CAMR.ps_wp_limiter must be vanleer, none or unlimited");
+            amrex::Abort("PSAMR.ps_wp_limiter must be vanleer, none or unlimited");
             return 0; }();
         return cached;
     };
     const int wp_unlimited = ps_wp_unlimited_cached();
 
-    // CAMR.ps_lw_skip_contact (2): weight of the correction on the contact
+    // PSAMR.ps_lw_skip_contact (2): weight of the correction on the contact
     // wave, which carries the non-conservative alpha jump; correcting it at
     // a material interface smears alpha into the phase densities/energies,
     // while skipping it everywhere costs single-phase contact sharpening.
@@ -535,7 +535,7 @@ PS_umeth(const Box& bx,
         static const int cached = []() {
             const int v = ps_dial_int("ps_lw_skip_contact", 2);
             if (v != 0 && v != 1 && v != 2) {
-                amrex::Abort("CAMR.ps_lw_skip_contact accepts 0 (off), 1 "
+                amrex::Abort("PSAMR.ps_lw_skip_contact accepts 0 (off), 1 "
                     "(blanket contact-wave skip), or 2 (regime-gated: skip "
                     "only at a genuine two-phase material interface).");
             }
@@ -544,7 +544,7 @@ PS_umeth(const Box& bx,
     };
     const int wp_lw_skip = ps_lw_skip_contact_cached();
 
-    // CAMR.ps_wp_transverse (0): 0 = directionally split; 1 = contact-only
+    // PSAMR.ps_wp_transverse (0): 0 = directionally split; 1 = contact-only
     // transverse correction (ps_wp_tvterm; the validated 2-D setting).
     // Any other value aborts.  2-D/3-D only.
     auto ps_wp_transverse_cached = []() -> int
@@ -552,11 +552,11 @@ PS_umeth(const Box& bx,
         static const int cached = []() -> int {
             const int v = ps_dial_int("ps_wp_transverse", 0);
             if (v == 2) {
-                amrex::Abort("CAMR.ps_wp_transverse=2 is retired: the acoustic "
+                amrex::Abort("PSAMR.ps_wp_transverse=2 is retired: the acoustic "
                     "transverse coupling is deleted; use 1 (contact-only)");
             }
             if (v != 0 && v != 1) {
-                amrex::Abort("CAMR.ps_wp_transverse must be 0 or 1");
+                amrex::Abort("PSAMR.ps_wp_transverse must be 0 or 1");
             }
             return v; }();
         return cached;
@@ -568,7 +568,7 @@ PS_umeth(const Box& bx,
     amrex::ignore_unused(ps_wp_transverse_cached);
 #endif
 
-    // CAMR.ps_mu (0 = inviscid): dynamic viscosity [Pa s] for
+    // PSAMR.ps_mu (0 = inviscid): dynamic viscosity [Pa s] for
     // ps_viscous_face; the pipe-break decks run an effective 2 Pa s.
     auto ps_mu_cached = []() -> amrex::Real {
         static const amrex::Real cached = []() -> amrex::Real {
@@ -591,7 +591,7 @@ PS_umeth(const Box& bx,
                 << "  PS_umeth: Berger-LeVeque WP (fluctuation) flux — "
                 << (wp_order == 2
                         ? "BL-2 limited correction fluxes (2nd order, the acceptance order)"
-                        : "1st-order fluctuations (BL-1, CAMR.ps_wp_order=1)")
+                        : "1st-order fluctuations (BL-1, PSAMR.ps_wp_order=1)")
                 << "\n";
             banner_shown = true;
         }
@@ -963,7 +963,7 @@ PS_umeth(const Box& bx,
         //  (F* plus the flux-form correction, which Berger & LeVeque show
         //  refluxes conservatively even for a non-conservative first-order
         //  operator).  Alpha is corrected by the capacity-form co-move with
-        //  its refluxed mass in CAMR::reflux() (CAMR.ps_bl_reflux), which
+        //  its refluxed mass in PSAMR::reflux() (PSAMR.ps_bl_reflux), which
         //  needs no wp-specific data.  The first-order UE1/UE2 phase-split
         //  coarse-fine fix-up is not done (gaps ~1e-4, resolution-dominated).
         //  docs §4.9.

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-dt7_shocktube.py — score CAMR on the DT7-4.1 two-phase CO2 shock tube
+dt7_shocktube.py — score PSAMR on the DT7-4.1 two-phase CO2 shock tube
 (SINTEF report DT7_2019_6, section 4.1) against the report's Figure-4
 HEM curve, and render the overlay.
 
 The case itself lives in inputs.dt7_shocktube (12 m tube, saturated
 298.15 K / alpha_g=0.2 against saturated 273.15 K / alpha_g=0.8,
-profiles at t = 25 ms).  CAMR's bare-default relaxation (X3 — fixed
+profiles at t = 25 ms).  PSAMR's bare-default relaxation (X3 — fixed
 point is the HEM flash) makes the report's HEM curve the natural
 target; their HRM theta-family brackets it from the frozen side.
 
@@ -115,7 +115,7 @@ def main():
     p = sys.argv[1]
     out = sys.argv[2] if len(sys.argv) > 2 else 'dt7_overlay.png'
     m = metrics(p)
-    print('DT7-4.1 two-phase shock tube — CAMR (bare defaults) vs report HEM')
+    print('DT7-4.1 two-phase shock tube — PSAMR (bare defaults) vs report HEM')
     print('  t = %.4e s (target 2.5e-2)' % m['t'])
     rows = [('left P (bar)',   m['P_L'],    ANCH['P_L'],    0.4),
             ('right P (bar)',  m['P_R'],    ANCH['P_R'],    0.4),
@@ -123,7 +123,7 @@ def main():
             ('star-left T (K)',m['T_starL'],ANCH['T_starL'],1.0),
             ('raref. mid (m)', m['x_rmid'], 0.5*(ANCH['x_rhead']+ANCH['x_rtail']), 0.4),
             ('shock pos (m)',  m['x_shock'],ANCH['x_shock'],0.3)]
-    print('  %-16s %10s %10s %8s  %s' % ('metric','CAMR','HEM(fig)','delta',''))
+    print('  %-16s %10s %10s %8s  %s' % ('metric','PSAMR','HEM(fig)','delta',''))
     for name, ours, ref, band in rows:
         d = ours - ref
         flag = 'ok' if abs(d) <= band else 'OUTSIDE +/-%g' % band
@@ -144,7 +144,7 @@ def main():
     import matplotlib.pyplot as plt
     x, P = profile(p, 'pressure'); _, T = profile(p, 'Temp')
     fig, ax = plt.subplots(1, 2, figsize=(12, 4.2))
-    ax[0].plot(x, T, 'b-', lw=1.4, label='CAMR (6-eq wp + X3, bare defaults)')
+    ax[0].plot(x, T, 'b-', lw=1.4, label='PSAMR (6-eq wp + X3, bare defaults)')
     for v, lab in [(ANCH['T_starL'], 'HEM star-left T')]:
         ax[0].axhline(v, color='k', ls=':', lw=1)
     ax[0].axhline(298.15, color='0.6', ls='--', lw=0.8)
@@ -152,7 +152,7 @@ def main():
     ax[0].axvline(ANCH['x_shock'], color='k', ls=':', lw=1)
     ax[0].set_xlabel('x (m)'); ax[0].set_ylabel('T (K)')
     ax[0].set_title('Temperature at t = 25 ms'); ax[0].set_xlim(0, 12)
-    ax[1].plot(x, P / 1e5, 'b-', lw=1.4, label='CAMR')
+    ax[1].plot(x, P / 1e5, 'b-', lw=1.4, label='PSAMR')
     ax[1].axhline(ANCH['P_star'], color='k', ls=':', lw=1, label='HEM anchors (digitized fig. 4)')
     ax[1].axhline(ANCH['P_L'], color='0.6', ls='--', lw=0.8)
     ax[1].axhline(ANCH['P_R'], color='0.6', ls='--', lw=0.8)
@@ -162,7 +162,7 @@ def main():
     ax[1].set_xlabel('x (m)'); ax[1].set_ylabel('p (bar)')
     ax[1].set_title('Pressure at t = 25 ms'); ax[1].set_xlim(0, 12)
     for a in ax: a.legend(fontsize=8); a.grid(alpha=0.3)
-    fig.suptitle('DT7-4.1 two-phase CO2 shock tube — CAMR vs SINTEF HEM (fig. 4)')
+    fig.suptitle('DT7-4.1 two-phase CO2 shock tube — PSAMR vs SINTEF HEM (fig. 4)')
     fig.tight_layout()
     fig.savefig(out, dpi=130)
     print('overlay ->', out)

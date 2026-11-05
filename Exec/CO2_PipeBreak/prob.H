@@ -16,7 +16,7 @@
 //  inherited from CO2_TBlowdown (z-lo/z-hi as y-lo/y-hi in 3-D).  The high reservoir/ambient pressure
 //  ratio vents a flashing under-expanded CO2 jet into the domain.
 //
-//  Runs on the legacy bcnormal BC path (CAMR.ps_bc_use_nscbc=0, the
+//  Runs on the legacy bcnormal BC path (PSAMR.ps_bc_use_nscbc=0, the
 //  default), so this per-cell routine is what fills every boundary.
 // =====================================================================
 
@@ -25,7 +25,7 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 #include <cmath>
@@ -112,7 +112,7 @@ jet_noise(amrex::Real y, amrex::Real z, amrex::Real time, int comp,
 // component-major; initdata copies the slots out of a local vector.
 #ifdef USE_PS_HYDRO
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void CAMR_ps_fill_single_phase(amrex::Real* s, amrex::Real P, amrex::Real T,
+void PSAMR_ps_fill_single_phase(amrex::Real* s, amrex::Real P, amrex::Real T,
                                amrex::Real ux, amrex::Real uy, amrex::Real uz,
                                bool vapor_dominant,
                                amrex::Real alpha_trace = amrex::Real(1.0e-6))
@@ -155,7 +155,7 @@ void CAMR_ps_fill_single_phase(amrex::Real* s, amrex::Real P, amrex::Real T,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& /*geomdata*/,
                ProbParmDevice const& prob_parm)
@@ -169,7 +169,7 @@ CAMR_initdata( int i, int j, int k,
     // ambients keep phase 1 dominant.  The trace phase carries its own
     // branch's state at (p0, T0).
     amrex::Real s[NVAR];
-    CAMR_ps_fill_single_phase(s, prob_parm.p0, prob_parm.T0,
+    PSAMR_ps_fill_single_phase(s, prob_parm.p0, prob_parm.T0,
                               prob_parm.u0, amrex::Real(0.0), amrex::Real(0.0),
                               prob_parm.amb_vapor != 0, prob_parm.alpha_trace);
     for (int n = 0; n < NVAR; ++n) state(i,j,k,n) = s[n];
@@ -478,7 +478,7 @@ bcnormal(
                     P_res_t = prob_parm.p0 + (prob_parm.p_res - prob_parm.p0) * f;
                 }
 #ifdef USE_PS_HYDRO
-                CAMR_ps_fill_single_phase(R, P_res_t, prob_parm.T_res,
+                PSAMR_ps_fill_single_phase(R, P_res_t, prob_parm.T_res,
                                           amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0),
                                           /*vapor_dominant=*/false, prob_parm.alpha_trace);
 #else

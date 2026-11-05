@@ -5,7 +5,7 @@
 #  same deck, fixed step count.  Writes runs/bench/<TAG>/<eos>_<cpu|gpu>/
 #  (run.log, final plotfile) and prints a summary table: wall per step,
 #  Mcell-updates/s (runs/tools/throughput.py), and the top TinyProfiler
-#  entries.  Executables must exist: CAMR2d.gnu.TPROF.MPI[.CUDA].PS.<eos>.ex
+#  entries.  Executables must exist: PSAMR2d.gnu.TPROF.MPI[.CUDA].PS.<eos>.ex
 #  (make DIM=2 TINY_PROFILE=TRUE [USE_CUDA=TRUE] Eos_Model=<eos>).
 #
 #    TAG=L0_200 MAX_LEVEL=0 STEPS=200 RANKS=8 CORES=64-125 GPU_CORE=100 \
@@ -22,14 +22,14 @@ PLATFORMS=${PLATFORMS:-"cpu gpu"}; EOS=${EOS:-"PR PRTab GERG GERGTab"}
 DECK=${DECK:-inputs.satjet_demo3}
 NCELL=${NCELL:-}; MAXGRID=${MAXGRID:-}      # optional grid overrides, e.g. NCELL="1024 512" MAXGRID=128
 ROOT=runs/bench/$TAG; mkdir -p "$ROOT"
-COMMON="$DECK amr.max_level=$MAX_LEVEL max_step=$STEPS stop_time=1.0 amr.checkpoint_files_output=0 amr.plot_int=-1 amr.plot_per=-1 amr.v=1 CAMR.v=0"
+COMMON="$DECK amr.max_level=$MAX_LEVEL max_step=$STEPS stop_time=1.0 amr.checkpoint_files_output=0 amr.plot_int=-1 amr.plot_per=-1 amr.v=1 PSAMR.v=0"
 [ -n "$NCELL" ] && COMMON="$COMMON amr.n_cell=$NCELL"
 [ -n "$MAXGRID" ] && COMMON="$COMMON amr.max_grid_size=$MAXGRID"
-[ -n "${EXTRA:-}" ] && COMMON="$COMMON $EXTRA"     # extra deck keys, e.g. EXTRA="CAMR.ps_relax_mode=6"
+[ -n "${EXTRA:-}" ] && COMMON="$COMMON $EXTRA"     # extra deck keys, e.g. EXTRA="PSAMR.ps_relax_mode=6"
 echo "# $(date -u +%FT%TZ) commit $(git -C ../.. rev-parse --short HEAD) deck $DECK max_level $MAX_LEVEL steps $STEPS ranks $RANKS ncell ${NCELL:-deck} max_grid ${MAXGRID:-deck} host $(hostname) gpu $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)" | tee "$ROOT/README.txt"
 for plat in $PLATFORMS; do
   for eos in $EOS; do
-    if [ "$plat" = gpu ]; then exe=CAMR2d.gnu.TPROF.MPI.CUDA.PS.$eos.ex; else exe=CAMR2d.gnu.TPROF.MPI.PS.$eos.ex; fi
+    if [ "$plat" = gpu ]; then exe=PSAMR2d.gnu.TPROF.MPI.CUDA.PS.$eos.ex; else exe=PSAMR2d.gnu.TPROF.MPI.PS.$eos.ex; fi
     d=$ROOT/${eos}_$plat; mkdir -p "$d"
     if [ ! -x "$exe" ]; then echo "$eos $plat: missing $exe" | tee -a "$ROOT/README.txt"; continue; fi
     if [ -s "$d/run.log" ] && grep -q 'Run time w/o init' "$d/run.log"; then echo "$eos $plat: done already"; continue; fi

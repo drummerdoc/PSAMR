@@ -3,7 +3,7 @@
 #include <AMReX_ParmParse.H>
 
 #include <algorithm>
-#include <CAMR.H>
+#include <PSAMR.H>
 
 using namespace amrex;
 

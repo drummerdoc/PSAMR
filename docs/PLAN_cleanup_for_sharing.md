@@ -1,4 +1,4 @@
-# CAMR `co2-eos` — cleanup plan for sharing
+# PSAMR `co2-eos` — cleanup plan for sharing
 
 **Prepared 2026-09-04 against HEAD `5a7edf0`.** Author: Fable, from a full read
 of the branch (44 `.md` files / 24.9 k lines, `Source/` PS + EOS code ~21 k
@@ -104,14 +104,14 @@ Part 0/§6.2, `HANDOFF_2026-08-17.md` §0/§5, `REVIEW_HANDOFF.md` §0.3/§8,
     bounded, counted and documented.
 18. **Refutations recorded as prominently as confirmations; do not re-derive.**
     The "do not resurrect" list is the highest-value content.
-19. **Acceptance basis: no stored CAMR output has authority.** Only
+19. **Acceptance basis: no stored PSAMR output has authority.** Only
     independently computed exact solutions, conservation identities, and the
     floor/no-root census. For B-cases cite both bracket rows (HEM + FROZEN).
     If a change moves the A/C mean it is a hydro regression and the stage
     aborts.
-20. **Dials: `CAMR.*` ParmParse only — no env-var knobs; one accessor per
+20. **Dials: `PSAMR.*` ParmParse only — no env-var knobs; one accessor per
     dial; resolved values force-added to `job_info`.** Parameters without the
-    `CAMR.` prefix are silently ignored — check `job_info`. Retired keys abort
+    `PSAMR.` prefix are silently ignored — check `job_info`. Retired keys abort
     merely by being present; harnesses that swallow stderr hide it. An exact
     1.000 rel-L2 means an absent field, not bad physics.
 21. **Documentation conventions.** Measurements are durable, conclusions
@@ -152,12 +152,12 @@ only builds `Sod` and `SodPlusSphere` (GammaLaw).
 | `verify_canonical.py` — **the gate** (~30 s) | 8 check groups, 27 assertions | 0 exe newer than PS headers; **1** frozen A/C battery (A1–A6, C1–C3; `relax_mode 0`, τ=0) rel-L2(ρ,u,P) per case ±2e-3, **mean 0.0350**, C1 exact 0.000; 2 B4 flatness at τ 1e-4 vs 1e-7 (u-err 0.129 ±0.02, Δ<0.01); **3 STALE** (B9 mode-4 — mode 4 aborts since mode 5); 4 reproject liveness on B9 (rp0 0.845 / rp1 0.752, Δ>0.05); 5 A/C invariance with `alpha_trace` 1e-6 and 0 (the `ps_presence` key is inert, so this is the default path twice); 6a B4 zero-trace 0.131; **6b STALE** (never fails by construction); 7 B5 frozen 0.388, B2 mode-4 + `ps_mech_kernel=1` max|u|<120; **8 B12** two-phase wall reflection: far field undisturbed (<1e-6 P0), mirror symmetry <1e-6, **R = c1/c2 ≤ 0.25** (measured 0.0097) | `$CO2_STANDALONE/suite/profiles/*.csv`, `suite/exact_{B4,B9}_pr.csv`; frozen numbers in the script |
 | `exact_suite.py` (~45 s) | 21-case acceptance table at **bare code defaults** (`alpha_trace=0`, no dials) | rel-L2 and err/variation of ρ,u,P vs exact Riemann (A/C frozen), HEM (B1–B11), plus FROZEN bracket rows for B2/B9. No thresholds; the "bit-identical inertness check" is a diff of this table before/after | standalone `suite/profiles`, `suite/exact_B*_pr.csv`, `*_frozen.csv` |
 | `characterize.py record/compare` | Stored fingerprint (sha + L2 per field per case) → IDENTICAL/CHANGED | Bit-exact change attribution. **Runs `full_suite.case_cfg` (mode 2, τ=1e-4, `alpha_trace` 1e-6), not the `exact_suite` defaults** — no stored fingerprint locks the acceptance configuration today | `characterization/*.json` (untracked) |
-| `full_suite.py` + `err_vs_analytic.py` | Case table (`CASES`) and CAMR-vs-standalone matched runs; `PS_FROZEN=1` mode | Frozen-limit ranking vs exact | standalone binary `ppm_1d_ps_wp` |
+| `full_suite.py` + `err_vs_analytic.py` | Case table (`CASES`) and PSAMR-vs-standalone matched runs; `PS_FROZEN=1` mode | Frozen-limit ranking vs exact | standalone binary `ppm_1d_ps_wp` |
 | `hem_limit.py` | τ-sweep on B4/B9 towards the HEM limit | Approach rate to equilibrium (VALIDATION tests 1–3) | `exact_{B4,B9}_pr.csv` |
 | `inputs.dt7_shocktube` + `dt7_shocktube.py` (N=1000, ~70 min; N=248 quick) | SINTEF DT7-4.1 saturated two-phase shock tube, 12 m, 25 ms | P*, shock position, θ-family match against digitized Fig. 4 | `fig4_digitized_curves.csv` (untracked) |
 | `flashing_front.py` (probe #31) | 1-D supercritical tube venting to 1 bar | Vented mass at 80 µs vs the boundary-free reference 2.3428 (healthy run; 2.2753 was the aborting-reference value, superseded); v2 pin 2.2474 | self-contained |
 | `gen_convergence.py` / `conv_montage.py` | N=128/256/512 for all cases | Self-convergence ratio, L1 vs exact | `ANALYTIC` profiles |
-| 0-D self-tests (`CAMR.ps_ptg_selftest`, `ps_relax_sweep`, `ps_x3_test`) | run after init, exit | Fixed-point / route- and basin-independence of the X3 relaxation | self-contained |
+| 0-D self-tests (`PSAMR.ps_ptg_selftest`, `ps_relax_sweep`, `ps_x3_test`) | run after init, exit | Fixed-point / route- and basin-independence of the X3 relaxation | self-contained |
 
 The battery: A1 Sod-strong, A2 Sod-weak, A3 Lax-like, A4 double rarefaction,
 A5 two-shock, A6 near-vacuum; B1 compressed-liquid expansion, B2 evaporation
@@ -184,7 +184,7 @@ plan stages, not cases.)
 
 - Checks 3 and 6b of `verify_canonical.py` are stale by construction; check 2
   sets the dead env `PS_FLASH_METASTABLE_MARGIN=0` (the knob is now
-  `CAMR.ps_flash_metastable_margin`, so B4 flatness has been measured at
+  `PSAMR.ps_flash_metastable_margin`, so B4 flatness has been measured at
   margin 0.10 since 08-15); check 5 measures the default path twice.
 - No stored fingerprint locks the acceptance (bare-default) configuration.
 - The 2-D tests have no scripted acceptance; the pipe-break ladder decks are
@@ -206,7 +206,7 @@ docs/
   README.md                     index, "read in this order"
   GROUND_RULES.md               §1 of this plan, plus the traps appendix
   MODEL_AND_ALGORITHM.md        publication-style "what is there and why" (chapters below)
-  camr_ps_model.tex / .pdf      moved from doc/; revised (star state, defaults, keys)
+  psamr_ps_model.tex / .pdf      moved from doc/; revised (star state, defaults, keys)
   DESIGN_DECISIONS.md           decision register (landed / refuted / open), alternatives considered,
                                 "do not re-derive" list, dormant/experimental features
   VERIFICATION.md               validation philosophy + every test with its numbers and how to run it
@@ -265,7 +265,7 @@ PRIMER and the two derivations.
 | `Exec/CO2_RiemannSuite/VALIDATION_finite_rate.md` | move → VERIFICATION §1 | whole; update "HEM limit not yet run", "only B4/B9 stored" |
 | `Exec/CO2_RiemannSuite/FINDINGS_hem_limit.md` | delete (its own banner says so) | "G1/G3 caps removed — pepper", "no root is a verdict" one-liners → DESIGN_DECISIONS |
 | `Exec/CO2_RiemannSuite/WORKLOG.md` | **extract, then delete/archive** | see 3.3 |
-| `doc/camr_ps_model.tex` | move → `docs/`, revise | §6.2 star state (currently the equal-strain shared r_K, contradicting the code since 08-31); options table: `ps_flash_tau` default is 1e-7 not 0; add `ps_lw_skip_contact`, `ps_promote_checked`, `ps_floor_indep`, ρ_deg, per-face NSCBC keys; drop retired `ps_star_relaxed`/`ps_rk_model` |
+| `doc/psamr_ps_model.tex` | move → `docs/`, revise | §6.2 star state (currently the equal-strain shared r_K, contradicting the code since 08-31); options table: `ps_flash_tau` default is 1e-7 not 0; add `ps_lw_skip_contact`, `ps_promote_checked`, `ps_floor_indep`, ρ_deg, per-face NSCBC keys; drop retired `ps_star_relaxed`/`ps_rk_model` |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | keep | GROUND_RULES states the branch override |
 
 ### 3.3 Content that exists only in WORKLOG (must be written before it goes)
@@ -308,12 +308,12 @@ Found while writing `docs/` against the code:
   says unported paths fail loud → make both abort under GPU (mechanical, but
   behaviour-changing on GPU only: `[DECIDE-25]`).
 - `GERG_EXT_C` is read by `getenv` as a fallback as well as by
-  `CAMR.gerg_ext_c` — the last env knob (rule 20). Remove the getenv.
-- `computeTemp` (`CAMR.cpp`) clamps α to [1e-6, 1−1e-6] and gates its
+  `PSAMR.gerg_ext_c` — the last env knob (rule 20). Remove the getenv.
+- `computeTemp` (`PSAMR.cpp`) clamps α to [1e-6, 1−1e-6] and gates its
   per-phase query at a private ε = 1e-3 inside the corridor — a surviving
   trace-floor copy; add to the `[DECIDE-16]` threshold table.
 - `USE_PS_DIAG` is wired only in `Exec/CO2_RiemannSuite/GNUmakefile`; move
-  to `Exec/Make.CAMR` so 2-D decks can use it.
+  to `Exec/Make.PSAMR` so 2-D decks can use it.
 - tex/code mismatches beyond §3.2: tex §4.4 α_birth 2e-2 (code 4e-2 —
   fixed in the revised tex), tex §4.3 "default `ps_mt_tau_model=2`" (code 0;
   X3 evaluates Γ_SRT with no τ), tex §5 α_cond derived from η_max 5.2e-4
@@ -364,14 +364,14 @@ these go into Phase 3/4, which are physics questions):
   no abort when both are set — the alias silently wins (PRTab's accessor
   aborts; make GERG match); `PR/EOS.H::EY2T` uses 8.314 where `hem::R_gas` is
   8.31446 (derive path only); `state_from_rho_e_phase_fixed` is unbracketed
-  and reachable via `CAMR.eos_warmstart_fixed=1` (goes with `[DECIDE-7]`).
+  and reachable via `PSAMR.eos_warmstart_fixed=1` (goes with `[DECIDE-7]`).
 - Core: `clean_state`'s abort on non-finite α₁ is host-only (device build
   passes NaN through — joins `[DECIDE-25]`); the kept health lines
   `[PS-RELAXFB]`/`[PS-PROMOTE]`/`[PS-FLCAUSE]` print only when the
   retire-candidate `ps_face_diag` (itself under `ps_diag_mass`) is set —
   re-gate them on `ps_diag_mass` alone in Phase 3; `Hydro_ctoprim.H` eta1=0
   branch tests `(UEDEN−ke)/UEDEN > 0`, not "unconditionally" as docs §8.4
-  says (fix the doc or the code — physics question); `CAMR_derpres` ignores
+  says (fix the doc or the code — physics question); `PSAMR_derpres` ignores
   `ps_hydro` while the sound-speed derives gate on it.
 
 ### 3.7 Phase-3 notes (2026-09-04)
@@ -388,7 +388,7 @@ these go into Phase 3/4, which are physics questions):
 
 ### 3.9 Phase-6 finding: `ps_wp_order` and the TBlowdown / B4 decks
 
-`CAMR.ps_wp_order` defaults to 1. The RiemannSuite harnesses, the pipe-break
+`PSAMR.ps_wp_order` defaults to 1. The RiemannSuite harnesses, the pipe-break
 decks, ADV2D and XC2D all set 2 explicitly; `CO2_TBlowdown` (all decks) and
 `CO2_B4/inputs`, `inputs-cf-contact` do not, so the blowdown orientation suite
 and the B4 C-F regression run first-order wp and their recorded numbers are
@@ -424,7 +424,7 @@ is missing is the 2-D evidence, and the gate checks that still name modes 2/4.
 In order, each with its acceptance criterion (rule 3: quality, not survival):
 
 1. **demo2 in mode 5, full deck to 2.5 ms** (`inputs.satjet_demo2` with
-   `CAMR.ps_relax_mode=5` and the three τ keys removed; 6 ranks, ~50 min):
+   `PSAMR.ps_relax_mode=5` and the three τ keys removed; 6 ranks, ~50 min):
    completes with zero aborts; the health line reads zero (`[PS-VALIDATE]`,
    `[PS-GUARD]` floors, `[PS-RELAXFB]`, `[PS-PROMOTE]` refusals);
    `accept_2d.py` on the step-50 and step-500 plotfiles (early ladder: mirror
@@ -516,7 +516,7 @@ cells, a 40–70 K thermal disequilibrium inherited from the mode-2
 checkpoint), about 9 h per window.
 
 `[DECIDE-28]` Mode-5 cost (code study 2026-09-09, no measurement of iteration
-counts yet — `CAMR.ps_pres_diag=1` and `CAMR.ps_mt_diag=1` print them). Unit
+counts yet — `PSAMR.ps_pres_diag=1` and `PSAMR.ps_mt_diag=1` print them). Unit
 of cost: one "EOS call" (`PsPhaseAPI::state_from_rho_e_phase`,
 `PS_relax.H`). Findings, in order of payoff; B = bit-identical, T = changes
 the iteration trajectory (root unchanged to tolerance), G = GPU-compatible.
@@ -872,7 +872,7 @@ ghost and a shock forms. σ and the R⁺ order cannot fix a wrong branch, and
 the σ(P−P_amb) term with P_amb = 20 bar pushes the boundary pressure *up*
 from the jet's 13 bar as well. Two measurements that settle it, both cheap
 on the Mac: (a) restart `DEMO3A` from a checkpoint before impact (~step 4000)
-for ~300 steps with `CAMR.ps_bc_nscbc_xhi=0` (the linearised-invariant path)
+for ~300 steps with `PSAMR.ps_bc_nscbc_xhi=0` (the linearised-invariant path)
 and compare the xhi column — if the stagnation disappears the fan is the cause;
 (b) print the boundary Mach number from the run (`ps_face_diag` or a one-line
 diagnostic of u_n/c_wood at i = nx−1). The fix, if confirmed, is the standard
@@ -912,7 +912,7 @@ than the interior's, i.e. $+\sigma(P_N - P_\infty)/\rho c$. The production
 face already floats 6–10 bar above P_∞ before the jet arrives.
 
 `[DECIDE-27]` now has three concrete parts, in order. (i) A no-code check:
-variant F, `CAMR.ps_bc_nscbc_sigma=0` (the code skips the term at σ ≤ 0),
+variant F, `PSAMR.ps_bc_nscbc_sigma=0` (the code skips the term at σ ≤ 0),
 which is the maximum restoring available today — if the pre-arrival float
 disappears, the sign is the whole story for the drift. (ii) The dial's
 semantics: replace σ by a blend β ∈ [0, 1] on the *whole* incoming invariant,
@@ -981,8 +981,8 @@ modes 1/2 can be retired (§4.3)?
 ## 4. Code cleanup and refactor
 
 Scope: `Source/Hydro/PelantiShyue/` (~14 k lines), `Source/EOS/{PR,PRTab,GERG,
-GERGTab}` (~6 k), PS parts of `CAMR.cpp`, `CAMR.H`, `CAMR_advance.cpp`,
-`CAMR_construct_hydro_source.cpp`, `Utils/`. Marker census over that set: ~190
+GERGTab}` (~6 k), PS parts of `PSAMR.cpp`, `PSAMR.H`, `PSAMR_advance.cpp`,
+`PSAMR_construct_hydro_source.cpp`, `Utils/`. Marker census over that set: ~190
 `2026-` dates, ~180 `#NNN` task refs, ~45 "session", ~35 "retired", ~35
 "legacy", ~30 "A/B", ~25 "Marc", 12 `DECIDE`, 7 `TODO`. Comment fraction is
 36–67 % per file; by my estimate 55–65 % of comment lines are history,
@@ -1017,14 +1017,14 @@ These are wrong today and must be corrected even if nothing else changes:
 
 - `PS_promote.H:21` "`ps_promote_checked` (default 0)" — default is 1
   (`PS_presence.H:85`).
-- `PS_sources.H:12–25` and `CAMR_advance.cpp:748` "every source dial defaults
+- `PS_sources.H:12–25` and `PSAMR_advance.cpp:748` "every source dial defaults
   OFF" — `flash_tau = mt_tau = 1e-7` (`PS_sources.H:49–50`).
 - `PS_umeth.cpp:941–950` "mode 2 PENDING DECIDE-2, not yet wired" vs
   `:954–967` default 2 and implemented; `:1197–1206` describes a hard switch
   while `:1207–1220` describes the coded smoothstep taper.
 - `PS_umeth.cpp:887–897` `ps_wp_order` "= 1 (default)" while the banner calls 2
   the acceptance order and 14 decks set 2 (see `[DECIDE-4]`).
-- `hem_pelanti_shyue.H:3389–3399` `PS_FLASH_PROJECT_SAT (default 0)` — CAMR
+- `hem_pelanti_shyue.H:3389–3399` `PS_FLASH_PROJECT_SAT (default 0)` — PSAMR
   resolves 1; `:3472–3497` two blocks disagree on `h_mode` default ("dom" vs
   "auto"; code is "auto"); `:1901–1909` `update_alpha=-1` "consult knob" — code
   aborts on −1; `:2019–2028` `tau_model=1` "RETIRED" but silently aliased to 0
@@ -1055,10 +1055,10 @@ These are wrong today and must be corrected even if nothing else changes:
 - `PRTab/EOS.H:3–28, 44–52, 60–63, 330, 437–446, 477, 573, 612, 657` MLP /
   "scoping skeleton" / "copy hem_pr_state.H into this dir" — PRTab is a
   bicubic table; `PRTab/hem_pr_state.H` and `hem_saturation_amrex.H` are
-  8- and 4-line forwarders, while `PRTab/Make.package`, `Exec/Make.CAMR:117–119`
+  8- and 4-line forwarders, while `PRTab/Make.package`, `Exec/Make.PSAMR:117–119`
   and `PRTab/README.md` claim physical copies. `SOURCE_STAMP` refers to
   `Source/EOS/RealFluidCO2/`.
-- `CAMR_advance.cpp:7–9` vs `:734–739` (`PS_alpha_transport.H` "deleted" vs
+- `PSAMR_advance.cpp:7–9` vs `:734–739` (`PS_alpha_transport.H` "deleted" vs
   "preserved in-tree"); `:128` `ps_do_relax` "mechanical relaxation on" (it
   gates the whole X3 operator); `:688–689` `ps_alpha_vanish` (key aborts).
 - `Timestep.H:92–99` "7-equation system" (six).
@@ -1081,7 +1081,7 @@ Note (Phase 3 finding): the production `-O3` build lets gcc contract `a*b+c` int
 FMA, and any change to inlining or struct layout can flip those choices, moving
 two-phase cases at 1e-16 with no semantic change. The bit-identical test is
 therefore run on a contraction-free build — `make TINY_PROFILE=FALSE
-XTRA_CXXFLAGS="-ffp-contract=off" …` (exe `CAMR1d.gnu.PS.PR.ex`) — against the
+XTRA_CXXFLAGS="-ffp-contract=off" …` (exe `PSAMR1d.gnu.PS.PR.ex`) — against the
 `PRE_nc_*` fingerprints; the production build's fingerprints are checked for
 round-off-only drift.
 (i) `characterize.py record PRE` on the 1-D exe, plus the `exact_suite.py`
@@ -1096,7 +1096,7 @@ commits so a non-identical result bisects in one step.
 
 | Item | Evidence |
 |---|---|
-| `ps_guard::slaved_phase`, `ALPHA_SLAVE_THR`, `count_slaved/n_slaved/reset_slaved` (`PS_guards.H:288–296, 446–455`) | one reference in the tree = the definition; `n_slaved` printed as a permanent 0 at `CAMR_advance.cpp:291–293` |
+| `ps_guard::slaved_phase`, `ALPHA_SLAVE_THR`, `count_slaved/n_slaved/reset_slaved` (`PS_guards.H:288–296, 446–455`) | one reference in the tree = the definition; `n_slaved` printed as a permanent 0 at `PSAMR_advance.cpp:291–293` |
 | `ps_guard::count_reject_high`, `count_rho_hi`, `count_nscbc_zg_lin` and their counters | their own comments: "retained but unreachable", "can no longer fire" |
 | `PS_HLLC::face_diag::n_seen/n_drop/max_def/max_estar` (`PS_hllc.H:616–619`) | never incremented; reported as `def:0/0 maxdef=0` |
 | `PS_NSCBC::_wallis_c_at_cell`, `right_x_outflow`, `Params::L_ref`, the `_outflow_face_v2` forwarder | no callers / never read |
@@ -1107,7 +1107,7 @@ commits so a non-identical result bisects in one step.
 | `PS_umeth.cpp:1623–1634` unreachable tail after `return` | — |
 | `PS_FL_WS_PSTAR` enum slot + 33-line obituary (`PS_hllc.H:307, 363–395`) | "can no longer fire"; kept only for worklog numbering |
 | `PsPres::enabled` (hard 1) and its four constant-folded forks (`PS_hllc.H:153–156`, `PS_relaxation.H:210`, `PS_sources.H:145, 326`) | field is never set to 0 |
-| `[PS-TQUERY]` 80-line probe in `CAMR::computeTemp` (`CAMR.cpp:1613–1691`) | a 2026-08-12 one-off, `USE_PR_EOS && !GPU` only |
+| `[PS-TQUERY]` 80-line probe in `PSAMR::computeTemp` (`PSAMR.cpp:1613–1691`) | a 2026-08-12 one-off, `USE_PR_EOS && !GPU` only |
 | Retired-key abort traps (`ps_flux` llf/hllc, `ps_recon`, `ps_alpha_limiter`, `ps_pk_energy_flux`, `ps_ctu`, `ps_star_relaxed`, `ps_rk_model`, `ps_alpha_vanish`, `ps_presence`, `ps_cmix_model`, `ps_bc_nscbc_v2`, mode 3) | consolidate into the one `ps_retired_keys()` table (policy 5) after scrubbing decks (`inputs.decomp` is the only offender found) |
 
 **(b) Selector retirement — each a `[DECIDE]` (behaviour of non-default
@@ -1120,7 +1120,7 @@ must be identical at default):**
 | **[DECIDE-2]** | `ps_promote_checked=0`, `ps_floor_indep=0` (3b/3c opt-outs) | retire (DECIDE-10 of corridor note) | same condition: one clean full production run |
 | **[DECIDE-3]** | `ps_relax_mode` 0/1/2/4 (`ps_pt_equilibrium_relax_cell`, `ps_ptg_relax_cell`, `hem::ps_iso_pressure_relax_cell` + `PsPrStats`, `ps_mech_close`, `ps_mech_kernel`, `ps_pr_fd1`, `ps_mt_form`, `ps_mt_nest_pr`, `ps_mt_explicit`, `ps_mt_gref`, `ps_mt_bootstrap`, `ps_mt_step_frac`, `ps_mt_alpha_thr`) — ~1,000 lines | keep **5** (X3) and **0** (mechanical only, for frozen/relax-off tests); delete 1/2/4 and the mode-≠5-only sub-dials | blocked by `[DECIDE-12]` (demo2/demo3 run mode 2); verify_canonical checks 2, 4, 7 use mode 4/2 and must be re-baselined onto mode 5 in the same commit |
 | **[DECIDE-4]** | `ps_wp_order` default 1 → 2 | make 2 the default (the acceptance order, used by 14 of 15 decks), keep 1 as a documented alternative for first-order comparisons | changes results only for decks that do not set it (`CO2_Sod`? — none of the PS decks rely on the default) |
-| **[DECIDE-5]** | `ps_bl_reflux` 0/1 and the `PS_FluctuationRegister.H` plumbing (`CAMR.H:316–343, 613–683`, `CAMR.cpp:346–358, 1007–1033`, `CAMR_construct_hydro_source.cpp:111–128, 219–224, 363–389`, `IndexDefines.H:151–158`, `PS_umeth` `do_bl_fluct/fcorr*`) — ~600 lines | delete; keep the α co-move as a bool (`ps_bl_reflux` becomes on/off, default on) | `_cpp_parameters:62–67` calls mode 1 a "HISTORICAL NO-OP"; wp leaves `fcorr` at zero so `Reflux` adds zero |
+| **[DECIDE-5]** | `ps_bl_reflux` 0/1 and the `PS_FluctuationRegister.H` plumbing (`PSAMR.H:316–343, 613–683`, `PSAMR.cpp:346–358, 1007–1033`, `PSAMR_construct_hydro_source.cpp:111–128, 219–224, 363–389`, `IndexDefines.H:151–158`, `PS_umeth` `do_bl_fluct/fcorr*`) — ~600 lines | delete; keep the α co-move as a bool (`ps_bl_reflux` becomes on/off, default on) | `_cpp_parameters:62–67` calls mode 1 a "HISTORICAL NO-OP"; wp leaves `fcorr` at zero so `Reflux` adds zero |
 | **[DECIDE-6]** | `ps_wp_transverse=2` (BL-3b acoustic) and `ps_shear_diss` | delete both (never re-measured after the 08-24 c→snd fix; default off; documented as "moot") — or keep `ps_shear_diss` if you want a Jameson-type knob available in 2-D | default path unaffected |
 | **[DECIDE-7]** | `ps_harvest*` reservoir (`PS_relaxation.H:1607–1779`, `harvest_*.py`), `eos_warmstart*`, `ps_warmstart_Tinit.H`, `eos_mlp*` aliases | delete: the MLP/warm-start programme is retired per `PRTab/README.md`; `eos_warmstart` is "accepted but IGNORED" | — |
 | **[DECIDE-8]** | Investigation diagnostics: `ps_prehydro_diag`, `ps_psat_diag`, `ps_t2_diag`, `ps_diag_morph`, `ps_eovs_diag`, `ps_coexit_diag`, `ps_prdiag`, `ps_relax_diag`, `ps_floor_budget`, `ps_dm_census`, `PsRelaxDiag` (mode-0 era), `[PS-FLASH-EV]` Σ-kill hook, `[PS-W21]` (asserts a no-op), `ps_dilute_probe/ps_m2_test/ps_asy1_probe` 0-D probes, `ps_dilute_closure/alpha0` | delete; **keep** `ps_validate` (V1–V9), `ps_diag_mass`, `ps_pres_diag` (`[PS-X3]/[PS-DT]/[PS-GATE]`), `[PS-FLCAUSE]`, `[PS-RELAXFB]`, `[PS-PROMOTE]`, `[PS-FOLD]`, `[PS-MTCAUSE]/[PS-FLASH-REF]` cause tables, the `[ps_flash]/[ps_mt]` cumulative counters, `ps_ptg_selftest`, `ps_relax_sweep`, `ps_x3_test`, `ps_strict_eos` census under `USE_PS_DIAG` | the kept set is what the gates and the 2-D health line read; the deleted set is Stage-1/FINDINGS instruments |
@@ -1179,14 +1179,14 @@ protocol proves. What changes is that a deck setting a retired value aborts.
     template parameter). Pull the shared surface (critical/triple accessors,
     species stubs, `_liquid/_vapor → _phase` forwarders, `NUM_SPECIES`/γ
     shims) into `EOS/EOS_contract.H` — this also closes the open "shared EOS
-    interface header" item, with `Exec/Make.CAMR`'s GammaLaw refusal kept.
+    interface header" item, with `Exec/Make.PSAMR`'s GammaLaw refusal kept.
     Both bicubic headers hand-roll the same Catmull-Rom kernel → one header.
     `hem::co2_P_sat_wagner`, `hem::co2_sat_state`, `ps_below_triple_point`
     duplicate `EOS::Psat`, `EOS::co2_sat_LV`, `EOS::T_triple/P_triple` with
     hard-coded CO2 numbers → delete the hem copies (rule 11). Move
     `hem::Phase3` to a tiny header so GERG stops including 1,300 lines for an
     enum. Remaining `getenv` (`gerg_co2_guard.H:141`, `GERG_EXT_C`) →
-    `CAMR.gerg_ext_c` only (rule 20).
+    `PSAMR.gerg_ext_c` only (rule 20).
 11. **`PS_relaxation.H` split** (2.9 k lines hosting relaxation, folds,
     floors, harvester, diagnostics): after (b)/(8) it splits naturally into
     `PS_relax.H` (X3 dispatch), `PS_folds.H` (vanish/vacuum/corridor/energy/
@@ -1209,7 +1209,7 @@ flash windows, NSCBC pack/fan limits, EOS bracket fences) is in the source
 audit and carries over unchanged. Two observed inconsistencies are reported,
 not fixed, because fixing either is a rule-1/rule-2 decision:
 **[DECIDE-17]** the reflux α co-move clamps to `[1e-8, 1−1e-8]` and `|Δα| ≤
-0.05` (`CAMR.cpp:1048–1086`), which contradicts "α free in [0,1] so ABSENT is
+0.05` (`PSAMR.cpp:1048–1086`), which contradicts "α free in [0,1] so ABSENT is
 reachable" (`PS_presence.H:69`) — a coarse cell with α=0 gets 1e-8 after
 reflux; **[DECIDE-18]** `face_from_state`/`ps_phase_speeds_from_state` use
 `m>1e-12 ? … : e_mix+ke` silently while ctoprim/flux follow contract 3 (this
@@ -1224,7 +1224,7 @@ is resolved for free by refactor item 1 if you accept `[DECIDE-13]`).
 | Keep | Delete (`[DECIDE-19]` as one batch) |
 |---|---|
 | `CO2_RiemannSuite/inputs`, `inputs.dt7_shocktube` | `CO2_RiemannSuite/inputs.decomp` (mode 3; two keys abort/unread) — stub note in FUTURE_WORK if the decompression-wave-speed question returns |
-| `CO2_PipeBreak/inputs.satjet_demo2`, `inputs.satjet_demo3` (pin `CAMR.ps_lw_skip_contact = 2` in demo3 per OUTSTANDING §1; fix banners) | — |
+| `CO2_PipeBreak/inputs.satjet_demo2`, `inputs.satjet_demo3` (pin `PSAMR.ps_lw_skip_contact = 2` in demo3 per OUTSTANDING §1; fix banners) | — |
 | `CO2_TBlowdown/inputs.base`, `inputs-sym-{x,y}-{lo,hi}`, `inputs-x-amr`; `inputs-x` collapsed to `FILE = inputs.base` + prefix, `max_step`/`stop_time` made consistent | — |
 | `CO2_ADV2D/inputs`, `inputs-fb-rk2` | — |
 | `CO2_XC2D/inputs` (ray-diff numbers to be re-measured under wp) | — |
@@ -1250,7 +1250,7 @@ duplicate); `CO2_PipeBreak/{compare_satjet_convergence.py, ps_zoom_diag.py,
 dropscan.py, osca.py, runsum.sh, inflow_col.py, gerg_edge_scan.py, gergcells.cpp,
 gergprobe.cpp, gergtab_pathcost.cpp}`.
 
-Fix in survivors: hard-coded `./CAMR1d.gnu.TPROF.PS.ex` defaults
+Fix in survivors: hard-coded `./PSAMR1d.gnu.TPROF.PS.ex` defaults
 (`flashing_front.py`), the dead `PS_FLASH_METASTABLE_MARGIN` env in
 `verify_canonical.py` check 2 and `hem_limit.py`, `characterize.py` docstring
 (`run_ac_suite.py`), `full_suite.py` import-time `os.makedirs('std_ref')`, the
@@ -1268,13 +1268,13 @@ as `pltread.py` if kept). `Exec/CMakeLists.txt` `SodPlusSPhere` typo.
 | `DEMO3A/` | 490 MB | delete once the run is confirmed to have started on the rebuilt exe (OUTSTANDING §1: a stale exe silently ran mode 0); the `…ex-running` lock stays |
 | `CO2_PipeBreak/{PR,PRTab,GERG,GERGTab}/` | 46 MB | delete (numbers are in the four-backend note → MODEL ch. 7) |
 | `tmp_build_dir/` ×6, stale executables (~10), `Backtrace.*`, `_build_*.log`, `__pycache__`, `.DS_Store`, `AMReX_buildInfo.cpp` | ~360 MB | delete (`make realclean`); keep only the current 1-D and 2-D PR exes, which get rebuilt anyway |
-| `CO2_RiemannSuite` run dirs (1,075 dirs: `vp_`, `wp_`, `vc_`, `lw*_`, `ex_wp_`, `pc_*`, `c1_`, `ab*`, `b54*`, `dc_*`, `hem_*` …), `_c1refs.tgz`, `_g1refs.tgz`, `gerg_refs/g1_*` | 29 MB | delete all — `c1_*` refs are retired ("no stored CAMR output has authority") |
+| `CO2_RiemannSuite` run dirs (1,075 dirs: `vp_`, `wp_`, `vc_`, `lw*_`, `ex_wp_`, `pc_*`, `c1_`, `ab*`, `b54*`, `dc_*`, `hem_*` …), `_c1refs.tgz`, `_g1refs.tgz`, `gerg_refs/g1_*` | 29 MB | delete all — `c1_*` refs are retired ("no stored PSAMR output has authority") |
 | `conv_data/`, `dt7_*.tgz`, `rung/` | 8 MB | regenerable; archive `dt7_*.tgz` with the docx |
 | harvest CSVs | 2.4 MB | delete (with `[DECIDE-7]`) |
 | generated tables `prtab_table_data.cpp`, `gergtab_table_data.cpp`, `gen_table` | 11 MB | keep locally (ignored; regenerable) |
 | **Untracked candidates**: `characterization/*.json`, `fig4_digitized_curves.csv`, `family_reproduction.png`, `DT7_comparison.docx`, `overlay_*.png`, `theta_mapping.png` | 2 MB | **track** `characterization/`, `fig4_digitized_curves.csv`, `family_reproduction.png` (needed by the DT7 test and the fingerprint tool); track the docx + overlays under `docs/refs/dt7/` only if cited |
 | `DT7_2019_6_homogeneous_relaxation_model.pdf` (root), `lund-splitting-relaxation-twophase-flow.pdf` (tracked, root) | 1 MB | **[DECIDE-14]** third-party PDFs — remove from the shared tree and cite instead, unless licence allows redistribution |
-| `_camr_tracked.tar.gz`, `_untracked_inventory.txt` | 4 MB | delete (this review's snapshot artefacts) |
+| `_psamr_tracked.tar.gz`, `_untracked_inventory.txt` | 4 MB | delete (this review's snapshot artefacts) |
 
 ### 5.4 `.gitignore`
 
@@ -1282,7 +1282,7 @@ Keep the generic and table blocks. Add `Source/EOS/GERGTab/tools/gen_gergtab`
 (a 52 KB Mach-O binary is **tracked today** and churns on every
 `clean-gergtab-tables`). Fix `plt*` → `plt[0-9]*` / `plt_*/` (it hides the
 `plt.py` reader). Delete the session-specific lines (`d/ f/ o/`, `runlog*`,
-`User/`, `std_ref/`, `mt_std*/`, `mt_camr*/`, `tdiag_*.txt`, `_*.png`,
+`User/`, `std_ref/`, `mt_std*/`, `mt_psamr*/`, `tdiag_*.txt`, `_*.png`,
 `build_sbx/`, the #42 harvest block, `prtab_fwd_net_lam*.H`, `cvg*_0*`,
 `prtab_diag.txt` ×2, `rgr_*`, `rung/`, `_snap_*`, `*.pepperbak`, the
 `gergstats`/`gergtab_pathcost` binaries, duplicate `_to_delete/`, the three
@@ -1297,11 +1297,11 @@ Whitelist with `!` any log/tarball that is deliberately kept as provenance.
 ## 6. Test-data regeneration strategy
 
 **Principle (rule 19):** the only references with authority are exact
-solutions computed outside CAMR, conservation identities and census counts.
-CAMR's own outputs are stored only as *fingerprints* (sha + L2 per field) for
+solutions computed outside PSAMR, conservation identities and census counts.
+PSAMR's own outputs are stored only as *fingerprints* (sha + L2 per field) for
 change attribution, never as correctness references. So "regenerating the test
 data" means: (a) vendoring the frozen external references once with
-provenance, (b) regenerating every CAMR-side artefact from a script, and (c)
+provenance, (b) regenerating every PSAMR-side artefact from a script, and (c)
 storing only small derived artefacts (transcripts, JSON, centerline CSVs) —
 never plotfiles or checkpoints — in git.
 
@@ -1319,16 +1319,16 @@ your side (HANDOFF_2026-08-17 §4.3 says they were untracked) before vendoring.
 **Regenerated by `Exec/regen_refs.sh` (new; deterministic given compiler):**
 
 ```
-# 0  provenance → Exec/refs/PROVENANCE.txt: CAMR SHA, amrex SHA, compiler --version, date, GERG_EXT_C
+# 0  provenance → Exec/refs/PROVENANCE.txt: PSAMR SHA, amrex SHA, compiler --version, date, GERG_EXT_C
 # 1  tables            (cd Exec/CO2_RiemannSuite && make tables && make gergtab-tables)
 # 2  binaries          1-D PR (RiemannSuite), 2-D PR MPI (PipeBreak, TBlowdown); optional PRTab/GERGTab 1-D
 #                      — every step checks the exe mtime is newer than every Source/ file (rule 5), not just two headers
 # 3  1-D gate          python3 verify_canonical.py | tee refs/verify_canonical_$SHA.txt
 #                      python3 exact_suite.py wp    | tee refs/exact_suite_$SHA.txt        (the frozen transcript)
 #                      python3 characterize.py record $SHA                                (fingerprint, bare-default config — see fix below)
-# 4  0-D self-tests    ./CAMR1d… inputs CAMR.ps_ptg_selftest=1 / ps_relax_sweep=1 / ps_x3_test=1
+# 4  0-D self-tests    ./PSAMR1d… inputs PSAMR.ps_ptg_selftest=1 / ps_relax_sweep=1 / ps_x3_test=1
 # 5  literature        DT7 at N=248 (quick) in CI; N=1000 (~70 min) for the reference overlay
-# 6  2-D robustness    TBlowdown four orientations + AMR with CAMR.ps_validate=1; new sym_compare.py folds the four
+# 6  2-D robustness    TBlowdown four orientations + AMR with PSAMR.ps_validate=1; new sym_compare.py folds the four
 #                      profiles and asserts agreement (≤ round-off); ADV2D OOA + mass/ρE budget from sum_interval
 # 7  pipe-break        runs/demo2_$SHA: full deck to 2.5 ms (505 steps, ~50 min / 6 ranks);
 #                      runs/demo3_$SHA: max_step=50 → centerline max|d²α₁| metric;
@@ -1409,7 +1409,7 @@ paced by the run in phase 8.
 | 20 | Keep `CO2_Sod` (single-fluid PR) | keep only if single-fluid PR is supported |
 | 21 | Delete upstream `DoubleRamp`/`ReReTest`/`MovingEBCases` on this branch | leave untouched if merging back to `development` is intended |
 | 22 | Run-data triage rows (§5.3) | as tabled |
-| 23 | Standalone `suite/exact_*.csv` committed on your side before vendoring | **DECIDED 09-04: vendor.** Note: only `profiles/*.csv` were committed in the standalone; the `exact_*.csv` were untracked there, so the CAMR copy (`refs/exact/`, commit `60db9d7`) is now the only version-controlled one — commit them in co2-eos-cfd too |
+| 23 | Standalone `suite/exact_*.csv` committed on your side before vendoring | **DECIDED 09-04: vendor.** Note: only `profiles/*.csv` were committed in the standalone; the `exact_*.csv` were untracked there, so the PSAMR copy (`refs/exact/`, commit `60db9d7`) is now the only version-controlled one — commit them in co2-eos-cfd too |
 | 24 | B4-flatness reference configuration (margin 0.10 vs 0) | **DECIDED 09-04: 0.10** (code default); drop the dead env in check 2 in Phase 6 |
 | 25 | GPU builds silently take the strict relax gate and the `bcnormal` outflow path (`#if !GPU` branches) — abort instead? | yes (rule 9) |
 | 26 | Which of the §3.6 candidate defects to fix in Phase 3/4 — **DECIDED 09-04: groups 1 and 2 fixed** (`693d051`, `dacb85b`); group 3 (physics/convention) left as documented |
@@ -1475,7 +1475,7 @@ Working rules learned this session, all mechanical:
   their whole duration, so long runs are launched by Marc from a terminal
   (`mode5_evidence.sh`, `regen_refs.sh`, `nscbc_xhi_test.sh` are written
   for that) and read back from their logs. No MPI in the bridge VM;
-  serial 2-D builds work there (`CAMR2d.gnu.PS.PR.ex`). The bridge cannot
+  serial 2-D builds work there (`PSAMR2d.gnu.PS.PR.ex`). The bridge cannot
   unlink: stale `.git/index.lock` and other locks are moved to
   `_to_delete/` (Marc empties it). `rebase1d.sh`-style scripts that
   truncate a reference file before writing it must run in the foreground

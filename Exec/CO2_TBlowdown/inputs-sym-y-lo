@@ -8,7 +8,7 @@ amr.n_cell           =   32   256   32
 geometry.prob_hi     =   0.125    1.0    0.125
 
 # Wall at y=lo, vent at y=hi.  Tangential (x, z) always SlipWall.
-CAMR.lo_bc       =  SlipWall   SlipWall   SlipWall
-CAMR.hi_bc       =  SlipWall   Inflow     SlipWall
+PSAMR.lo_bc       =  SlipWall   SlipWall   SlipWall
+PSAMR.hi_bc       =  SlipWall   Inflow     SlipWall
 
 amr.plot_file = plt_sym_y_lo_

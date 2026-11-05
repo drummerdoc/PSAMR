@@ -1,7 +1,7 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "Hydro.H"
 #include "Hydro_ctoprim.H"
-#include "CAMR_Constants.H"
+#include "PSAMR_Constants.H"
 #ifdef USE_PS_HYDRO
 #include "PS_ctoprim.H"
 #include "PS_umeth.H"                // dial accessors
@@ -12,12 +12,12 @@
 using namespace amrex;
 
 void
-CAMR::construct_hydro_source (const MultiFab& S,
+PSAMR::construct_hydro_source (const MultiFab& S,
                               MultiFab& src_to_fill,
                               Real /*time*/,
                               Real dt)
 {
-    BL_PROFILE("CAMR::construct_hydro_source()");
+    BL_PROFILE("PSAMR::construct_hydro_source()");
     src_to_fill.setVal(0);
 
     if (verbose) {
@@ -25,7 +25,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
             amrex::Print() << "... Computing MOL-based hydro advance" << std::endl;
 #ifdef USE_PS_HYDRO
         } else if (ps_hydro != 0) {
-            // Pelanti-Shyue path: name the resolved flux (CAMR.ps_flux, via
+            // Pelanti-Shyue path: name the resolved flux (PSAMR.ps_flux, via
             // its single-read accessor in PS_umeth.cpp).  "Godunov-based"
             // below is the generic unsplit driver label, not a flux.
             amrex::Print() << "... Computing PS unsplit hydro advance (flux="
@@ -74,7 +74,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
 
     MultiFab& S_new = get_new_data(State_Type);
 
-    BL_PROFILE_VAR("CAMR::advance_hydro_umdrv()", PC_UMDRV);
+    BL_PROFILE_VAR("PSAMR::advance_hydro_umdrv()", PC_UMDRV);
 
 #ifdef AMREX_USE_EB
     const auto& ebfact = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
@@ -133,9 +133,9 @@ CAMR::construct_hydro_source (const MultiFab& S,
             auto const& srcqarr = src_q.array();
 
             BL_PROFILE_VAR("ctoprim()", ctop);
-            const Real small_num        = CAMRConstants::small_num;
-            Real dual_energy_eta        = CAMR::dual_energy_eta1;
-            int l_allow_negative_energy = CAMR::allow_negative_energy;
+            const Real small_num        = PSAMRConstants::small_num;
+            Real dual_energy_eta        = PSAMR::dual_energy_eta1;
+            int l_allow_negative_energy = PSAMR::allow_negative_energy;
             // Under PS, allow_negative_energy is forced to 1 and
             // dual_energy_eta1 to 0 at ctoprim (docs/MODEL_AND_ALGORITHM.md
             // §8.4): liquid CO2 has physical e < 0, which the positive-e
@@ -150,7 +150,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
                     bool expected = false;
                     if (warned_ps_ctoprim.compare_exchange_strong(expected, true)) {
                         amrex::Warning(
-                          "CAMR::PS: forcing allow_negative_energy=1 and "
+                          "PSAMR::PS: forcing allow_negative_energy=1 and "
                           "dual_energy_eta1=0 inside hydro_ctoprim for the "
                           "Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ "
                           "unconditionally as the mixture specific internal "
@@ -186,7 +186,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
                     // QRHO1, QRHO2, QP1, QP2) and override QPRES with the
                     // volume-fraction mixture rule (PS_ctoprim.H).  Runs
                     // whenever USE_PS_HYDRO is compiled in, even with
-                    // CAMR.ps_hydro=0: cheap, and Godunov / MOL then see
+                    // PSAMR.ps_hydro=0: cheap, and Godunov / MOL then see
                     // the per-phase state.
                     ps_augment_primitives(i, j, k, sarr, qarr, l_pres);
 #endif
@@ -239,7 +239,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
 
             EBFluxRegister* fr_as_crse = nullptr;
             if (do_reflux && level < parent->finestLevel()) {
-                CAMR& fine_level = getLevel(level+1);
+                PSAMR& fine_level = getLevel(level+1);
                 fr_as_crse = &fine_level.flux_reg;
             }
 
@@ -291,7 +291,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
                           as_fine, dm_as_fine.array(), level_mask.const_array(mfi),
                           dt, ppm_type, plm_iorder, use_pslope,
                           use_flattening, transverse_reset_density,
-                          small, small_dens, small_pres, CAMRConstants::smallu, difmag,
+                          small, small_dens, small_pres, PSAMRConstants::smallu, difmag,
                           bcs_d.data(), redistribution_type, lpmap, eb_weights_type);
 
             //
@@ -331,7 +331,7 @@ CAMR::construct_hydro_source (const MultiFab& S,
                        sarr, hyd_src, qarr, qauxar, srcqarr, dx,
                        dt, ppm_type, plm_iorder, use_pslope,
                        use_flattening, transverse_reset_density,
-                       small, small_dens, small_pres, CAMRConstants::smallu, difmag,
+                       small, small_dens, small_pres, PSAMRConstants::smallu, difmag,
                        flx_arr, a, volume.array(mfi), lpmap);
 
             //

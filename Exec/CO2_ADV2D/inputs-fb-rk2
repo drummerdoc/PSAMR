@@ -20,28 +20,28 @@ geometry.prob_lo     =   0.0   0.0
 geometry.prob_hi     =   1.0   1.0
 amr.n_cell           =   32    32
 
-CAMR.lo_bc = Interior Interior
-CAMR.hi_bc = Interior Interior
+PSAMR.lo_bc = Interior Interior
+PSAMR.hi_bc = Interior Interior
 
-CAMR.cfl = 0.25
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
+PSAMR.cfl = 0.25
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
 
-CAMR.do_mol   = 0
-CAMR.ppm_type = 1
+PSAMR.do_mol   = 0
+PSAMR.ppm_type = 1
 
-CAMR.ps_hydro    = 1
-CAMR.ps_flux     = wp
-CAMR.ps_wp_order = 2
-CAMR.ps_do_relax = 0
-CAMR.ps_mt_tau       = 0    # no mass transfer (pre-2026-08-24 default, pinned)
-CAMR.ps_flash_tau    = 0    # no flash source  (pre-2026-08-24 default, pinned)
-# CAMR.ps_bl_reflux is left at its default (alpha co-move on); the conserved-slot budget this deck checks does not depend on it.
+PSAMR.ps_hydro    = 1
+PSAMR.ps_flux     = wp
+PSAMR.ps_wp_order = 2
+PSAMR.ps_do_relax = 0
+PSAMR.ps_mt_tau       = 0    # no mass transfer (pre-2026-08-24 default, pinned)
+PSAMR.ps_flash_tau    = 0    # no flash source  (pre-2026-08-24 default, pinned)
+# PSAMR.ps_bl_reflux is left at its default (alpha co-move on); the conserved-slot budget this deck checks does not depend on it.
 
-CAMR.v = 0
+PSAMR.v = 0
 amr.v  = 0
-CAMR.sum_interval = 20
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = 20
+PSAMR.redistribution_type = StateRedist
 
 # --- 2-level AMR with a STATIC refine box [0.375,0.625]^2 ------------
 amr.max_level       = 1

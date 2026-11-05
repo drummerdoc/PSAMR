@@ -17,7 +17,7 @@ os.environ.setdefault('PS_FROZEN', '0')
 import full_suite as F
 import ps_plotfile as R           # plotfile reader (was run_ac_suite)
 
-EXE  = os.environ.get('EXE', F.CAMR)
+EXE  = os.environ.get('EXE', F.PSAMR)
 REFS = F.REFS                 # vendored exact references (refs/exact)
 N     = int(os.environ.get('NCELL', '64'))
 
@@ -66,23 +66,23 @@ def run(case, flux, pref):
     c=F.CD[case]; tf=c[3]
     ov={'amr.n_cell':N,'geometry.prob_lo':0.0,'geometry.prob_hi':1.0,
         'prob.x_diaph':0.5,'prob.alpha_trace':0.0,'prob.p_amb':5.0e6,
-        'CAMR.cfl':0.25,'CAMR.do_mol':0,'stop_time':tf,
-        'CAMR.ps_flux':flux,'CAMR.ps_wp_order':2}
+        'PSAMR.cfl':0.25,'PSAMR.do_mol':0,'stop_time':tf,
+        'PSAMR.ps_flux':flux,'PSAMR.ps_wp_order':2}
     #  The acceptance configuration is the code's defaults for all 20 cases:
     #  this harness passes no relaxation dial at all, so any change to any
     #  default is visible in the table.  Relaxation is inert on single-phase
     #  states, so the A/C rows are the same with it on or off.  PROBE_OV=
     #  "k=v,k=v" appends overrides for one-off probes (applied last, so they
     #  always win).
-    ov.update(F.camr_side(c[1],'L')); ov.update(F.camr_side(c[2],'R'))
+    ov.update(F.psamr_side(c[1],'L')); ov.update(F.psamr_side(c[2],'R'))
     #  PROBE_OV is applied LAST so its overrides always win (applied before
-    #  camr_side it would be silently clobbered on any prob.* key it sets).
+    #  psamr_side it would be silently clobbered on any prob.* key it sets).
     for _kv in os.environ.get('PROBE_OV', '').split(','):
         if _kv.strip():
             _k, _v = _kv.split('='); ov[_k.strip()] = _v.strip()
     cmd=[EXE,'inputs']+['%s=%s'%(k,v) for k,v in ov.items()]
     cmd+=['amr.plot_int=-1','amr.plot_per=%g'%tf,'amr.plot_file=%s'%pref,
-          'amr.v=0','CAMR.v=0']
+          'amr.v=0','PSAMR.v=0']
     r=subprocess.run(cmd,capture_output=True,text=True,timeout=600)
     if os.environ.get('PROBE_LOG'):
         open(os.environ['PROBE_LOG'],'a').write('#### '+' '.join(cmd)+'\n'+r.stdout)

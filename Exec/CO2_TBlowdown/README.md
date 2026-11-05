@@ -3,7 +3,7 @@
 A 1 m closed pipe of supercritical CO₂ at 100 bar, 320 K (16 K above $T_c$; the rarefaction cools to ~290 K and stays single-phase) vents through one NSCBC outflow face to 1 bar (`prob.p_amb`), the other faces slip walls. Two-dimensional build; the physics is one-dimensional along the tube, which is what the symmetry test exploits: the same problem is run with the tube along $x$ or $y$ and the vent on the low or high face, and the folded profiles must agree to round-off, proving the NSCBC dispatch and the fluctuation deposits are orientation-invariant.
 
     make -j8 COMP=gnu DIM=2 USE_MPI=TRUE Eos_Model=PR
-    mpiexec -np 4 ./CAMR2d.gnu.MPI.PS.PR.ex inputs-sym-x-lo        # reference orientation; then -x-hi, -y-lo, -y-hi
+    mpiexec -np 4 ./PSAMR2d.gnu.MPI.PS.PR.ex inputs-sym-x-lo        # reference orientation; then -x-hi, -y-lo, -y-hi
 
 | Deck | Purpose |
 |---|---|
@@ -11,7 +11,7 @@ A 1 m closed pipe of supercritical CO₂ at 100 bar, 320 K (16 K above $T_c$; th
 | `inputs-sym-{x,y}-{lo,hi}` | Orientation variants: 256 × 32 tube along the named axis, vent on the named face, plot prefix `plt_sym_*_`. |
 | `inputs-x` | Stand-alone deck along $x$ (256 × 32, `stop_time = 5e-3`, `max_step = 300`) for the wall-pressure-history run. |
 | `inputs-x-amr` | 128 × 16 base with one refinement level on the pressure jump (`ptag`, 0.5 bar per cell): exercises regrid interpolation and reflux of the extended slots. |
-| `inputs-smallsignal` | 128 × 16, 105 bar → 100 bar far field, 11 ms (≈ 3 transits): every fill is small-signal, so it separates the `CAMR.ps_bc_nscbc_form` models; run once per form. Measured (§6.3 of the model docs): residual max\|P − P_amb\| after the wave exits is 0.010 bar under `pin` (the default), 0.42 bar under the retired `value` form at σ = 0.25; `rate` σ = 0.25 relaxes the mean with τ ≈ 19 ms, identical at 128 and 256 cells. |
+| `inputs-smallsignal` | 128 × 16, 105 bar → 100 bar far field, 11 ms (≈ 3 transits): every fill is small-signal, so it separates the `PSAMR.ps_bc_nscbc_form` models; run once per form. Measured (§6.3 of the model docs): residual max\|P − P_amb\| after the wave exits is 0.010 bar under `pin` (the default), 0.42 bar under the retired `value` form at σ = 0.25; `rate` σ = 0.25 relaxes the mean with τ ≈ 19 ms, identical at 128 and 256 cells. |
 | `refs/` | Recorded orientation agreement (8.7e-14 at step 300, `sym_compare.py` PASS at 1e-12) and the level-0 fingerprints (`fingerprint_BASE.txt`, from `Exec/fingerprint_plt.py`: per-variable sha/min/max/mean) at the default `ps_wp_order = 2`. |
 
-What to check: all four orientations complete; the folded $P$, $u$, $\alpha_1$ profiles agree to round-off; `CAMR.ps_validate = 1` reports zero violations; the AMR deck reaches `stop_time` with $\alpha_1 \in [0,1]$ and the mixture identities holding across regrids. The vented-mass rate is the quantity of interest; keep CFL ≤ 0.30 — at ≥ 0.35 the last ~20 cells before the vent develop 20–50 m/s oscillations in $u$. Numbers and the comparison script are in `docs/VERIFICATION.md`; compare a new run's `Exec/fingerprint_plt.py` output against `refs/fingerprint_BASE.txt` before attributing a change.
+What to check: all four orientations complete; the folded $P$, $u$, $\alpha_1$ profiles agree to round-off; `PSAMR.ps_validate = 1` reports zero violations; the AMR deck reaches `stop_time` with $\alpha_1 \in [0,1]$ and the mixture identities holding across regrids. The vented-mass rate is the quantity of interest; keep CFL ≤ 0.30 — at ≥ 0.35 the last ~20 cells before the vent develop 20–50 m/s oscillations in $u$. Numbers and the comparison script are in `docs/VERIFICATION.md`; compare a new run's `Exec/fingerprint_plt.py` output against `refs/fingerprint_BASE.txt` before attributing a change.

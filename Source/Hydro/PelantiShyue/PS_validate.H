@@ -22,7 +22,7 @@
 //        gated (healthy ~1.4; a runaway reaches tens).
 //    V9  extrema of e_1 and e_2 with locations: printed, not gated.
 //
-//  Dial: CAMR.ps_validate (0): 0 off; 1 count and one report line per
+//  Dial: PSAMR.ps_validate (0): 0 off; 1 count and one report line per
 //  sweep; 2 as 1 plus abort on the first bulk-bucket violation.
 //  V4/V5 use a 1e-10 relative tolerance: post-resync drift is round-off,
 //  while the post-hydro drift eta ~ 3e-4 trips at the "A enter" stage by
@@ -36,9 +36,9 @@
 #include "IndexDefines.H"
 #include "EOS.H"
 #include "PS_presence.H"      // ps_phase_quot
-#include "PS_relaxation.H"    // ps_make_camr_eos_api (V7 validity channel)
+#include "PS_relaxation.H"    // ps_make_psamr_eos_api (V7 validity channel)
 #include "PS_util.H"          // ps_kinetic_energy
-#include "PS_dials.H"         // ps_dial_int (CAMR.ps_validate)
+#include "PS_dials.H"         // ps_dial_int (PSAMR.ps_validate)
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_GpuDevice.H>
@@ -46,7 +46,7 @@
 #include <AMReX_Print.H>
 #include <cmath>
 
-// CAMR.ps_validate (0): the tripwire's mode.
+// PSAMR.ps_validate (0): the tripwire's mode.
 inline int ps_validate_mode()
 {
     static const int v = ps_dial_int("ps_validate", 0);
@@ -68,7 +68,7 @@ ps_validate_state(amrex::MultiFab& S, const char* label, int nghost = 0)
                 n_v6_bulk=0, n_v6_trace=0, n_v7_bulk=0, n_v7_trace=0;
     // V7's EOS access is the PsPhaseAPI validity channel.  Built once.
     const PsPres l_pr_v7 = ps_presence_params();
-    static const hem::PsPhaseAPI api_v7 = ps_make_camr_eos_api();
+    static const hem::PsPhaseAPI api_v7 = ps_make_psamr_eos_api();
     // First V7 offender, for a report that can be fed straight to probe_pr.
     int  v7_i=0, v7_j=0, v7_k=0, v7_ph=0;
     Real v7_a=0.0, v7_r=0.0, v7_e=0.0;
@@ -281,7 +281,7 @@ ps_validate_state(amrex::MultiFab& S, const char* label, int nghost = 0)
                        << ab_i << "," << ab_j << "," << ab_k << ") stage '"
                        << label << "'\n";
         amrex::Abort("ps_validate_state: bulk-bucket invariant violation "
-                     "(CAMR.ps_validate=2)");
+                     "(PSAMR.ps_validate=2)");
     }
 }
 

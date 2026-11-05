@@ -1,5 +1,5 @@
-#ifndef CAMR_H
-#define CAMR_H
+#ifndef PSAMR_H
+#define PSAMR_H
 
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_AmrLevel.H>
@@ -49,13 +49,13 @@ grow_box_by_one(const amrex::Box& b)
 }
 */
 
-class CAMR : public amrex::AmrLevel
+class PSAMR : public amrex::AmrLevel
 {
 public:
   // Default constructor.  Builds invalid object.
-  CAMR();
+  PSAMR();
 
-  CAMR(
+  PSAMR(
     amrex::Amr& papa,
     int lev,
     const amrex::Geometry& level_geom,
@@ -124,7 +124,7 @@ public:
   void setTimeLevel (
     amrex::Real time, amrex::Real dt_old, amrex::Real dt_new) override;
 
-  // Initialize data on this level from another CAMR (during regrid).
+  // Initialize data on this level from another PSAMR (during regrid).
   void init (amrex::AmrLevel& old) override;
 
   // Initialize data on this level after regridding if old level did not
@@ -141,7 +141,7 @@ public:
   amrex::Real mol_advance (
     amrex::Real time, amrex::Real dt, int amr_iteration, int amr_ncycle);
 
-  amrex::Real CAMR_advance (
+  amrex::Real PSAMR_advance (
     amrex::Real time, amrex::Real dt, int amr_iteration, int amr_ncycle);
 
   static void react (amrex::MultiFab& S);
@@ -349,7 +349,7 @@ public:
   //  two branch-locked per-phase inversions in two-phase cells).  UTEMP
   //  does not feed the conserved evolution, so the intermediate calls in an
   //  advance pass false and only the final state is refreshed;
-  //  reset_internal_energy runs every time.  CAMR.lazy_temp = 0 makes the
+  //  reset_internal_energy runs every time.  PSAMR.lazy_temp = 0 makes the
   //  refresh unconditional.
   // Floor the density and renormalize the species on the valid region plus
   // ng ghost cells, then recompute T there.  ng must not exceed the number
@@ -383,7 +383,7 @@ protected:
   // (liquid -> vapor), measured in advance() from the mass the reaction
   // substep actually transfers (a stateless function of the stored state
   // reads ~0 for near-instant transfer).  Served to plotfiles through the
-  // CAMR::derive("flash_rate") override.
+  // PSAMR::derive("flash_rate") override.
   amrex::MultiFab flash_src;
 #endif
 
@@ -402,7 +402,7 @@ protected:
 
   static void read_tagging_params();
 
-  CAMR& getLevel(int lev);
+  PSAMR& getLevel(int lev);
 
   //
   // Define error estimators
@@ -410,7 +410,7 @@ protected:
   static void error_setup ();
 
   void expand_state(amrex::MultiFab& S, const amrex::Real time, const int ng);
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
   void ZeroingOutForPlotting(amrex::MultiFab& S);
 #endif
 
@@ -436,7 +436,7 @@ protected:
   amrex::MultiFab dLogArea[1];
 
   // Static data members.
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 
   static bool signalStopJob;
   static bool dump_old;
@@ -464,7 +464,7 @@ protected:
   static amrex::Vector<amrex::AMRErrorTag> errtags;
 };
 
-void CAMR_bcfill_hyp(
+void PSAMR_bcfill_hyp(
   amrex::Box const& bx,
   amrex::FArrayBox& data,
   const int dcomp,
@@ -475,7 +475,7 @@ void CAMR_bcfill_hyp(
   const int bcomp,
   const int scomp);
 
-void CAMR_nullfill(
+void PSAMR_nullfill(
   amrex::Box const& bx,
   amrex::FArrayBox& data,
   const int dcomp,
@@ -490,7 +490,7 @@ void CAMR_nullfill(
 
 AMREX_FORCE_INLINE
 int
-CAMR::numGrow()
+PSAMR::numGrow()
 {
   int ng = 4;
 #ifdef AMREX_USE_EB
@@ -522,35 +522,35 @@ CAMR::numGrow()
 
 AMREX_FORCE_INLINE
 amrex::MultiFab*
-CAMR::Area()
+PSAMR::Area()
 {
   return area;
 }
 
 AMREX_FORCE_INLINE
 amrex::MultiFab&
-CAMR::Area(int dir)
+PSAMR::Area(int dir)
 {
   return area[dir];
 }
 
 AMREX_FORCE_INLINE
 amrex::MultiFab&
-CAMR::Volume()
+PSAMR::Volume()
 {
   return volume;
 }
 
 AMREX_FORCE_INLINE
-CAMR&
-CAMR::getLevel(int lev)
+PSAMR&
+PSAMR::getLevel(int lev)
 {
-  return *(CAMR*)&parent->getLevel(lev);
+  return *(PSAMR*)&parent->getLevel(lev);
 }
 
 AMREX_FORCE_INLINE
 void
-CAMR::stopJob()
+PSAMR::stopJob()
 {
   signalStopJob = true;
 }
@@ -558,7 +558,7 @@ CAMR::stopJob()
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_check_initial_species(
+PSAMR_check_initial_species(
   const int i, const int j, const int k, amrex::Array4<amrex::Real> const& Sfab)
 {
   amrex::Real spec_sum = 0.0;
@@ -576,28 +576,28 @@ CAMR_check_initial_species(
 
 AMREX_FORCE_INLINE
 amrex::EBFluxRegister&
-CAMR::getFluxReg()
+PSAMR::getFluxReg()
 {
   return flux_reg;
 }
 
 AMREX_FORCE_INLINE
 amrex::EBFluxRegister&
-CAMR::getFluxReg(int lev)
+PSAMR::getFluxReg(int lev)
 {
   return getLevel(lev).getFluxReg();
 }
 
 AMREX_FORCE_INLINE
 amrex::EBFluxRegister&
-CAMR::getPresReg()
+PSAMR::getPresReg()
 {
   return pres_reg;
 }
 
 AMREX_FORCE_INLINE
 amrex::EBFluxRegister&
-CAMR::getPresReg(int lev)
+PSAMR::getPresReg(int lev)
 {
   return getLevel(lev).getPresReg();
 }
@@ -608,28 +608,28 @@ CAMR::getPresReg(int lev)
 
 AMREX_FORCE_INLINE
 amrex::YAFluxRegister&
-CAMR::getFluxReg()
+PSAMR::getFluxReg()
 {
   return flux_reg;
 }
 
 AMREX_FORCE_INLINE
 amrex::YAFluxRegister&
-CAMR::getFluxReg(int lev)
+PSAMR::getFluxReg(int lev)
 {
   return getLevel(lev).getFluxReg();
 }
 
 AMREX_FORCE_INLINE
 amrex::YAFluxRegister&
-CAMR::getPresReg()
+PSAMR::getPresReg()
 {
   return pres_reg;
 }
 
 AMREX_FORCE_INLINE
 amrex::YAFluxRegister&
-CAMR::getPresReg(int lev)
+PSAMR::getPresReg(int lev)
 {
   return getLevel(lev).getPresReg();
 }

@@ -1,7 +1,7 @@
 // =====================================================================
 //  pr_eval.cpp — Peng-Robinson CO2 oracle for the EOS-surrogate harness.
 //
-//  Compiles against CAMR's own PR machinery (Source/EOS/PR) under
+//  Compiles against PSAMR's own PR machinery (Source/EOS/PR) under
 //  HEM_NO_AMREX, so the "truth" is bit-for-bit the solver's branch-locked
 //  EOS.  Modes (argv[1]):
 //    re  <branch>   stdin "rho e"  -> "T P c s ok"   inversion on the branch

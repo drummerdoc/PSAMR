@@ -2,18 +2,18 @@
 #define PS_FOLDS_H
 // =====================================================================
 //  PS_folds.H — the phase-removal folds of the six-equation Pelanti–Shyue
-//  model on the CAMR grid: ps_apply_vanish_fold (vanish, vacuum,
+//  model on the PSAMR grid: ps_apply_vanish_fold (vanish, vacuum,
 //  corridor-density and energy reaps) and the opt-in ps_apply_tfloor_fold,
 //  each a grid driver over the hem fold helpers, counted with the mass
 //  moved in PsFoldAudit ([PS-FOLD]).  URHO and UEDEN are invariant: mass
 //  and energy move between phases within the cell.
 //  Algorithm: docs/MODEL_AND_ALGORITHM.md §4.4.  Included through the
-//  PS_relaxation.H umbrella; needs PS_relax.H (ps_make_camr_eos_api).
+//  PS_relaxation.H umbrella; needs PS_relax.H (ps_make_psamr_eos_api).
 // =====================================================================
 
 #ifdef USE_PS_HYDRO
 
-#include "PS_relax.H"      // ps_make_camr_eos_api
+#include "PS_relax.H"      // ps_make_psamr_eos_api
 #include "IndexDefines.H"
 #include "EOS.H"
 #include "hem_pelanti_shyue.H"
@@ -22,7 +22,7 @@
 #include "PS_constants.H"  // ps_const:: shared numeric floors
 #include "PS_util.H"       // ps_kinetic_energy, ps_pack_v6 / ps_unpack_v6
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
-#include "PS_dials.H"      // ps_dial_int / ps_dial_real (CAMR.* reads)
+#include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Print.H>
@@ -37,7 +37,7 @@
 //  Fold-mass audit (PsFoldAudit, PS_counters.H): every fold event and
 //  the phase mass it moved, by cause, so phase-removal churn is visible
 //  ([PS-FOLD]).  Read and reset with the [PS-MASS] report in
-//  CAMR_advance.cpp.  Docs/MODEL_AND_ALGORITHM.md §4.4.
+//  PSAMR_advance.cpp.  Docs/MODEL_AND_ALGORITHM.md §4.4.
 // -----------------------------------------------------------------
 inline PsFoldAudit& ps_fold_audit() { return ps_counters().fold; }
 
@@ -50,14 +50,14 @@ inline PsFoldAudit& ps_fold_audit() { return ps_counters().fold; }
 //  With ps_apply_vanish_fold these are the only phase-removal channels,
 //  and this is the only one keyed on temperature.  Runs after the vanish
 //  fold (the helper assumes that order).  Opt-in through
-//  CAMR.ps_tfloor_fold, deliberately its own key: the floor raises e_k to
+//  PSAMR.ps_tfloor_fold, deliberately its own key: the floor raises e_k to
 //  keep a phase, the fold removes one it cannot keep.  Docs §4.4.
 // -----------------------------------------------------------------
 inline void
 ps_apply_tfloor_fold(amrex::MultiFab& S_new, int nghost = 0)
 {
-    // CAMR.ps_tfloor_fold (0 K = off): fold away a phase whose branch
-    // temperature is below this.  Not bound to CAMR.ps_temp_floor, which
+    // PSAMR.ps_tfloor_fold (0 K = off): fold away a phase whose branch
+    // temperature is below this.  Not bound to PSAMR.ps_temp_floor, which
     // belongs to ps_apply_floor and has the opposite meaning.  Binding the
     // fold to the floor temperature (216.6 K in the pipe-break decks) fires
     // it on every mixed cell whose phase temperature dips and collapses
@@ -68,7 +68,7 @@ ps_apply_tfloor_fold(amrex::MultiFab& S_new, int nghost = 0)
     const amrex::Real tfloor = fold_T;
     if (tfloor <= amrex::Real(0.0)) return;
     BL_PROFILE("PS::ps_apply_tfloor_fold()");
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     const double T_floor = double(tfloor);
 
     for (amrex::MFIter mfi(S_new); mfi.isValid(); ++mfi) {
@@ -119,7 +119,7 @@ ps_apply_tfloor_fold(amrex::MultiFab& S_new, int nghost = 0)
 inline void
 ps_apply_vanish_fold(amrex::MultiFab& S_new, int nghost = 0)
 {
-    // The threshold is the presence death edge, CAMR.ps_presence_vanish
+    // The threshold is the presence death edge, PSAMR.ps_presence_vanish
     // (PS_presence.H).
     const PsPres& prS3 = ps_presence_params();
     const amrex::Real a_v = prS3.alpha_vanish;

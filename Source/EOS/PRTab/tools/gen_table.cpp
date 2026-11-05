@@ -6,7 +6,7 @@
 //  1 = liquid, 2 = vapour (state_from_rho_e_phase, including the
 //  metastable single-phase continuation the branch-locked calls need).
 //
-//  Compiles against CAMR's own PR machinery under HEM_NO_AMREX:
+//  Compiles against PSAMR's own PR machinery under HEM_NO_AMREX:
 //      g++ -O2 -std=c++17 -DHEM_NO_AMREX -I../../PR gen_table.cpp -o gen_table
 //  Driven by build_table.py (`make tables`).  The CO2 PR parameters must
 //  match EOS::co2_fluid() in PR/EOS.H.  The HEM_NO_AMREX shim is complete

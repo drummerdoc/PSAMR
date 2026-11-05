@@ -1,11 +1,11 @@
 #include <iomanip>
 
-#include "CAMR.H"
+#include "PSAMR.H"
 
 void
-CAMR::sum_integrated_quantities()
+PSAMR::sum_integrated_quantities()
 {
-  BL_PROFILE("CAMR::sum_integrated_quantities()");
+  BL_PROFILE("PSAMR::sum_integrated_quantities()");
 
   if (verbose <= 0) {
     return;
@@ -23,17 +23,17 @@ CAMR::sum_integrated_quantities()
   amrex::Real temp = 0.0;
 
   for (int lev = 0; lev <= finest_level; lev++) {
-    CAMR& CAMR_lev = getLevel(lev);
+    PSAMR& PSAMR_lev = getLevel(lev);
 
-    mass += CAMR_lev.volWgtSum("density", time, local_flag);
-    AMREX_D_TERM(mom[0] += CAMR_lev.volWgtSum("xmom", time, local_flag);,
-                 mom[1] += CAMR_lev.volWgtSum("ymom", time, local_flag);,
-                 mom[2] += CAMR_lev.volWgtSum("zmom", time, local_flag););
-    rho_e += CAMR_lev.volWgtSum("rho_e", time, local_flag);
-    rho_K += CAMR_lev.volWgtSum("kineng", time, local_flag);
-    rho_E += CAMR_lev.volWgtSum("rho_E", time, local_flag);
+    mass += PSAMR_lev.volWgtSum("density", time, local_flag);
+    AMREX_D_TERM(mom[0] += PSAMR_lev.volWgtSum("xmom", time, local_flag);,
+                 mom[1] += PSAMR_lev.volWgtSum("ymom", time, local_flag);,
+                 mom[2] += PSAMR_lev.volWgtSum("zmom", time, local_flag););
+    rho_e += PSAMR_lev.volWgtSum("rho_e", time, local_flag);
+    rho_K += PSAMR_lev.volWgtSum("kineng", time, local_flag);
+    rho_E += PSAMR_lev.volWgtSum("rho_E", time, local_flag);
 
-    temp += CAMR_lev.volWgtSum("Temp", time, local_flag);
+    temp += PSAMR_lev.volWgtSum("Temp", time, local_flag);
   }
 
   if (verbose > 0) {

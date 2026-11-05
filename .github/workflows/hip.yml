@@ -13,14 +13,14 @@ concurrency:
 
 jobs:
   hip_eb_3d:
-    if: ${{ github.repository == 'AMReX-Fluids/CAMR' || github.event_name != 'schedule' }}
+    if: ${{ github.repository == 'AMReX-Fluids/PSAMR' || github.event_name != 'schedule' }}
     name: HIP EB 3D
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout CAMR
+    - name: Checkout PSAMR
       uses: actions/checkout@v3
       with:
-        path: CAMR
+        path: PSAMR
     - name: Checkout AMReX
       uses: actions/checkout@v3
       with:
@@ -49,7 +49,7 @@ jobs:
         which clang
         which clang++
 
-        cd CAMR/Exec/SodPlusSphere
+        cd PSAMR/Exec/SodPlusSphere
         make -j 2 DIM=3 USE_HIP=TRUE USE_MPI=FALSE USE_CCACHE=TRUE \
             WARN_ALL=TRUE WARN_ERROR=TRUE
 

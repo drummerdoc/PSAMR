@@ -22,7 +22,7 @@ init_pass_map(PassMap* pmap)
 #ifdef USE_PS_HYDRO
   // Pelanti-Shyue components (α₁, α_k ρ_k, α_k ρ_k E_k) are passive so
   // the stock Godunov/MOL paths advect them with the contact; PS_umeth
-  // owns them under CAMR.ps_hydro != 0.
+  // owns them under PSAMR.ps_hydro != 0.
   for (int i = 0; i < NUM_PS; ++i) {
     pmap->upassMap[curMapIndx] = i + UPS;
     pmap->qpassMap[curMapIndx] = i + QPS;

@@ -27,13 +27,13 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& geomdata,
                ProbParmDevice const& prob_parm)
@@ -147,13 +147,13 @@ bcnormal(
     {
 #ifdef USE_PS_HYDRO
         //  AUDIT 2026-08-24 B15: promoted from the env var
-        //  CAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
-        //  to CAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
+        //  PSAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
+        //  to PSAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
         //  (task #206); the resolved value is force-added so every
         //  plotfile's job_info records it (gerg_ext_c idiom).
         static const bool s_bc_copy_interior = []() {
             int v = 1;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;
@@ -162,7 +162,7 @@ bcnormal(
         //  Non-PS default 0 = legacy linear-acoustic Riemann (pre-#206).
         static const bool s_bc_copy_interior = []() {
             int v = 0;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;

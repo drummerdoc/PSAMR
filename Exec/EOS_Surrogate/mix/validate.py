@@ -16,7 +16,7 @@ T grid from the triple point to Tc).  Three numbers are reported:
      few rows (T within ~1e-5 Tc of Tc) the two labelled roots of the cubic exist
      only in a pressure window below double-precision resolution and the Newton
      cannot be posed; those rows use the mirror of the solver's own algorithm
-     (pr_mix.psat_pure_camr) and are counted separately.
+     (pr_mix.psat_pure_psamr) and are counted separately.
   3. The full trace (rho, e at the mixture-model Psat) against the file; e is
      scaled by the latent gap eV - eL at that T because eL crosses zero near
      302.6 K, where a relative difference is meaningless.
@@ -65,7 +65,7 @@ def gate(sat_path=os.path.join(HERE, '..', 'data', 'sat.csv')):
             P = math.exp(Xs[env.n + 1]); X = Xs; n_newton += 1
             err_P = max(err_P, abs(P / Ps - 1))
         else:
-            P = mix.psat_pure_camr(0, T); n_mirror += 1      # Wilson seed, as state_from_T_x does
+            P = mix.psat_pure_psamr(0, T); n_mirror += 1      # Wilson seed, as state_from_T_x does
             err_mirror = max(err_mirror, abs(P / Ps - 1))
             if T_first_mirror is None: T_first_mirror = T
         P_prev = P

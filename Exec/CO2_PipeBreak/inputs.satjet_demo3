@@ -28,62 +28,62 @@ geometry.prob_lo     = 0.0  0.0
 geometry.prob_hi     = 2.0  1.0
 amr.n_cell           = 256  128            # base; 3 levels -> 1024x512 finest
 
-CAMR.lo_bc = Inflow Inflow
-CAMR.hi_bc = Inflow Inflow
+PSAMR.lo_bc = Inflow Inflow
+PSAMR.hi_bc = Inflow Inflow
 
-CAMR.cfl = 0.3
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
-CAMR.do_mol = 0
-CAMR.ppm_type = 1
+PSAMR.cfl = 0.3
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
+PSAMR.do_mol = 0
+PSAMR.ppm_type = 1
 
-CAMR.ps_hydro    = 1
-CAMR.ps_flux     = wp
-CAMR.ps_wp_order = 2
-CAMR.ps_bc_use_nscbc = 0    # global switch off: the x-lo reservoir inlet stays on bcnormal
-CAMR.ps_bc_nscbc_xhi = 1    # per-face NSCBC outflow: downstream far field
-CAMR.ps_bc_nscbc_ylo = 1    # per-face NSCBC outflow: lower edge of the full plane
-CAMR.ps_bc_nscbc_yhi = 1    # per-face NSCBC outflow: upper edge of the full plane
+PSAMR.ps_hydro    = 1
+PSAMR.ps_flux     = wp
+PSAMR.ps_wp_order = 2
+PSAMR.ps_bc_use_nscbc = 0    # global switch off: the x-lo reservoir inlet stays on bcnormal
+PSAMR.ps_bc_nscbc_xhi = 1    # per-face NSCBC outflow: downstream far field
+PSAMR.ps_bc_nscbc_ylo = 1    # per-face NSCBC outflow: lower edge of the full plane
+PSAMR.ps_bc_nscbc_yhi = 1    # per-face NSCBC outflow: upper edge of the full plane
 # Incoming invariant: the far-field pin on the side faces (the default form, B-4).  x-hi carries the
 # plume through, so it runs the Poinsot-Lele rate form under the backflow bound (B-6): the pin would
 # demand P - P_amb = rho c u of the outflow and stall the plume at the face.
-CAMR.ps_bc_nscbc_form_xhi  = rate
-CAMR.ps_bc_nscbc_sigma_xhi = 4.0   # K = sigma (1 - M^2) c / L_x: 1/K ~ 5 ms on the 4 m domain, ~2.5 ms on 2 m
-CAMR.ps_bc_nscbc_backflow  = 1     # the default, pinned: unbounded rate reverses the face (B-4)
-CAMR.ps_lw_skip_contact = 2 # the default, pinned: the deck cannot silently run mode 0 on a stale executable
-CAMR.ps_wp_transverse = 0   # directionally split (no transverse term); the shear
+PSAMR.ps_bc_nscbc_form_xhi  = rate
+PSAMR.ps_bc_nscbc_sigma_xhi = 4.0   # K = sigma (1 - M^2) c / L_x: 1/K ~ 5 ms on the 4 m domain, ~2.5 ms on 2 m
+PSAMR.ps_bc_nscbc_backflow  = 1     # the default, pinned: unbounded rate reverses the face (B-4)
+PSAMR.ps_lw_skip_contact = 2 # the default, pinned: the deck cannot silently run mode 0 on a stale executable
+PSAMR.ps_wp_transverse = 0   # directionally split (no transverse term); the shear
                             # layer is resolved by ps_mu instead.  1 = contact-only
                             # transverse term.
-CAMR.ps_bl_reflux     = 2   # consistent two-phase C-F reflux (alpha co-moves); required for two-phase AMR
-CAMR.ps_mu            = 2.0 # effective Newtonian viscosity [Pa s]: resolves the orifice shear layer
+PSAMR.ps_bl_reflux     = 2   # consistent two-phase C-F reflux (alpha co-moves); required for two-phase AMR
+PSAMR.ps_mu            = 2.0 # effective Newtonian viscosity [Pa s]: resolves the orifice shear layer
 
-CAMR.ps_do_relax  = 1
+PSAMR.ps_do_relax  = 1
 # Relaxation: the code default, ps_relax_mode = 6 (the flattened coupled
 # P-T-g operator X3F, DESIGN_DECISIONS.md O-28/O-29; the decks pinned the
 # mode-2 control closure until 2026-10-27).  ps_relax_mode = 2 restores the
 # control closure (isochoric P plus finite-rate thermal relaxation with the
 # split Gibbs-driven transfer source).
-CAMR.ps_theta_tau = 1.0e-3    # thermal relaxation time [s] of the coupled operator (and of mode 2)
-CAMR.ps_mt_tau    = 1.0e-3    # mode-2 split source only (inert in modes 5/6, whose operator owns
+PSAMR.ps_theta_tau = 1.0e-3    # thermal relaxation time [s] of the coupled operator (and of mode 2)
+PSAMR.ps_mt_tau    = 1.0e-3    # mode-2 split source only (inert in modes 5/6, whose operator owns
                               # mass transfer through the SRT rate): flashing is spread over
                               # ~tau/dt steps and is continuous in flash_rate; tau << dt
                               # makes it near-instantaneous and bursty.
-CAMR.ps_mt_gref   = 5.0e4
-CAMR.ps_flash_tau = 0.0       # flash OFF (saturated reservoir; no nucleation)
-CAMR.ps_pres_floor = 1.0e5
-CAMR.ps_temp_floor = 216.6
+PSAMR.ps_mt_gref   = 5.0e4
+PSAMR.ps_flash_tau = 0.0       # flash OFF (saturated reservoir; no nucleation)
+PSAMR.ps_pres_floor = 1.0e5
+PSAMR.ps_temp_floor = 216.6
 
-# --- GERG / GERGTab builds: CAMR.gerg_ext_c (default 1) keeps the sound
+# --- GERG / GERGTab builds: PSAMR.gerg_ext_c (default 1) keeps the sound
 # speed continuous past the guard's branch edge (0 = the legacy 50 m/s
 # floor, a 3.5-7x discontinuity that drives a 2-dx pressure oscillation in
 # the lip shear layer).  Leave it at the default; see
 # Source/EOS/GERG/gerg_co2_guard.H and docs/RUNNING.md.  Not read by a PR
 # build.
 
-CAMR.v = 1
+PSAMR.v = 1
 amr.v = 1
-CAMR.sum_interval = -1
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = -1
+PSAMR.redistribution_type = StateRedist
 amr.loadbalance_with_workestimates = 0
 
 amr.max_level       = 2

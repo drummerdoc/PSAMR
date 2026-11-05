@@ -1,6 +1,6 @@
 # Exec/EOS_Surrogate — offline EOS-surrogate harness (presentation study, 2026-10)
 
-Offline, AMReX-free study of how much system knowledge an ML EOS needs. Truth is CAMR's own branch-locked Peng–Robinson surface; data is the harvested deployment distribution (`CAMR.ps_harvest`, `Exec/CO2_PipeBreak/sweep/`, `Exec/CO2_RiemannSuite/harvest_*.py`). Nothing here touches the solver.
+Offline, AMReX-free study of how much system knowledge an ML EOS needs. Truth is PSAMR's own branch-locked Peng–Robinson surface; data is the harvested deployment distribution (`PSAMR.ps_harvest`, `Exec/CO2_PipeBreak/sweep/`, `Exec/CO2_RiemannSuite/harvest_*.py`). Nothing here touches the solver.
 
 | File | Purpose |
 |---|---|

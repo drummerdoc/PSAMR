@@ -21,7 +21,7 @@
 //  they are zero and the check is bit-identical on and off, which is the
 //  test that no legitimate promotion is unreachable.
 //
-//  Dial: CAMR.ps_promote_checked (default 1), read in PS_presence.H.
+//  Dial: PSAMR.ps_promote_checked (default 1), read in PS_presence.H.
 //  This header isolates the EOS dependency: PS_presence.H has no EOS
 //  include and EOS.H has no presence include.
 // =====================================================================
@@ -33,11 +33,11 @@
 #include <AMReX_GpuQualifiers.H>
 
 //  Host-only diagnostic counters (PsCounters, PS_counters.H), reported
-//  and reset in CAMR_advance.cpp:
+//  and reset in PSAMR_advance.cpp:
 //    promote_refuse : would-be-Independent phases demoted to Corridor
 //                     for energy-unreachability ([PS-PROMOTE]).
 //    floor_skip     : per-phase floor legs skipped on a non-Independent
-//                     phase (CAMR.ps_floor_indep).
+//                     phase (PSAMR.ps_floor_indep).
 
 //  Demote an Independent classification to Corridor iff (rho, e) has no
 //  root on the requested branch; pass-through when the phase is not

@@ -1,8 +1,8 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "IndexDefines.H"
 
 void
-CAMR::construct_old_source(
+PSAMR::construct_old_source(
   int src,
   const amrex::MultiFab& S,
   amrex::Real time,
@@ -25,7 +25,7 @@ CAMR::construct_old_source(
 }
 
 void
-CAMR::construct_new_source(
+PSAMR::construct_new_source(
   int src,
   amrex::Real time,
   amrex::Real dt)

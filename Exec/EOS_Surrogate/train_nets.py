@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Three-way EOS-surrogate A/B: how much does system knowledge buy a net?
 
-Models, all small MLPs predicting T from (rho, e) on CAMR's branch-locked
+Models, all small MLPs predicting T from (rho, e) on PSAMR's branch-locked
 Peng-Robinson surface (truth from ./pr_eval):
 
   M1 mono     one net for both branches: inputs (log10 rho, e, branch flag).

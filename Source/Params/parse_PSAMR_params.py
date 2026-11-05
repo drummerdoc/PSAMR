@@ -2,7 +2,7 @@
 
 
 # This script parses the list of C++ runtime parameters and writes the
-# necessary header files to make them available in CAMR's C++ routines
+# necessary header files to make them available in PSAMR's C++ routines
 #
 # parameters have the format:
 #
@@ -28,20 +28,20 @@
 #      if we include the keyword "static" after the name, then the parameters
 #      will be defined as static member variables in C++
 #
-#      e.g. @namespace CAMR CAMR static
+#      e.g. @namespace PSAMR PSAMR static
 #
 # Note: categories listed in the input file aren't used for code generation
 # but are used for the documentation generation
 #
 # For a namespace, name, we write out:
 #
-#   -- name_params.H  (for CAMR, included in CAMR.H):
-#      declares the static variables of the CAMR class
+#   -- name_params.H  (for PSAMR, included in PSAMR.H):
+#      declares the static variables of the PSAMR class
 #
-#   -- name_defaults.H  (for CAMR, included in CAMR.cpp):
+#   -- name_defaults.H  (for PSAMR, included in PSAMR.cpp):
 #      sets the defaults of the runtime parameters
 #
-#   -- name_queries.H  (for CAMR, included in CAMR.cpp):
+#   -- name_queries.H  (for PSAMR, included in PSAMR.cpp):
 #      does the parmparse query to override the default in C++
 #
 
@@ -50,7 +50,7 @@ import re
 import sys
 
 CWARNING = """
-// This file is automatically created by parse_CAMR_params.py.  To update
+// This file is automatically created by parse_PSAMR_params.py.  To update
 // or add runtime parameters, please edit _cpp_parameters and then run
 // mk_params.sh\n
 """
@@ -100,8 +100,8 @@ class Param(object):
             self.ifdef = ifdef
 
     def get_default_string(self):
-        # this is the line that goes into CAMR_defaults.H included
-        # into CAMR.cpp
+        # this is the line that goes into PSAMR_defaults.H included
+        # into PSAMR.cpp
 
         if self.dtype == "int":
             tstr = "int {}::{}".format(self.cpp_class, self.cpp_var_name)
@@ -137,7 +137,7 @@ class Param(object):
     def get_query_string(self, language):
         # this is the line that queries the ParmParse object to get
         # the value of the runtime parameter from the inputs file.
-        # This goes into CAMR_queries.H included into CAMR.cpp
+        # This goes into PSAMR_queries.H included into PSAMR.cpp
 
         ostr = ""
         if self.ifdef is not None:
@@ -154,8 +154,8 @@ class Param(object):
         return ostr
 
     def get_decl_string(self):
-        # this is the line that goes into CAMR_params.H included
-        # into CAMR.H
+        # this is the line that goes into PSAMR_params.H included
+        # into PSAMR.H
 
         # prob.H includes this header at file scope, so the declarations are
         # also unused file-scope statics in several translation units; the
@@ -305,7 +305,7 @@ def parse_params(infile):
 
         cp.close()
 
-        # write CAMR_queries.H
+        # write PSAMR_queries.H
         try:
             cq = open("{}/{}_queries.H".format(param_include_dir, nm), "w")
         except IOError:

@@ -4,7 +4,7 @@
 #      FILE = inputs.base
 #  and sets only what is orientation- or deck-specific:
 #      amr.n_cell, geometry.prob_hi   (long axis of the tube)
-#      CAMR.lo_bc, CAMR.hi_bc         (Inflow on the vent face, SlipWall elsewhere)
+#      PSAMR.lo_bc, PSAMR.hi_bc         (Inflow on the vent face, SlipWall elsewhere)
 #      amr.plot_file                  (one prefix per deck)
 #  inputs-x also overrides stop_time and amr.plot_int (a later
 #  definition wins in ParmParse); inputs-x-amr is a standalone deck.
@@ -30,30 +30,30 @@ geometry.coord_sys   = 0  # 0 => Cartesian
 # The base always places prob_lo at the origin.
 geometry.prob_lo     =   0.0    0.0    0.0
 
-# CAMR.lo_bc / hi_bc are set per deck.  Exactly one face is Inflow
+# PSAMR.lo_bc / hi_bc are set per deck.  Exactly one face is Inflow
 # (dispatched to the NSCBC outflow) and every other face is SlipWall
 # (reflecting tube wall).
 
 # --- Physics + numerics ---------------------------------------------
-CAMR.cfl = 0.25
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
-CAMR.do_mol = 0
-CAMR.ppm_type = 1
+PSAMR.cfl = 0.25
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
+PSAMR.do_mol = 0
+PSAMR.ppm_type = 1
 
-CAMR.ps_hydro = 1
+PSAMR.ps_hydro = 1
 #  The flux is the compiled default (wp), written out so the deck
 #  records the scheme it runs; ps_wp_order stays at its default (1).
-CAMR.ps_flux  = wp
+PSAMR.ps_flux  = wp
 #  Characteristic (NSCBC) outflow on the Inflow face; the dispatch in
 #  PS_nscbc.H (PS_NSCBC::outflow_face) serves any face, which is what
 #  the orientation suite tests.
-CAMR.ps_bc_use_nscbc = 1
+PSAMR.ps_bc_use_nscbc = 1
 
-CAMR.v = 1
+PSAMR.v = 1
 amr.v = 1
-CAMR.sum_interval = -1
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = -1
+PSAMR.redistribution_type = StateRedist
 
 amr.loadbalance_with_workestimates = 0
 

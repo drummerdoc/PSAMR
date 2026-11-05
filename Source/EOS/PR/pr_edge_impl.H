@@ -28,13 +28,13 @@ namespace pr_edge {
     static bool done = false;
     if (done) return;
     done = true;
-    //  CAMR.pr_edge_table (1): 0 keeps the per-call march (A/B checks of the table).
+    //  PSAMR.pr_edge_table (1): 0 keeps the per-call march (A/B checks of the table).
     {
         int use = 1;
-        amrex::ParmParse pp("CAMR");
+        amrex::ParmParse pp("PSAMR");
         pp.query("pr_edge_table", use);
         pp.add("pr_edge_table", use);
-        if (use == 0) { amrex::Print() << "PR: branch-edge table disabled (CAMR.pr_edge_table=0): marching\n"; return; }
+        if (use == 0) { amrex::Print() << "PR: branch-edge table disabled (PSAMR.pr_edge_table=0): marching\n"; return; }
     }
     const hem::PRFluid f = EOS::co2_fluid();
     const double Tc = double(f.pr.Tc);

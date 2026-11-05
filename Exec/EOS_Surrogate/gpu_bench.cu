@@ -2,7 +2,7 @@
 //  gpu_bench.cu — EOS-strategy microbenchmark on the harvested deployment
 //  states: analytic PR inversion, fixed-count bisection, bicubic table,
 //  and MLP inference (FP64 / FP32, with and without Newton polish), one
-//  thread per state, as a CAMR ParallelFor would run them.
+//  thread per state, as a PSAMR ParallelFor would run them.
 //
 //  Reads data/deploy.csv (phase, rho, e, T, ... ok) and tiles the valid
 //  rows to N states.  Prints ns/state and Gstates/s per kernel, the max
@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <cuda_runtime.h>
 
-// --- CAMR's PR machinery, device-callable copies made by build_gpu_bench.sh ---
+// --- PSAMR's PR machinery, device-callable copies made by build_gpu_bench.sh ---
 #include "hem_pr_state.H"
 
 // --- the PRTab bicubic, with the tables passed as device pointers ----------
@@ -80,7 +80,7 @@ __device__ __forceinline__ double d_e_of_T(double T, double rho, int ph){
   return hem::state_from_T_v(c_fluid, T, c_fluid.M/rho, d_br(ph)).e;
 }
 
-// K1: CAMR's branch-locked inversion (bracketed Illinois, data-dependent trip count)
+// K1: PSAMR's branch-locked inversion (bracketed Illinois, data-dependent trip count)
 __global__ void k_pr_branch(int n, const double* rho, const double* e, const int* ph, double* T){
   int i=blockIdx.x*blockDim.x+threadIdx.x; if(i>=n) return;
   hem::State s; bool ok=hem::state_from_rho_e_phase_try(c_fluid, rho[i], e[i], d_br(ph[i]), s);

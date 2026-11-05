@@ -1,30 +1,30 @@
 #!/bin/bash
 # Where the mode-5 time goes: docs/PLAN_cleanup_for_sharing.md [DECIDE-28].
 #
-#   ./x3_cost.sh build   [COMP]     build the TinyProfiler executable (CAMR2d.<COMP>.TPROF.MPI.PS.PR.ex);
+#   ./x3_cost.sh build   [COMP]     build the TinyProfiler executable (PSAMR2d.<COMP>.TPROF.MPI.PS.PR.ex);
 #                                   its own build directory, the production exe is untouched
 #   ./x3_cost.sh run     [NRANKS]   inputs.satjet_demo3 to step 50, mode 2 and mode 5, with
-#                                   CAMR.ps_pres_diag=1 (the [PS-X3] cost counters)      (~2 + ~15 min)
+#                                   PSAMR.ps_pres_diag=1 (the [PS-X3] cost counters)      (~2 + ~15 min)
 #   ./x3_cost.sh report             time split per region and the X3 counters of the last step
 #
 # Output under runs/x3_cost/.  No plotfiles or checkpoints are written.
 set -eu
 cd "$(dirname "$0")"
 STAGE=${1:-}
-MODE5="CAMR.ps_relax_mode=5 CAMR.ps_theta_tau=1e-7 CAMR.ps_mt_tau=1e-7 CAMR.ps_flash_tau=1e-7"
+MODE5="PSAMR.ps_relax_mode=5 PSAMR.ps_theta_tau=1e-7 PSAMR.ps_mt_tau=1e-7 PSAMR.ps_flash_tau=1e-7"
 OUT=runs/x3_cost
 case "$STAGE" in
 build)
     COMP=${2:-llvm}
     make -j"${JOBS:-8}" DIM=2 USE_MPI=TRUE COMP="$COMP" Eos_Model=PR TINY_PROFILE=TRUE KEEP_BUILDINFO_CPP=TRUE 2>&1 | tail -2
-    ls -l ./CAMR2d.*.TPROF.MPI.PS.PR.ex
+    ls -l ./PSAMR2d.*.TPROF.MPI.PS.PR.ex
     ;;
 run)
     NR=${2:-6}
-    EXE=$(ls -t ./CAMR2d.*.TPROF.MPI.PS.PR.ex | head -1)
+    EXE=$(ls -t ./PSAMR2d.*.TPROF.MPI.PS.PR.ex | head -1)
     newest=$(find ../../Source . -type f \( -name '*.H' -o -name '*.cpp' \) -not -path '*/tmp_build_dir/*' -newer "$EXE" | head -1)
     [ -z "$newest" ] || { echo "STALE EXE: $newest is newer than $EXE (./x3_cost.sh build first)"; exit 2; }
-    K="max_step=50 amr.check_int=-1 amr.plot_int=-1 CAMR.ps_validate=0 CAMR.ps_pres_diag=1"
+    K="max_step=50 amr.check_int=-1 amr.plot_int=-1 PSAMR.ps_validate=0 PSAMR.ps_pres_diag=1"
     for m in mode2 mode5; do
         d=$OUT/demo3_$m; mkdir -p "$d"
         X=""; [ $m = mode5 ] && X="$MODE5"

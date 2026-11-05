@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-run the seed-sweep samples with the cell harvest on (CAMR.ps_harvest_cells)
+"""Re-run the seed-sweep samples with the cell harvest on (PSAMR.ps_harvest_cells)
 and merge every sample's shards into one X3 replay set.
 
     python3 sweep/cells_harvest.py --tags seedA seedB [--mode 5] [--ranks 8] [--out runs/sweep/cells]
@@ -28,7 +28,7 @@ def key_of(r, dlr, de):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--tags', nargs='+', default=['seedA', 'seedB'])
-    ap.add_argument('--mode', type=int, default=5, help='CAMR.ps_relax_mode for the harvest runs')
+    ap.add_argument('--mode', type=int, default=5, help='PSAMR.ps_relax_mode for the harvest runs')
     ap.add_argument('--ranks', type=int, default=8)
     ap.add_argument('--cores', default='64-125')
     ap.add_argument('--exe', default=None)
@@ -36,7 +36,7 @@ def main():
     ap.add_argument('--dlr', type=float, default=0.05); ap.add_argument('--de', type=float, default=2000.0)
     ap.add_argument('--resume', action='store_true')
     a = ap.parse_args()
-    exe = a.exe or sorted(glob.glob(os.path.join(CASE, 'CAMR2d.*.MPI.PS.*.ex')), key=os.path.getmtime)[-1]
+    exe = a.exe or sorted(glob.glob(os.path.join(CASE, 'PSAMR2d.*.MPI.PS.*.ex')), key=os.path.getmtime)[-1]
     out = os.path.join(CASE, a.out); os.makedirs(out, exist_ok=True)
     ledger = os.path.join(out, 'ledger.csv')
     rows_led = []
@@ -50,10 +50,10 @@ def main():
                 if l.startswith('# deck'): deck = l.split()[2]
                 if l.startswith('#') or '=' not in l: continue
                 k, v = (x.strip() for x in l.split('=', 1))
-                if k.startswith('CAMR.ps_harvest'): continue
+                if k.startswith('PSAMR.ps_harvest'): continue
                 ov[k] = v
-            ov.update({'CAMR.ps_relax_mode': a.mode, 'CAMR.ps_harvest': 1, 'CAMR.ps_harvest_cells': 1,
-                       'CAMR.ps_harvest_corridor': 0, 'CAMR.ps_harvest_flush': 50, 'CAMR.ps_harvest_file': 'hv'})
+            ov.update({'PSAMR.ps_relax_mode': a.mode, 'PSAMR.ps_harvest': 1, 'PSAMR.ps_harvest_cells': 1,
+                       'PSAMR.ps_harvest_corridor': 0, 'PSAMR.ps_harvest_flush': 50, 'PSAMR.ps_harvest_file': 'hv'})
             shards = glob.glob(os.path.join(rdir, 'hv_cells_r*.csv'))
             if a.resume and shards:
                 print(f'{sid}: [done, resume]', flush=True); rc, wall = 0, 0

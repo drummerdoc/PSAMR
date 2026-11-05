@@ -6,7 +6,7 @@
 //                   conserved-state derives that share its rules.
 //
 //  ps_augment_primitives runs per cell after the stock hydro_ctoprim
-//  (CAMR_construct_hydro_source.cpp) and fills the extended primitive
+//  (PSAMR_construct_hydro_source.cpp) and fills the extended primitive
 //  block QALPHA1, QRHO1, QRHO2, QP1, QP2 and QPRES from the checked cell
 //  state ps_cell_state (PS_state.H), which issues the branch-locked EOS
 //  calls (REY2P_liquid / REY2P_vapor); its GPU portability is that of the

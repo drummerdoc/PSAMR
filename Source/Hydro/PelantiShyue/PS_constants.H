@@ -37,7 +37,7 @@ constexpr amrex::Real C_MIN            = amrex::Real(1.0);
 //  finite at alpha_k = 0 without changing it anywhere else.
 constexpr amrex::Real DENOM_TINY       = amrex::Real(1.0e-300);
 
-//  Reflux alpha floor [-] (CAMR::reflux): the alpha-vs-mass correction
+//  Reflux alpha floor [-] (PSAMR::reflux): the alpha-vs-mass correction
 //  skips alpha_1 <= this and clamps its result to [it, 1 - it].
 constexpr amrex::Real ALPHA_REFLUX_MIN = amrex::Real(1.0e-8);
 

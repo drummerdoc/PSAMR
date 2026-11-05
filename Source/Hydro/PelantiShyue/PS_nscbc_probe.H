@@ -6,7 +6,7 @@
 //  cells of a plotfile.  Run from main() like the 0-D self-tests (3-D
 //  example; any deck of the case works, the grid only has to be valid):
 //
-//    <exe> <inputs> CAMR.ps_nscbc_probe=plt_xxx amr.max_level=0 \
+//    <exe> <inputs> PSAMR.ps_nscbc_probe=plt_xxx amr.max_level=0 \
 //          amr.n_cell="16 8 8" max_step=0
 //
 //  For every x-hi face cell not covered by a finer level, the conserved
@@ -61,7 +61,7 @@ inline int ps_nscbc_probe(const std::string& plt, amrex::Real p_amb_global)
     PS_NSCBC::Params prm;
     prm.pres = ps_presence_params();
     {
-        amrex::ParmParse pp("CAMR");
+        amrex::ParmParse pp("PSAMR");
         pp.query("ps_bc_nscbc_sigma", prm.sigma);
         pp.query("ps_bc_nscbc_order", prm.nscbc_order);
         pp.query("ps_bc_nscbc_backflow", prm.backflow);
@@ -72,7 +72,7 @@ inline int ps_nscbc_probe(const std::string& plt, amrex::Real p_amb_global)
         pp.query("ps_bc_nscbc_sigma_xhi", sx);
         if (sx >= Real(0.0)) { prm.sigma = sx; }
         if (fm != "pin" && fm != "rate") {
-            amrex::Abort("CAMR.ps_bc_nscbc_form: accepts pin or rate (got '" + fm + "').");
+            amrex::Abort("PSAMR.ps_bc_nscbc_form: accepts pin or rate (got '" + fm + "').");
         }
         prm.form = (fm == "rate") ? PS_NSCBC::FORM_RATE : PS_NSCBC::FORM_PIN;
         prm.L_ref = pf.probHi()[0] - pf.probLo()[0];

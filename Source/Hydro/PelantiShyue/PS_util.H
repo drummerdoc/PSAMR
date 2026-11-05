@@ -3,7 +3,7 @@
 // =====================================================================
 //  PS_util.H — small per-cell helpers shared across the Pelanti-Shyue
 //  module: the finite-or-fallback read, the kinetic energy of a cell
-//  from its conserved momentum, and the pack/unpack between a CAMR
+//  from its conserved momentum, and the pack/unpack between a PSAMR
 //  conserved Array4 and the hem::V6 per-cell layout
 //      {alpha_1, alpha_1 rho_1, alpha_2 rho_2, |rho u|,
 //       alpha_1 rho_1 E_1, alpha_2 rho_2 E_2}.

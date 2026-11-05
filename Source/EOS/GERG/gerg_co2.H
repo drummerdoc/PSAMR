@@ -8,7 +8,7 @@
 //  and alpha0 form from src/gerg.f90 alpha0Derivs_GERG.
 //  This header must match the python spec to ~1e-14 (see gerg_selftest).
 //
-//  Design constraints (CAMR GPU-safety):
+//  Design constraints (PSAMR GPU-safety):
 //   - branch-free fixed-op evaluation, no iteration, no data-dependent
 //     loops; header-only, no AMReX dependency (GERG_HD macro adapts).
 //   - (T,rho) -> state only.  Inversions ((rho,e)->T etc.), saturation,

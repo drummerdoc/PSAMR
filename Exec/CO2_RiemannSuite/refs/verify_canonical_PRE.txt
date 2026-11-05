@@ -1,5 +1,5 @@
 == 0. build freshness ==
-  [PASS] executable newer than changed PS headers  (exe=CAMR1d.gnu.TPROF.PS.PR.ex)
+  [PASS] executable newer than changed PS headers  (exe=PSAMR1d.gnu.TPROF.PS.PR.ex)
 == 1. frozen A/C battery (expect handoff Part-2 values) ==
   [PASS] A1-Sod-strong  (got 0.012,0.013,0.015 expect (0.012, 0.012, 0.015))
   [PASS] A2-Sod-weak  (got 0.013,0.089,0.015 expect (0.013, 0.089, 0.015))

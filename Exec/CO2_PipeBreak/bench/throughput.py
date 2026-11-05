@@ -1,5 +1,5 @@
 import sys, re
-#  Cell-update throughput from a CAMR log: per-level cell counts (mean over
+#  Cell-update throughput from a PSAMR log: per-level cell counts (mean over
 #  the regrid summaries), level L advancing 2^L times per coarse step
 #  (ref_ratio 2, subcycling), over the coarse steps taken.
 def summarize(log):

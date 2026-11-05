@@ -18,17 +18,17 @@
 //  a verdict ("this (rho,e) is not a state on this branch"), reported by
 //  the _try entry and an unconditional abort elsewhere.  No state is
 //  manufactured: the only floors are the covolume fence and the positive
-//  pressure floor in state_from_T_v, both counted under CAMR_PS_DIAG.
+//  pressure floor in state_from_T_v, both counted under PSAMR_PS_DIAG.
 //
 //  All entries are AMREX_GPU_HOST_DEVICE.  The HEM_NO_AMREX shim from
-//  hem_saturation_amrex.H is inherited.  Dial: CAMR.ps_strict_eos (0),
-//  read by strict() below (CAMR_PS_DIAG host builds only).
+//  hem_saturation_amrex.H is inherited.  Dial: PSAMR.ps_strict_eos (0),
+//  read by strict() below (PSAMR_PS_DIAG host builds only).
 // =====================================================================
 #pragma once
 
 #include "pr_edge.H"   // the branch-edge table (startup), read by state_from_T_v
 #include "hem_saturation_amrex.H"
-#if defined(CAMR_PS_DIAG) && !defined(HEM_NO_AMREX)
+#if defined(PSAMR_PS_DIAG) && !defined(HEM_NO_AMREX)
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 #endif
@@ -37,7 +37,7 @@
 namespace hem {
 
 // ---------------------------------------------------------------------
-//  Floor census (CAMR_PS_DIAG host builds).  Counts every repair and
+//  Floor census (PSAMR_PS_DIAG host builds).  Counts every repair and
 //  refusal in this file so the [PS-FLOOR] line can be read to zero: the
 //  1 K Newton-iterate clamp, Newton non-convergence (branch-locked and
 //  phase-detect sites separately), the P_pos_floor substitution, and the
@@ -46,7 +46,7 @@ namespace hem {
 //  liquid-like densities by construction, so counting it as a floor in
 //  use would make the census line unable to reach zero.
 // ---------------------------------------------------------------------
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
 namespace floor_census {
 inline long& n_T_clamp()   { static long n = 0; return n; }
 inline long& n_T_nonconv() { static long n = 0; return n; }   // branch-locked site
@@ -58,7 +58,7 @@ inline long& n_noroot_hi() { static long n = 0; return n; }
 inline long& n_calls()     { static long n = 0; return n; }
 inline void  reset() { n_T_clamp()=0; n_T_nonconv()=0; n_T_nonconv_det()=0; n_P_floor()=0; n_P_floor_probe()=0; n_calls()=0; n_noroot_lo()=0; n_noroot_hi()=0; }
 }
-// CAMR.ps_strict_eos (0): bitmask turning repairs into aborts on first
+// PSAMR.ps_strict_eos (0): bitmask turning repairs into aborts on first
 // occurrence, printing the EOS input for reproduction with probe_pr.
 //   1  Newton non-convergence at the branch-locked site (a missing root)
 //   2  P_pos_floor substitution (the solve succeeded; its P was overridden)
@@ -70,7 +70,7 @@ inline void  reset() { n_T_clamp()=0; n_T_nonconv()=0; n_T_nonconv_det()=0; n_P_
 inline int& strict_level() { static int v = -1; return v; }
 inline int  strict() {
     if (strict_level() < 0) {
-        int t = 0; amrex::ParmParse pp("CAMR");
+        int t = 0; amrex::ParmParse pp("PSAMR");
         pp.query("ps_strict_eos", t); strict_level() = t;
     }
     return strict_level();
@@ -87,7 +87,7 @@ inline void strict_abort(const char* site, const char* what, double rho,
                    << " 1.0 0.0\" | ./probe_pr"
                    << "\n  WHAT       : " << what
                    << "\n  Fix the DATA GOING IN, not the repair.\n\n";
-    amrex::Abort("PS-STRICT: silent EOS repair (CAMR.ps_strict_eos)");
+    amrex::Abort("PS-STRICT: silent EOS repair (PSAMR.ps_strict_eos)");
 }
 #define PS_CENSUS(x) (++hem::floor_census::x())
 #else
@@ -463,7 +463,7 @@ inline State state_from_T_v(const PRFluid& f, amrex::Real T, amrex::Real v_m,
     if (!(P > P_pos_floor)) {
         P = P_pos_floor;
         if (probe) { PS_CENSUS(n_P_floor_probe); } else { PS_CENSUS(n_P_floor); }
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
         if ((hem::strict() & 2))
             hem::strict_abort("P floored to P_pos_floor (0.01 bar)",
                 "the EOS SOLVED; its pressure was simply below 0.01 bar and was overridden",
@@ -908,7 +908,7 @@ bool ps_newton_solve_T(const PRFluid& f, amrex::Real v_m,
 
         T += dT;
         if (T < amrex::Real(1)) { T = amrex::Real(1); PS_CENSUS(n_T_clamp);
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
             if ((hem::strict() & 4))
                 hem::strict_abort("Newton T-iterate clamped to 1 K",
                     "iteration step limiter; signature of a solve walking "
@@ -917,7 +917,7 @@ bool ps_newton_solve_T(const PRFluid& f, amrex::Real v_m,
 #endif
         }
     }
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
     if (site == 1) ++hem::floor_census::n_T_nonconv_det(); else PS_CENSUS(n_T_nonconv);
     // Site 1 (phase-detect) is trapped under bit 8, site 2 (branch-locked)
     // under bit 1; site 0 (the bracketed fast path, whose result is
@@ -929,7 +929,7 @@ bool ps_newton_solve_T(const PRFluid& f, amrex::Real v_m,
             "wherever the iteration stopped and the state marked VALID",
             f.M/v_m, e_mol_target/f.M, double(T), req_phase);
 #endif
-#if !defined(CAMR_PS_DIAG) || defined(AMREX_USE_GPU)
+#if !defined(PSAMR_PS_DIAG) || defined(AMREX_USE_GPU)
     PS_CENSUS(n_T_nonconv);
 #endif
     return false;   // max_iter reached: no root found on this branch
@@ -978,7 +978,7 @@ inline State state_from_rho_e(const PRFluid& f, amrex::Real rho, amrex::Real e_t
         State sa = state_from_T_v(f, Ta, v_m, ph, true);   // bracket end
         State sb = state_from_T_v(f, Tb, v_m, ph, true);   // bracket end
         if (e_target <= sa.e) {
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
             PS_CENSUS(n_noroot_lo);
 #endif
             ps_eos_noroot("below the coldest reachable state on this branch",
@@ -986,7 +986,7 @@ inline State state_from_rho_e(const PRFluid& f, amrex::Real rho, amrex::Real e_t
                           (ph == Phase3::Liquid) ? 1 : 2);
         }
         if (e_target >= sb.e) {
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
             PS_CENSUS(n_noroot_hi);
 #endif
             ps_eos_noroot("above the hottest reachable state on this branch",
@@ -1088,7 +1088,7 @@ inline bool state_from_rho_e_phase_try(const PRFluid& f, amrex::Real rho,
     State sa = state_from_T_v(f, T_MIN, v_m, phase, true);   // bracket end
     State sb = state_from_T_v(f, T_MAX, v_m, phase, true);   // bracket end
     if (e_target <= sa.e || e_target >= sb.e) {
-#if defined(CAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
+#if defined(PSAMR_PS_DIAG) && !defined(AMREX_USE_GPU)
         if (e_target <= sa.e) PS_CENSUS(n_noroot_lo); else PS_CENSUS(n_noroot_hi);
 #endif
         out = (e_target <= sa.e) ? sa : sb;   // nearest bound, for reporting only

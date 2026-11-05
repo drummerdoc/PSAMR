@@ -43,7 +43,7 @@ Two threads, one thesis:
 
 ## Part 0 — Setting (3 slides)
 
-**1. Title.** EOS strategies for real-fluid two-phase CO₂: tables, ML and what the platform decides. (CAMR / Pelanti–Shyue six-equation model / pipe-break and blowdown cases.)
+**1. Title.** EOS strategies for real-fluid two-phase CO₂: tables, ML and what the platform decides. (PSAMR / Pelanti–Shyue six-equation model / pipe-break and blowdown cases.)
 
 **2. What the solver asks of the EOS.** The branch-locked contract: $(\rho_k, e_k) \to T$ on a named branch (liquid / vapour), metastable continuation past the dome, refusal (no root) as a verdict. Where the calls come from: hydro stage (ctoprim, Riemann) vs the reaction operator (X3 Newton, mass transfer, flash). The census number: the reaction operator makes **9 % of EOS calls and takes 36–62 % of GPU time**. *Figure:* a schematic of the call sites; the call census table (RESULTS "Why the table slows…").
 
@@ -51,7 +51,7 @@ Two threads, one thesis:
 
 ## Part 1 — The deployment distribution (4 slides)
 
-**4. Where does the solver actually go? The harvester.** `CAMR.ps_harvest`: per-phase EOS inputs bucketed in $(\log_{10}\rho, e, \text{branch})$, read-only (byte-identical off/on), presence-aware. *Figure:* the 1-D battery cloud, 1376 buckets, **519 of them vapour below the triple point** (PR's unclamped branch; expansions to 102 K). Message: a third of visited states lie where GERG clamps and a validity-range training grid has no data.
+**4. Where does the solver actually go? The harvester.** `PSAMR.ps_harvest`: per-phase EOS inputs bucketed in $(\log_{10}\rho, e, \text{branch})$, read-only (byte-identical off/on), presence-aware. *Figure:* the 1-D battery cloud, 1376 buckets, **519 of them vapour below the triple point** (PR's unclamped branch; expansions to 102 K). Message: a third of visited states lie where GERG clamps and a validity-range training grid has no data.
 
 **5. Corridor states are not EOS inputs.** The presence regimes; a Corridor phase is host-slaved, its quotient only a has-root test. Raw harvest of the 2-D run: 498 buckets with 109 "stretched-liquid" states → presence-aware: 225, the hard states were corridor noise (490 k corridor records skipped in 10 coarse steps). Message: system knowledge starts before the first training point — knowing which inputs are inputs.
 
@@ -61,7 +61,7 @@ Two threads, one thesis:
 
 ## Part 2 — Machine learning with and without the system's structure (6 slides)
 
-**8. The experiment.** Truth = CAMR's own PR (`pr_eval`). Two training sets: the naive static (T, ρ) grid vs the harvested deployment set (hold-out by bucket). Five models: `mono` (one net, branch flag), `split` (per branch), `dome` (+ traced loci as inputs: distance to saturation, to the branch edge, θ), `domeres` (target $T - T_{sat}(\rho)$), `experts` (one net per branch × region, routed by the loci). Metrics: T, reconstructed P, dT/de, per regime (far / near / metastable / sub-triple).
+**8. The experiment.** Truth = PSAMR's own PR (`pr_eval`). Two training sets: the naive static (T, ρ) grid vs the harvested deployment set (hold-out by bucket). Five models: `mono` (one net, branch flag), `split` (per branch), `dome` (+ traced loci as inputs: distance to saturation, to the branch edge, θ), `domeres` (target $T - T_{sat}(\rho)$), `experts` (one net per branch × region, routed by the loci). Metrics: T, reconstructed P, dT/de, per regime (far / near / metastable / sub-triple).
 
 **9. Where you sample is worth 4×.** Run 1 table (w64 d3): static-trained 2.0–3.4 K vs deploy-trained 0.5–0.7 K on deployment, every model; deploy-trained nets 40–90 K off on the static grid (OOD). Message: the active-learning result, unconditional.
 

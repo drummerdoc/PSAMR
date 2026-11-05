@@ -20,18 +20,18 @@
 //  closure) only where the state bitwise changed.
 //
 //  Dials (all read once, here or at the named accessor):
-//      CAMR.ps_flash_tau (1e-7 s), CAMR.ps_mt_tau (1e-7 s),
-//      CAMR.ps_mt_gref (0), CAMR.ps_triple_point_action (0),
-//      CAMR.ps_mt_update_alpha (-1), CAMR.ps_mt_tau_model (0).
+//      PSAMR.ps_flash_tau (1e-7 s), PSAMR.ps_mt_tau (1e-7 s),
+//      PSAMR.ps_mt_gref (0), PSAMR.ps_triple_point_action (0),
+//      PSAMR.ps_mt_update_alpha (-1), PSAMR.ps_mt_tau_model (0).
 // =====================================================================
 
 #include "IndexDefines.H"
 #include "EOS.H"
 #include "hem_pelanti_shyue.H"
-#include "PS_relaxation.H"          // ps_make_camr_eos_api()
+#include "PS_relaxation.H"          // ps_make_psamr_eos_api()
 #include "PS_constants.H"           // ps_const::ALPHA_ROUNDOFF
 #include "PS_util.H"                // ps_pack_v6 / ps_unpack_v6, ps_kinetic_energy
-#include "PS_dials.H"               // ps_dial_int / ps_dial_real (CAMR.* reads)
+#include "PS_dials.H"               // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_BLProfiler.H>
@@ -41,17 +41,17 @@
 //  Cached dial reads (one-shot ParmParse, read once on the host).
 // -----------------------------------------------------------------
 struct PsSourceDials {
-    // CAMR.ps_flash_tau (1e-7 s): flash rate; <= 0 disables the flash
-    // source.  CAMR.ps_mt_tau (1e-7 s): split mass-transfer rate, relaxation
+    // PSAMR.ps_flash_tau (1e-7 s): flash rate; <= 0 disables the flash
+    // source.  PSAMR.ps_mt_tau (1e-7 s): split mass-transfer rate, relaxation
     // modes != 5 only; <= 0 disables.  Both default to the acceptance
     // configuration so bare code defaults reproduce the acceptance table.
     amrex::Real flash_tau          = amrex::Real(1.0e-7);
     amrex::Real mt_tau             = amrex::Real(1.0e-7);
-    // CAMR.ps_mt_gref (0): reference Gibbs scale [J/kg] for the split MT
+    // PSAMR.ps_mt_gref (0): reference Gibbs scale [J/kg] for the split MT
     // driving force; 0 = dimensional g_diff, >0 non-dimensionalises it so
     // tau is a physical time (~R_specific*T ~ 5e4 J/kg for CO2).
     amrex::Real mt_gref            = amrex::Real(0.0);
-    // CAMR.ps_triple_point_action (0): 0 off, 1 warn, 2 clip, 3 abort; see (3).
+    // PSAMR.ps_triple_point_action (0): 0 off, 1 warn, 2 clip, 3 abort; see (3).
     int         triple_point_action = 0;
 
     bool any_enabled() const {
@@ -75,7 +75,7 @@ inline const PsSourceDials& ps_source_dials()
 }
 
 // -----------------------------------------------------------------
-//  ps_apply_sources: called from CAMR_advance after ps_apply_relaxation,
+//  ps_apply_sources: called from PSAMR_advance after ps_apply_relaxation,
 //  under ps_hydro != 0.  dt is the level time step the rate-based
 //  sources integrate over; nghost grows the tile box.  Returns without
 //  touching S_new when no source is enabled.
@@ -91,7 +91,7 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
     amrex::ignore_unused(S_new, dt);
 
     // Branch-locked per-phase EOS callback (the one the relaxation uses).
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     amrex::ignore_unused(eos);
 
     // -------------------------------------------------------------
@@ -269,7 +269,7 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
         const amrex::Real tau  = dials.mt_tau;
         const amrex::Real gref = dials.mt_gref;
         const PsPres l_pr = ps_presence_params();
-        // CAMR.ps_mt_update_alpha (-1): density-preserving transfer
+        // PSAMR.ps_mt_update_alpha (-1): density-preserving transfer
         // dalpha_1 = -dm/rho_1 (the (E.1) rule); -1 auto (resolves to 1),
         // 0 force off, 1 force on.  Host-read once, captured by value.
         static const int mt_upd_key = ps_dial_int("ps_mt_update_alpha", -1);
@@ -278,17 +278,17 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
         // the kernel (a second equilibrium solve per transferring cell).
         const int mt_diag_lvl = hem::ps_diag_mt();
         const int l_mt_cr = (mt_diag_lvl >= 2) ? 1 : 0;
-        // CAMR.ps_mt_h_weight: 0.5 = mean carrier; negative = upwind by
+        // PSAMR.ps_mt_h_weight: 0.5 = mean carrier; negative = upwind by
         // transfer direction.  Documented at its accessor.
         const double l_mt_h_w = hem::ps_dial_mt_h_weight();
-        // CAMR.ps_mt_tau_model (0): 0 = the constant CAMR.ps_mt_tau; 2 = tau
+        // PSAMR.ps_mt_tau_model (0): 0 = the constant PSAMR.ps_mt_tau; 2 = tau
         // derived from the state as |dm_eq|/Gamma_SRT (Lund & Aursand eq. 25,
-        // geometry via CAMR.ps_mt_srt_d / ps_mt_srt_delta).  1 (the HRM
+        // geometry via PSAMR.ps_mt_srt_d / ps_mt_srt_delta).  1 (the HRM
         // correlation) is retired; any value other than 0 or 2 aborts.
         static const int mt_tau_model = []() -> int {
             const int v = ps_dial_int("ps_mt_tau_model", 0);
             if (v != 0 && v != 2) {
-                amrex::Abort("CAMR.ps_mt_tau_model must be 0 or 2 (1 is retired)");
+                amrex::Abort("PSAMR.ps_mt_tau_model must be 0 or 2 (1 is retired)");
             }
             return v; }();
         const int l_mt_tau_model = mt_tau_model;
@@ -389,7 +389,7 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
                 hem::PsMtCoexist& cxa = hem::ps_mt_coexist();
                 amrex::Print()
                   << "\n[PS-COEXIT] a phase has left the two-phase coexistence band.\n"
-                  << "  CAMR.ps_coexist_action = 1: ABORT BY REQUEST, not a solver failure.\n"
+                  << "  PSAMR.ps_coexist_action = 1: ABORT BY REQUEST, not a solver failure.\n"
                   << "  cells this sweep = " << ncx
                   << "   p1_lo=" << cxa.n_p1_lo << " p1_hi=" << cxa.n_p1_hi
                   << " p2_lo=" << cxa.n_p2_lo << " p2_hi=" << cxa.n_p2_hi << "\n"
@@ -499,7 +499,7 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
     //  (3) Triple-point / solid-region response.  Below the CO2 triple
     //      point the cubic EOS keeps extrapolating into the physically
     //      solid region.  Per cell the dominant phase's (T, P) is tested
-    //      with hem::ps_below_triple_point; CAMR.ps_triple_point_action:
+    //      with hem::ps_below_triple_point; PSAMR.ps_triple_point_action:
     //        1 = WARN : count and report, no state change
     //        2 = CLIP : raise the dominant phase's energy to T = T_triple at
     //                   fixed rho (EOS::RTY2E); non-conservative by design
@@ -563,7 +563,7 @@ ps_apply_sources(amrex::MultiFab& S_new, amrex::Real dt, int nghost = 0)
         const amrex::Long n_tp = amrex::get<0>(tp_data.value(tp_op));
         hem::ps_triple_point_count() += long(n_tp);
         if (action == 3 && n_tp > 0) {
-            amrex::Abort("CAMR.ps_triple_point_action=error: a cell "
+            amrex::Abort("PSAMR.ps_triple_point_action=error: a cell "
                          "entered the CO2 solid region (below triple "
                          "point).");
         }

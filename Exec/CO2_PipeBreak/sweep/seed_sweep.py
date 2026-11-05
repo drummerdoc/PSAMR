@@ -95,8 +95,8 @@ def main():
     ap.add_argument('--stop-time', type=float, default=2.5e-3)
     ap.add_argument('--ranks', type=int, default=8)
     ap.add_argument('--cores', default='64-125', help='taskset CPU list ("" = no pinning)')
-    ap.add_argument('--corridor', type=int, default=1, help='CAMR.ps_harvest_corridor')
-    ap.add_argument('--flush', type=int, default=50, help='CAMR.ps_harvest_flush (calls)')
+    ap.add_argument('--corridor', type=int, default=1, help='PSAMR.ps_harvest_corridor')
+    ap.add_argument('--flush', type=int, default=50, help='PSAMR.ps_harvest_flush (calls)')
     ap.add_argument('--pamb-frac', type=float, default=0.8, help='cap p_amb at this fraction of Psat(T_res)')
     ap.add_argument('--dlr', type=float, default=0.05); ap.add_argument('--de', type=float, default=2000.0)
     ap.add_argument('--exe', default=None)
@@ -105,7 +105,7 @@ def main():
     ap.add_argument('--resume', action='store_true', help='skip samples whose cloud.csv exists')
     a = ap.parse_args()
 
-    exe = a.exe or sorted(glob.glob(os.path.join(CASE, 'CAMR2d.*.MPI.PS.*.ex')), key=os.path.getmtime)[-1]
+    exe = a.exe or sorted(glob.glob(os.path.join(CASE, 'PSAMR2d.*.MPI.PS.*.ex')), key=os.path.getmtime)[-1]
     root = os.path.join(CASE, 'runs', 'sweep', a.tag)
     os.makedirs(root, exist_ok=True)
     samples = lhs(a.n, a.seed)
@@ -132,12 +132,12 @@ def main():
         cloud = os.path.join(rdir, 'cloud.csv')
         ov = {
             'amr.n_cell': a.ncell, 'amr.max_level': a.max_level, 'stop_time': a.stop_time,
-            'amr.checkpoint_files_output': 0, 'amr.plot_files_output': 0, 'amr.v': 0, 'CAMR.v': 0,
+            'amr.checkpoint_files_output': 0, 'amr.plot_files_output': 0, 'amr.v': 0, 'PSAMR.v': 0,
             'prob.T_res': f"{s['T_res']:.4f}", 'prob.res_alpha1': f"{s['res_alpha1']:.5f}",
             'prob.p_amb': f"{s['p_amb']:.6e}", 'prob.p0': f"{s['p_amb']:.6e}",
             'prob.T0': f"{s['T0']:.4f}", 'prob.gap_half': f"{s['gap_half']:.5f}",
-            'CAMR.ps_harvest': 1, 'CAMR.ps_harvest_corridor': a.corridor,
-            'CAMR.ps_harvest_flush': a.flush, 'CAMR.ps_harvest_file': 'hv',
+            'PSAMR.ps_harvest': 1, 'PSAMR.ps_harvest_corridor': a.corridor,
+            'PSAMR.ps_harvest_flush': a.flush, 'PSAMR.ps_harvest_file': 'hv',
         }
         line = (f"{sid}: T_res={s['T_res']:.1f} K  alpha1={s['res_alpha1']:.3f}  p_amb={s['p_amb']/1e5:.1f} bar"
                 f"{' (capped)' if s['p_amb_capped'] else ''}  T0={s['T0']:.1f} K  gap_half={s['gap_half']:.3f} m"

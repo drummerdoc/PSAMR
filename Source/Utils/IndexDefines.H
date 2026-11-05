@@ -101,7 +101,7 @@
 #define QDPDE 4
 #define NQAUX 5
 
-#ifndef CAMR_USE_AUX
+#ifndef PSAMR_USE_AUX
 #define NUM_AUX 0
 #endif
 
@@ -112,12 +112,12 @@
 //  GNUmakefile) the conservative array carries five extra components:
 //  volume fraction α₁, the partial densities α_k ρ_k and the per-phase
 //  total energy densities α_k ρ_k E_k.  They are registered as passive
-//  scalars so the stock Godunov/MOL paths (CAMR.ps_hydro = 0) advect
-//  them with the contact; under CAMR.ps_hydro != 0 the PelantiShyue
+//  scalars so the stock Godunov/MOL paths (PSAMR.ps_hydro = 0) advect
+//  them with the contact; under PSAMR.ps_hydro != 0 the PelantiShyue
 //  module applies the A±ΔQ wave-propagation update instead.
 //  See docs/MODEL_AND_ALGORITHM.md §1.
 //
-//  Without USE_PS_HYDRO the layout is identical to upstream CAMR.
+//  Without USE_PS_HYDRO the layout is identical to upstream PSAMR.
 // ---------------------------------------------------------------------
 #ifdef USE_PS_HYDRO
 #define NUM_PS 5

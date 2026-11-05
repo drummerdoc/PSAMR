@@ -545,7 +545,7 @@ void eb_compute_div (int i, int j, int k, int n,
     if (eb_weights_type == 0) {
         redistwgt(i,j,k) = 1.0;
     } else if (eb_weights_type == 1) {
-        // Total energy density; note QREINT is rho*e in CAMR (CNS's QEINT
+        // Total energy density; note QREINT is rho*e in PSAMR (CNS's QEINT
         // is e, which is where the old rho*(...) form came from).
         redistwgt(i,j,k) = q(i,j,k,QREINT) + 0.5*q(i,j,k,QRHO)*(
 #if (AMREX_SPACEDIM == 2)

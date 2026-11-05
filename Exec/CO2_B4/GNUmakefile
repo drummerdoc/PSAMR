@@ -1,4 +1,4 @@
-CAMR_HOME      ?= ../..
+PSAMR_HOME      ?= ../..
 AMREX_HOME     ?= ../../../amrex
 
 USE_PS_HYDRO = TRUE
@@ -23,7 +23,7 @@ USE_SYCL = FALSE
 # Debugging
 DEBUG = FALSE
 
-# CAMR
+# PSAMR
 USE_EB = FALSE
 Eos_Model := PR
 
@@ -31,4 +31,4 @@ Eos_Model := PR
 Bpack := ./Make.package
 Blocs := .
 
-include $(CAMR_HOME)/Exec/Make.CAMR
+include $(PSAMR_HOME)/Exec/Make.PSAMR

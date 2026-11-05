@@ -30,4 +30,4 @@ k_ij sensitivity of the PR bubble pressure [MPa]:
    k_ij     z=0.02 T=220 K   z=0.02 T=260 K   z=0.10 T=220 K   z=0.10 T=260 K
   -0.0170           1.8101           3.4757           6.5572           7.4305
   +0.0015           1.9195           3.5353           7.1336           7.7017
-wrote /home/marcusd/src/CAMR/.claude/worktrees/agent-a343db1adb28c4b6a/Exec/EOS_Surrogate/mix/coolprop_points.csv
+wrote /home/marcusd/src/PSAMR/.claude/worktrees/agent-a343db1adb28c4b6a/Exec/EOS_Surrogate/mix/coolprop_points.csv

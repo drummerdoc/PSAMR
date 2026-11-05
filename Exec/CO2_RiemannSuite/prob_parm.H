@@ -29,9 +29,9 @@ using namespace amrex::literals;
 //    x_qual_{L,R} — vapor quality [-] (only used for phase==TWOPHASE)
 //    u_{L,R}      — velocity [m/s]
 //
-//  The 6-equation P-S state is built from these using CAMR's EOS /
+//  The 6-equation P-S state is built from these using PSAMR's EOS /
 //  hem helpers (state_from_T_P_metastable, state_from_T_x, satState*).
-//  See prob.H CAMR_initdata for the exact mapping to (alpha_1, m_k,
+//  See prob.H PSAMR_initdata for the exact mapping to (alpha_1, m_k,
 //  E_k).  All keys are ParmParse-overridable — see prob.cpp.
 // =====================================================================
 

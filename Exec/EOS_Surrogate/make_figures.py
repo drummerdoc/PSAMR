@@ -230,7 +230,7 @@ def fig6_stage_split(style='log'):
             ('production GPU\nGH200 (H100)', 'PRTab'): os.path.join(PB, 'runs/bench/olivia_gpu/Exec/CO2_PipeBreak/runs/bench/L0big_200/PRTab_gpu/run.log')}
     plats = ['development CPU\n8 EPYC ranks', 'production CPU\n8 EPYC ranks', 'development GPU\nRTX PRO 6000', 'production GPU\nGH200 (H100)']
     def split(log):
-        tot, hydro = parse_profile_incl(log, ('CAMR::advance_hydro_umdrv()',))
+        tot, hydro = parse_profile_incl(log, ('PSAMR::advance_hydro_umdrv()',))
         _, relax = parse_profile_incl(log, ('PS::ps_apply_relaxation()',))
         return {'hydro': hydro, 'relax': relax, 'rest': max(tot - hydro - relax, 0)}
     # Only the two kernels the argument is about.  The remainder of each run (state hygiene, floors, dt estimate,

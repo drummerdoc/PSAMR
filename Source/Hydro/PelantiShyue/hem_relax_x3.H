@@ -5,7 +5,7 @@
 //  isochoric pressure and thermal kernels (ps_iso_pressure_relax_cell,
 //  ps_iso_thermal_relax_cell, ps_iso_thermal_relax_cell_finite), and the
 //  coupled X3 operator (PsX3Params, ps_x3_relax_cell: the production default,
-//  CAMR.ps_relax_mode=5).  AMREX_GPU_HOST_DEVICE; every kernel either
+//  PSAMR.ps_relax_mode=5).  AMREX_GPU_HOST_DEVICE; every kernel either
 //  converges and writes U or returns false with U untouched.  Part of the
 //  hem_pelanti_shyue.H umbrella.  docs/MODEL_AND_ALGORITHM.md §5.1-§5.3.
 // =====================================================================
@@ -108,7 +108,7 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
     double e_2      = e2;
 
     for (int iter = 0; iter < p.max_iter; ++iter) {
-        PS_COUNT(++ps_mt_stats().pr_iters);   // CAMR.ps_mt_diag: the nesting multiplier
+        PS_COUNT(++ps_mt_stats().pr_iters);   // PSAMR.ps_mt_diag: the nesting multiplier
         // Query per-phase P at current state.
         PsPhase ph1, ph2;
         ph1.alpha = alpha; ph2.alpha = 1.0 - alpha;
@@ -326,7 +326,7 @@ inline bool ps_iso_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         if (fv && std::abs(r) < tol_rel * P_ref) {
             PS_COUNT(++ps_pr_stats().nt_ok); commit(e1); return true; }
         const double de = 1.0e-4 * std::max(1.0e3, std::abs(e1));
-        // CAMR.ps_pr_fd1 (documented at its accessor).
+        // PSAMR.ps_pr_fd1 (documented at its accessor).
         const bool fd_one_sided = eos.dials.pr_fd1 != 0;
         const double rp = residual(e1 + de);
         double drde;
@@ -497,7 +497,7 @@ inline bool ps_iso_thermal_relax_cell_finite(V6& U, const PsPhaseAPI& eos,
 
 
 // =====================================================================
-//  X3 -- the coupled relaxation operator (CAMR.ps_relax_mode=5, the
+//  X3 -- the coupled relaxation operator (PSAMR.ps_relax_mode=5, the
 //  production default; grid wrapper ps_x3_grid_relax_cell in
 //  PS_relax.H).  docs/MODEL_AND_ALGORITHM.md §5.1, §5.3, §5.4.
 //
@@ -520,7 +520,7 @@ inline bool ps_iso_thermal_relax_cell_finite(V6& U, const PsPhaseAPI& eos,
 //  q = dm = 0 with P1 = P2, T1 = T2, g1 = g2 -- the full-equilibrium
 //  flash of the cell's invariants; both rates vanish there, so the BE
 //  solution cannot cross it at any dt.  0-D acceptance harness:
-//  CAMR.ps_x3_test (PS_zerod_test.H).
+//  PSAMR.ps_x3_test (PS_zerod_test.H).
 // =====================================================================
 //  [PS-X3] outcome counters (PsX3Stats, PS_counters.H).
 inline PsX3Stats&  ps_x3_stats()  { return ps_counters().x3_stats; }
@@ -532,7 +532,7 @@ struct PsX3Params {
     double srt_delta  = 0.01;     // SRT receiving-phase seed
     bool   dome_gate  = true;     // the one eligibility question
     int    max_newton = 40;
-    //  Band-exit policy (CAMR.ps_coexist_action, read in PS_relax.H;
+    //  Band-exit policy (PSAMR.ps_coexist_action, read in PS_relax.H;
     //  default 0): 0 stand, counted; 1 abort with the cell context.  The
     //  runaway clause below is always active.
     int    coexist_action = 0;
@@ -675,7 +675,7 @@ inline bool ps_x3_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
                         << "  band = (" << Ttr << ", " << Tcr << ") K\n";
 #endif
                     amrex::Abort("PS-X3: phase left the coexistence band "
-                                 "(CAMR.ps_coexist_action=1)");
+                                 "(PSAMR.ps_coexist_action=1)");
                 }
                 PS_COUNT(++x3s.n_gate_stood);
                 set_status(X3_STOOD);

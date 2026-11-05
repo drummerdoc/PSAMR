@@ -2,7 +2,7 @@
 #include "Hydro_utils_K.H"
 #include "Godunov.H"
 #include "MOL_umeth.H"
-#include "CAMR_Constants.H"
+#include "PSAMR_Constants.H"
 
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EBMultiFabUtil.H>
@@ -154,7 +154,7 @@ hydro_umdrv_eb( const bool do_mol, Box const& bx,
                     l_eb_weights_type);
 
     int l_ncomp = dsdt_arr.nComp();
-    int level_mask_not_covered = CAMRConstants::level_mask_notcovered;
+    int level_mask_not_covered = PSAMRConstants::level_mask_notcovered;
     bool use_wts_in_divnc = false;
 
     // We need to set fac_for_redist to 1/2 for MOL because we will

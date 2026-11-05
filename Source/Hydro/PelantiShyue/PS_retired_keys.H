@@ -1,15 +1,15 @@
 #ifndef PS_RETIRED_KEYS_H
 #define PS_RETIRED_KEYS_H
 // =====================================================================
-//  PS_retired_keys.H  --  the one table of retired CAMR.ps_* input keys.
+//  PS_retired_keys.H  --  the one table of retired PSAMR.ps_* input keys.
 //
 //  A deck that sets a key whose behaviour no longer exists must fail
 //  loudly rather than run a different physics than it names.  Every
 //  retired key is listed here with the reason (or the replacement), and
 //  ps_abort_on_retired_keys() is called once at startup from
-//  CAMR::read_params.  The EOS backends read their dials from the same
-//  CAMR prefix, so their retired keys (eos_*) live here too.  Retired *values* of live keys (CAMR.ps_flux other
-//  than wp, CAMR.ps_relax_mode=3) are refused at their accessors.
+//  PSAMR::read_params.  The EOS backends read their dials from the same
+//  PSAMR prefix, so their retired keys (eos_*) live here too.  Retired *values* of live keys (PSAMR.ps_flux other
+//  than wp, PSAMR.ps_relax_mode=3) are refused at their accessors.
 //  Docs/DESIGN_DECISIONS.md §6.
 // =====================================================================
 #ifdef USE_PS_HYDRO
@@ -72,10 +72,10 @@ inline void ps_abort_on_retired_keys()
         { "ps_c_mode",           "ps_state_from_cons forms the Wood mixture sound speed only" },
         { "ps_y_floor",          "ps_state_from_cons forms the Wood mixture sound speed only" },
     };
-    amrex::ParmParse pp("CAMR");
+    amrex::ParmParse pp("PSAMR");
     for (const RetiredKey& rk : table) {
         if (pp.contains(rk.key)) {
-            amrex::Abort(std::string("CAMR.") + rk.key + " is retired: " + rk.reason);
+            amrex::Abort(std::string("PSAMR.") + rk.key + " is retired: " + rk.reason);
         }
     }
 }

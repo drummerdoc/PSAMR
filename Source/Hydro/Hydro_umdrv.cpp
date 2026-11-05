@@ -132,7 +132,7 @@ hydro_umdrv (bool do_mol,
         static std::atomic<bool> warned_ps_difmag{false};
         if (ps_warn_once(warned_ps_difmag)) {
             amrex::Warning(
-              "CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue "
+              "PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue "
               "6-eq integrator.  Artificial viscosity corrupts the WP-α "
               "and WP phase-energy invariants; PS has its own stabilization. "
               "See task #209.");

@@ -235,7 +235,7 @@ RECIPES = {'cover': slide_cover, 'model': slide_model, 'dome': slide_dome, 'clou
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--template', required=True); ap.add_argument('--slides', required=True); ap.add_argument('--out', required=True)
-    ap.add_argument('--author', default='Marc Day, CAMR · Pelanti–Shyue six-equation model · October 2026')
+    ap.add_argument('--author', default='Marc Day, PSAMR · Pelanti–Shyue six-equation model · October 2026')
     a = ap.parse_args()
     prs = Presentation(a.template); remove_all_slides(prs)
     deck = json.load(open(os.path.join(a.slides, 'project', 'deck.json')))

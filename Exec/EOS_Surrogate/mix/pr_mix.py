@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Peng-Robinson mixture model (CO2 + N2) in the conventions of CAMR's PR backend.
+"""Peng-Robinson mixture model (CO2 + N2) in the conventions of PSAMR's PR backend.
 
 Mirrors Source/EOS/PR/hem_saturation_amrex.H and hem_pr_state.H:
   * the same cubic in Z (solveCubicRoots: Cardano / trigonometric branches),
@@ -203,7 +203,7 @@ class Mixture:
         return self.molar_mass(x) / v, self.e_from_T_v(x, T, v), Z, nphys
 
     # -- pure-fluid saturation, the solver's own algorithm ---------------
-    def psat_pure_camr(self, k, T, P_init=-1.0, max_iter=60, tol=1e-9):
+    def psat_pure_psamr(self, k, T, P_init=-1.0, max_iter=60, tol=1e-9):
         """Mirror of hem::Psat for component k: Newton on ln phi_L - ln phi_V with a
         one-sided finite-difference derivative, Wilson seed and a 30 % step cap."""
         c = self.comps[k]
@@ -237,7 +237,7 @@ def wilson_K(mix, T, P):
 if __name__ == '__main__':
     mix = Mixture()
     for T in (220.0, 260.0, 300.0):
-        P = mix.psat_pure_camr(0, T)
+        P = mix.psat_pure_psamr(0, T)
         rhoL, eL, _, _ = mix.state([1.0, 0.0], T, P, 'L')
         rhoV, eV, _, _ = mix.state([1.0, 0.0], T, P, 'V')
         print(f'pure CO2  T={T:6.1f} K  Psat={P:.6e} Pa  rhoL={rhoL:.4f}  eL={eL:.4e}  rhoV={rhoV:.4f}  eV={eV:.4e}')

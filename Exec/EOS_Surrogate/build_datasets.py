@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the training / evaluation sets for the EOS-surrogate A/B.
 
-Truth is CAMR's own branch-locked Peng-Robinson surface through ./pr_eval
+Truth is PSAMR's own branch-locked Peng-Robinson surface through ./pr_eval
 (HEM_NO_AMREX build of Source/EOS/PR).  Two kinds of set, so the study can
 separate "where you sample" from "what you give the net":
 

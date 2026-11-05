@@ -1,6 +1,6 @@
 """Generate the PRTab bicubic PR-EOS table (params header + data TU).
 
-Self-contained: compiles gen_table.cpp against CAMR's own PR PR
+Self-contained: compiles gen_table.cpp against PSAMR's own PR PR
 machinery, evaluates PR over a (log10 rho, e) grid on THREE branches
 (auto-detect, liquid, vapor), fills the small invalid corner, and writes
 
@@ -48,9 +48,9 @@ def main():
     ap.add_argument("--data", default=os.path.join(PRTAB, "prtab_table_data.cpp"))
     a = ap.parse_args()
 
-    # 1. compile gen_table.cpp against CAMR's PR machinery
+    # 1. compile gen_table.cpp against PSAMR's PR machinery
     exe = os.path.join(HERE, "gen_table")
-    # HEM_NO_AMREX shims AMREX_GPU_* + amrex::Real; CAMR's PR header also uses
+    # HEM_NO_AMREX shims AMREX_GPU_* + amrex::Real; PSAMR's PR header also uses
     # AMREX_FORCE_INLINE, so shim that too (host build -> plain inline).
     cc = ["g++", "-O2", "-std=c++17", "-DHEM_NO_AMREX",
           "-DAMREX_FORCE_INLINE=inline", f"-I{RF}",

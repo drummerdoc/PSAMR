@@ -5,7 +5,7 @@
 //                 interior: entry point and flux-selector accessors.
 //
 //  The signature mirrors MOL_umeth so Hydro_umdrv.cpp dispatches between
-//  Godunov / MOL / PS behind the single runtime flag CAMR.ps_hydro.  The
+//  Godunov / MOL / PS behind the single runtime flag PSAMR.ps_hydro.  The
 //  fluctuation kernel is PS_HLLC::fluctuations (PS_hllc.H), driven by the
 //  ParallelFor kernels in PS_umeth.cpp.  See docs/MODEL_AND_ALGORITHM.md
 //  §1-§3 and the header of PS_umeth.cpp for the contract.

@@ -9,7 +9,7 @@
 #include <AMReX_EB2.H>
 #endif
 
-#include "CAMR.H"
+#include "PSAMR.H"
 #ifdef USE_PS_HYDRO
 #include "PS_zerod_test.H"
 #include "PS_nscbc_probe.H"
@@ -38,7 +38,7 @@ main(int argc, char* argv[])
   if (argc >= 2) {
     for (auto i = 1; i < argc; i++) {
       if (std::string(argv[i]) == "--describe") {
-        CAMR::writeBuildInfo(std::cout);
+        PSAMR::writeBuildInfo(std::cout);
         return 0;
       }
     }
@@ -113,7 +113,7 @@ main(int argc, char* argv[])
 
 #ifdef AMREX_USE_EB
     amrex::AmrLevel::SetEBSupportLevel(amrex::EBSupport::full); // need both area and volume fractions
-    amrex::AmrLevel::SetEBMaxGrowCells(CAMR::numGrow(), CAMR::numGrow(), CAMR::numGrow());
+    amrex::AmrLevel::SetEBMaxGrowCells(PSAMR::numGrow(), PSAMR::numGrow(), PSAMR::numGrow());
 
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(), amrptr->maxLevel(), 0.0);
 #endif
@@ -129,7 +129,7 @@ main(int argc, char* argv[])
   int ps_zerod_exit = -1;   // < 0: no self-test requested
   {
     int ps_ptg_selftest = 0;
-    amrex::ParmParse pp_ps("CAMR");
+    amrex::ParmParse pp_ps("PSAMR");
     pp_ps.query("ps_ptg_selftest", ps_ptg_selftest);
     int ps_relax_sweep = 0;
     pp_ps.query("ps_relax_sweep", ps_relax_sweep);
@@ -171,7 +171,7 @@ main(int argc, char* argv[])
   }
 #endif
 
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
   {
     // The geometry is rebuilt at the start of every coarse step; the level
     // factories only pick it up when every level (level 0 included) is
@@ -180,7 +180,7 @@ main(int argc, char* argv[])
     amrex::ParmParse ppa("amr");
     ppa.query("force_regrid_level_zero", force_regrid_level_zero);
     if (amrptr->regridInt(0) != 1 || !force_regrid_level_zero) {
-      amrex::Abort("CAMR_USE_MOVING_EB requires amr.regrid_int = 1 and amr.force_regrid_level_zero = 1");
+      amrex::Abort("PSAMR_USE_MOVING_EB requires amr.regrid_int = 1 and amr.force_regrid_level_zero = 1");
     }
   }
 #endif
@@ -199,7 +199,7 @@ main(int argc, char* argv[])
   while (amrptr->okToContinue() &&
          (amrptr->levelSteps(0) < max_step || max_step < 0) &&
          (amrptr->cumTime() < stop_time || stop_time < 0.0)) {
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
     // Build the geometry for this step's start time.  The existing levels
     // still point into the previous index space until the regrid inside
     // coarseTimeStep replaces them, so it is erased only after the step.
@@ -213,7 +213,7 @@ main(int argc, char* argv[])
 #endif
     // Do a timestep
     amrptr->coarseTimeStep(stop_time);
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
     if (old_is) {
       amrex::EB2::IndexSpace::erase(const_cast<amrex::EB2::IndexSpace*>(old_is));
     }

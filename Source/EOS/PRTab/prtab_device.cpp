@@ -6,7 +6,7 @@
 //  through prtab::tables(): on the host a struct of pointers to the
 //  generated arrays, on the device a __constant__ struct of pointers to
 //  device copies made once by prtab::device_init() (called from
-//  CAMR::read_params before any hydro).  No managed memory: the copies
+//  PSAMR::read_params before any hydro).  No managed memory: the copies
 //  live in The_Device_Arena and the pointer struct is uploaded with a
 //  symbol copy.  docs/FUTURE_WORK.md §9.
 // =====================================================================

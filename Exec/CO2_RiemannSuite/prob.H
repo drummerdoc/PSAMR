@@ -42,7 +42,7 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 // ---------------------------------------------------------------------
@@ -51,12 +51,12 @@
 //    Outputs: alpha_1 (liquid vol frac), (rho_1,e_1) liquid branch,
 //             (rho_2,e_2) vapor branch.
 //  Phase 1 is always the liquid PR branch, phase 2 the vapor branch,
-//  matching CAMR's PS convention and CO2_B4.
+//  matching PSAMR's PS convention and CO2_B4.
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_riemann_side(int phase, amrex::Real T, amrex::Real P,
+PSAMR_riemann_side(int phase, amrex::Real T, amrex::Real P,
                   amrex::Real x_qual, amrex::Real alpha_trace,
                   amrex::Real& alpha_1,
                   amrex::Real& rho_1, amrex::Real& e_1,
@@ -103,7 +103,7 @@ CAMR_riemann_side(int phase, amrex::Real T, amrex::Real P,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& geomdata,
                ProbParmDevice const& prob_parm)
@@ -132,7 +132,7 @@ CAMR_initdata( int i, int j, int k,
 
 #ifdef USE_PS_HYDRO
     amrex::Real alpha_1, rho_1, e_1, rho_2, e_2;
-    CAMR_riemann_side(phase, T0, P0, xq, prob_parm.alpha_trace,
+    PSAMR_riemann_side(phase, T0, P0, xq, prob_parm.alpha_trace,
                       alpha_1, rho_1, e_1, rho_2, e_2);
 
     const amrex::Real alpha_2 = amrex::Real(1.0) - alpha_1;
@@ -208,13 +208,13 @@ bcnormal(
     {
 #ifdef USE_PS_HYDRO
         //  AUDIT 2026-08-24 B15: promoted from the env var
-        //  CAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
-        //  to CAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
+        //  PSAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
+        //  to PSAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
         //  (task #206); the resolved value is force-added so every
         //  plotfile's job_info records it (gerg_ext_c idiom).
         static const bool s_bc_copy_interior = []() {
             int v = 1;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;
@@ -223,7 +223,7 @@ bcnormal(
         //  Non-PS default 0 = legacy linear-acoustic Riemann (pre-#206).
         static const bool s_bc_copy_interior = []() {
             int v = 0;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;

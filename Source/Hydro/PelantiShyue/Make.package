@@ -1,4 +1,4 @@
-# Pelanti-Shyue six-equation wave-propagation hydro module; compiled only when USE_PS_HYDRO = TRUE (guarded in Exec/Make.CAMR).
+# Pelanti-Shyue six-equation wave-propagation hydro module; compiled only when USE_PS_HYDRO = TRUE (guarded in Exec/Make.PSAMR).
 CEXE_headers += PS_umeth.H
 CEXE_sources += PS_umeth.cpp
 CEXE_headers += hem_pelanti_shyue.H

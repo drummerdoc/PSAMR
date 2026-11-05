@@ -21,7 +21,7 @@
 //
 //  PsPres is a by-value POD read once on the host (ps_presence_params)
 //  and captured into kernels; the classifier reads alpha_k and phase
-//  totals only, never species.  Dials (all CAMR.*): ps_alpha_cond (2e-2),
+//  totals only, never species.  Dials (all PSAMR.*): ps_alpha_cond (2e-2),
 //  ps_alpha_birth (4e-2), ps_presence_vanish (1e-8), ps_presence_rho_deg
 //  (0.5), ps_presence_e_deg_lo/_hi (-2e6 / 2e7), ps_promote_checked (1),
 //  ps_floor_indep (1).
@@ -56,12 +56,12 @@ struct PsPres {
     // EOS's scale spans about [-1.5e5, 4e6].
     amrex::Real e_deg_lo     = amrex::Real(-2.0e6);
     amrex::Real e_deg_hi     = amrex::Real( 2.0e7);
-    // CAMR.ps_promote_checked (1): a would-be-Independent phase is demoted
+    // PSAMR.ps_promote_checked (1): a would-be-Independent phase is demoted
     // to Corridor when its (rho_k, e_k) has no root on its own branch
     // (PS_promote.H); 0 = A/B opt-out.  On because it is provably inert on
     // the healthy path and closes the inherited-corrupt promotion abort.
     int         promote_checked = 1;
-    // CAMR.ps_floor_indep (1): ps_apply_floor's per-phase leg acts on
+    // PSAMR.ps_floor_indep (1): ps_apply_floor's per-phase leg acts on
     // Independent phases only; 0 = A/B opt-out.  A corridor phase is
     // host-slaved and never branch-queried, so flooring it only manufactures
     // non-conservative energy drift with no face-level consumer.

@@ -1,9 +1,9 @@
 # Exec/CO2_Sod — single-fluid real-fluid shock tube (no two-phase module)
 
-The hello-world for the Peng–Robinson backend without `USE_PS_HYDRO`: CAMR's stock Godunov solver on a supercritical CO₂ shock tube, both sides at 350 K ($T > T_c = 304.13$ K, so each side has an unambiguous single-phase root and no metastable or two-phase excursion can occur), 100 bar on the left and 10 bar on the right, 1 m tube, 256 × 32, CFL 0.3, `stop_time = 1.33e-3` s, `amrex.fpe_trap_invalid = 1`. It proves the EOS shim (`PYT2RE`, `REY2T`, `REY2P` and the derivative closures) is wired correctly into the single-fluid pipeline; anything two-phase belongs to the other cases.
+The hello-world for the Peng–Robinson backend without `USE_PS_HYDRO`: PSAMR's stock Godunov solver on a supercritical CO₂ shock tube, both sides at 350 K ($T > T_c = 304.13$ K, so each side has an unambiguous single-phase root and no metastable or two-phase excursion can occur), 100 bar on the left and 10 bar on the right, 1 m tube, 256 × 32, CFL 0.3, `stop_time = 1.33e-3` s, `amrex.fpe_trap_invalid = 1`. It proves the EOS shim (`PYT2RE`, `REY2T`, `REY2P` and the derivative closures) is wired correctly into the single-fluid pipeline; anything two-phase belongs to the other cases.
 
     make -j8 COMP=gnu DIM=2 USE_MPI=TRUE Eos_Model=PR
-    mpiexec -np 4 ./CAMR2d.gnu.MPI.PR.ex inputs-x
+    mpiexec -np 4 ./PSAMR2d.gnu.MPI.PR.ex inputs-x
 
 | Deck | Purpose |
 |---|---|

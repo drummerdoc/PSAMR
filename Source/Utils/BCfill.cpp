@@ -3,7 +3,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_PhysBCFunct.H>
 
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "prob.H"
 
 #ifdef USE_PS_HYDRO
@@ -14,16 +14,16 @@ struct PCHypFillExtDir
 {
   ProbParmDevice const* lprobparm;
   // NSCBC dispatch settings, captured host-side when the functor is built
-  // (CAMR_bcfill_hyp) so the device operator() never reads ParmParse or
-  // CAMR statics.  See docs/MODEL_AND_ALGORITHM.md §6.
+  // (PSAMR_bcfill_hyp) so the device operator() never reads ParmParse or
+  // PSAMR statics.  See docs/MODEL_AND_ALGORITHM.md §6.
   // Per-face NSCBC enable, indexed [2*idir + (0=lo,1=hi)]; resolved in
-  // CAMR_bcfill_hyp.  Faces are selected individually because bcnormal
+  // PSAMR_bcfill_hyp.  Faces are selected individually because bcnormal
   // owns problem-specific faces (the pipe-break rupture plane) that a
   // global switch would replace wholesale.
   amrex::GpuArray<int, 2*AMREX_SPACEDIM> use_nscbc_face;
   // Per-face rate coefficient and incoming-invariant model
   // (PS_NSCBC::Form), indexed as use_nscbc_face, resolved in
-  // CAMR_bcfill_hyp (an unset face inherits the global key).
+  // PSAMR_bcfill_hyp (an unset face inherits the global key).
   amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> sigma_face;
   amrex::GpuArray<int, 2*AMREX_SPACEDIM>         form_face;
   int         nscbc_order;    // 1 or 2: R+ extrapolation order.
@@ -223,7 +223,7 @@ struct PCHypFillExtDir
 };
 
 void
-CAMR_bcfill_hyp(
+PSAMR_bcfill_hyp(
   amrex::Box const& bx,
   amrex::FArrayBox& data,
   const int dcomp,
@@ -234,33 +234,33 @@ CAMR_bcfill_hyp(
   const int bcomp,
   const int scomp)
 {
-  const ProbParmDevice* lprobparm = CAMR::d_prob_parm;
+  const ProbParmDevice* lprobparm = PSAMR::d_prob_parm;
 
   // NSCBC dispatch settings, read once per run (the ParmParse table is
   // fixed after startup).  This is the single accessor for the boundary
   // dials (docs/MODEL_AND_ALGORITHM.md §6.5):
-  //   CAMR.ps_bc_use_nscbc (0): global NSCBC outflow switch.
-  //   CAMR.ps_bc_nscbc_form (pin): incoming-invariant model, pin (R-
+  //   PSAMR.ps_bc_use_nscbc (0): global NSCBC outflow switch.
+  //   PSAMR.ps_bc_nscbc_form (pin): incoming-invariant model, pin (R-
   //     pinned to the far field, sigma ignored; the production form) or
   //     rate (Poinsot-Lele relaxation, K = sigma (1 - M^2) c / L_ref with
   //     L_ref the domain extent along the normal; an alternative for
   //     through-flow faces).  The retired value form (sigma as a reflected
   //     fraction) aborts: DESIGN_DECISIONS.md B-4.
-  //   CAMR.ps_bc_nscbc_sigma (0.25): the rate form's coefficient.
-  //   CAMR.ps_bc_nscbc_form_{x,y,z}{lo,hi}, ps_bc_nscbc_sigma_{x,y,z}{lo,hi}
+  //   PSAMR.ps_bc_nscbc_sigma (0.25): the rate form's coefficient.
+  //   PSAMR.ps_bc_nscbc_form_{x,y,z}{lo,hi}, ps_bc_nscbc_sigma_{x,y,z}{lo,hi}
   //     (unset / negative sigma = inherit the global key): per-face form
   //     and coefficient, so a through-flow face can run rate while faces
   //     onto a quiescent far field keep the pin (FUTURE_WORK.md §7).
-  //   CAMR.ps_bc_nscbc_order (2): R+ extrapolation order, 1 or 2.
-  //   CAMR.ps_bc_nscbc_backflow (1): bounds the incoming invariant below
+  //   PSAMR.ps_bc_nscbc_order (2): R+ extrapolation order, 1 or 2.
+  //   PSAMR.ps_bc_nscbc_backflow (1): bounds the incoming invariant below
   //     by the pin, so a far field may follow a through-flow out but never
   //     drives fluid in, and keeps inflow cells off the fan; the identity
   //     under pin.  0 is the unbounded rate form, refuted on the jet and
   //     kept only until the stage-3 retirement (DESIGN_DECISIONS.md B-6).
-  //   CAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
+  //   PSAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
   //     ambient pressure, for problems whose two ends see different far
   //     fields.
-  //   CAMR.ps_bc_nscbc_{x,y,z}{lo,hi} (-1 = inherit ps_bc_use_nscbc):
+  //   PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi} (-1 = inherit ps_bc_use_nscbc):
   //     per-face NSCBC enable.
   // The resolved values (after the no-USE_PS_HYDRO force-off and the
   // order forcing) are added back to the table so job_info records the BC
@@ -276,7 +276,7 @@ CAMR_bcfill_hyp(
     int od = 2;
     int bf = 1;
     std::string fm = "pin";
-    amrex::ParmParse pp("CAMR");
+    amrex::ParmParse pp("PSAMR");
     pp.query("ps_bc_use_nscbc",   u);
     pp.query("ps_bc_nscbc_sigma", sg);
     pp.query("ps_bc_nscbc_form",  fm);
@@ -300,11 +300,11 @@ CAMR_bcfill_hyp(
       if (v == "pin")  { return PS_NSCBC::FORM_PIN; }
       if (v == "rate") { return PS_NSCBC::FORM_RATE; }
       if (v == "value") {
-        amrex::Abort("CAMR." + key + "=value is retired: sigma as a "
+        amrex::Abort("PSAMR." + key + "=value is retired: sigma as a "
                      "reflected fraction is a partial reflection (B-4).  Use "
                      "pin (its sigma=0 limit, the production form) or rate.");
       }
-      amrex::Abort("CAMR." + key + ": accepts pin or rate (got '" + v + "').");
+      amrex::Abort("PSAMR." + key + ": accepts pin or rate (got '" + v + "').");
       return 0;
     };
     form_of("ps_bc_nscbc_form", fm);
@@ -312,10 +312,10 @@ CAMR_bcfill_hyp(
       ff[f] = form_of(std::string("ps_bc_nscbc_form_") + fnm[f], ffs[f]);
     }
     if (sg < amrex::Real(0.0)) {
-      amrex::Abort("CAMR.ps_bc_nscbc_sigma must be >= 0.");
+      amrex::Abort("PSAMR.ps_bc_nscbc_sigma must be >= 0.");
     }
     if (bf != 0 && bf != 1) {
-      amrex::Abort("CAMR.ps_bc_nscbc_backflow: accepts 0 or 1.");
+      amrex::Abort("PSAMR.ps_bc_nscbc_backflow: accepts 0 or 1.");
     }
 #endif
     // Per-face ambient targets; -1 = inherit prob.p_amb at fill time.
@@ -347,8 +347,8 @@ CAMR_bcfill_hyp(
 #endif
     for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
       if (uf[f] != -1 && uf[f] != 0 && uf[f] != 1) {
-        amrex::Abort("CAMR.ps_bc_nscbc_{x,y,z}{lo,hi}: accepts 0, 1, or "
-                     "unset (unset inherits CAMR.ps_bc_use_nscbc).");
+        amrex::Abort("PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi}: accepts 0, 1, or "
+                     "unset (unset inherits PSAMR.ps_bc_use_nscbc).");
       }
     }
 #ifndef USE_PS_HYDRO
@@ -361,7 +361,7 @@ CAMR_bcfill_hyp(
 #endif
     }
     if (od != 1 && od != 2) {
-      amrex::Print() << "  CAMR bcfill: unknown ps_bc_nscbc_order="
+      amrex::Print() << "  PSAMR bcfill: unknown ps_bc_nscbc_order="
                      << od << ", forcing to 2.\n";
       od = 2;
     }
@@ -407,7 +407,7 @@ CAMR_bcfill_hyp(
     if (!banner_shown) {
       static const char* fnm[6] = {"xlo","xhi","ylo","yhi","zlo","zhi"};
       amrex::Print()
-          << "  CAMR bcfill: outflow (Inflow-flagged) BC per face"
+          << "  PSAMR bcfill: outflow (Inflow-flagged) BC per face"
              " (1 = PS-NSCBC characteristic-invariant, 0 = bcnormal"
              " linearised Riemann invariant):";
       for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
@@ -443,7 +443,7 @@ CAMR_bcfill_hyp(
 }
 
 void
-CAMR_nullfill(
+PSAMR_nullfill(
   amrex::Box const& /*bx*/,
   amrex::FArrayBox& /*data*/,
   const int /*dcomp*/,

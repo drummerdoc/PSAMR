@@ -2,7 +2,7 @@
 
 One executable that runs any case of the standalone `co2-eos-cfd` shock-tube suite (families A single-phase, B two-phase and cross-critical, C identity/acoustic) through `prob.*` keys: per side `phase_{L,R}` (0 vapour, 1 liquid, 2 supercritical, 3 saturated at quality `x_qual_{L,R}`), `T_{L,R}`, `p_{L,R}`, `u_{L,R}`, plus `x_diaph`, `alpha_trace`. One-dimensional in $x$ (thin $y$ strip). The gate every solver change passes first.
 
-Build (the `GNUmakefile` default `DIM = 2` is overridden on the command line; the harness looks for `./CAMR1d.*.ex`):
+Build (the `GNUmakefile` default `DIM = 2` is overridden on the command line; the harness looks for `./PSAMR1d.*.ex`):
 
     make -j8 COMP=gnu DIM=1 USE_MPI=FALSE Eos_Model=PR [USE_PS_DIAG=TRUE]   # PRTab/GERGTab: make tables / make gergtab-tables first; PS_DIAG = opt-in probes
 
@@ -14,12 +14,12 @@ Build (the `GNUmakefile` default `DIM = 2` is overridden on the command line; th
 | `exact_suite.py` | 21-case acceptance table at bare code defaults: rel-L2 and error/variation of ρ,u,P vs exact Riemann (A/C), HEM (B1–B11) and the FROZEN bracket rows for B2/B9; no thresholds — its diff before/after a change is the inertness check. |
 | `characterize.py record/compare` | Fingerprint (sha + L2 per field per case) → IDENTICAL/CHANGED, for bit-exact change attribution; compare only records from the same compiler and host. |
 | `full_suite.py`, `err_vs_analytic.py`, `hem_limit.py`, `gen_convergence.py`, `conv_montage.py`, `flashing_front.py`, `ps_plotfile.py` | Case table and matched standalone runs; τ-sweep to the HEM limit on B4/B9; N = 128/256/512 self-convergence; supercritical tube venting to 1 bar (vented mass at 80 µs, pin 2.3428); plotfile reader. |
-| `harvest_sweep.py`, `harvest_aggregate.py` | EOS state harvest: runs every B case with `CAMR.ps_harvest=1` (`python3 harvest_sweep.py [N] [trace]`), then merges the per-case shards `hv_*_r0.csv` into `harvest_sweep_<tag>_cloud.csv` (one representative per $(\rho, e, \mathrm{phase})$ bucket, visit count, regime) and `_train45.csv` (EOS-valid states); the deployment distribution for the EOS-surrogate study. Shards and clouds are git-ignored. |
+| `harvest_sweep.py`, `harvest_aggregate.py` | EOS state harvest: runs every B case with `PSAMR.ps_harvest=1` (`python3 harvest_sweep.py [N] [trace]`), then merges the per-case shards `hv_*_r0.csv` into `harvest_sweep_<tag>_cloud.csv` (one representative per $(\rho, e, \mathrm{phase})$ bucket, visit count, regime) and `_train45.csv` (EOS-valid states); the deployment distribution for the EOS-surrogate study. Shards and clouds are git-ignored. |
 | `cleanup_session.sh` | Removes the harness run directories (`vc_ vc4_ vcrp0_ vcrp1_ vp_ vz_ v4_ vcb12_ ex_wp_ ch_ fs_ hem_ cvg* conv_data std_ref flash_red_runs`, `*.old.*`) and scratch logs; touches nothing tracked. |
 | `refs/`, `characterization/`, `fig4_digitized_curves.csv`, `family_reproduction.png` | Vendored exact/HEM profiles with provenance and the recorded gate transcripts; fingerprint records; the DT7 digitisations. |
 
 Run one case by hand (B4 at N = 256; read the plotfile with `ps_plotfile.py`):
 
-    ./CAMR1d.gnu.TPROF.PS.PR.ex inputs amr.n_cell=256 prob.phase_L=1 prob.T_L=270 prob.p_L=1e7 prob.phase_R=0 prob.T_R=350 prob.p_R=5e6
+    ./PSAMR1d.gnu.TPROF.PS.PR.ex inputs amr.n_cell=256 prob.phase_L=1 prob.T_L=270 prob.p_L=1e7 prob.phase_R=0 prob.T_R=350 prob.p_R=5e6
 
-References: `refs/exact/` (vendored exact/HEM profiles) or `CO2_STANDALONE=<co2-eos-cfd checkout>`; no stored CAMR output has authority. 0-D self-tests run after init and exit: `CAMR.ps_ptg_selftest=1`, `ps_relax_sweep=1`, `ps_x3_test=1`. Every number above, with its derivation: `docs/VERIFICATION.md`.
+References: `refs/exact/` (vendored exact/HEM profiles) or `CO2_STANDALONE=<co2-eos-cfd checkout>`; no stored PSAMR output has authority. 0-D self-tests run after init and exit: `PSAMR.ps_ptg_selftest=1`, `ps_relax_sweep=1`, `ps_x3_test=1`. Every number above, with its derivation: `docs/VERIFICATION.md`.

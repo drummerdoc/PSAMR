@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Compact 2-D CAMR plotfile min/max/non-finite scanner.
+# Compact 2-D PSAMR plotfile min/max/non-finite scanner.
 import numpy as np, re, struct, glob, sys
 p = sys.argv[1]
 hdr = open(p+'/Header').read().split('\n')

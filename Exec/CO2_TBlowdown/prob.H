@@ -37,13 +37,13 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& /*geomdata*/,
                ProbParmDevice const& prob_parm)
@@ -129,7 +129,7 @@ CAMR_initdata( int i, int j, int k,
 //  For the closed-end (SlipWall) boundary this function is not
 //  invoked — AMReX's built-in reflect_odd normal-velocity + reflect_
 //  even scalar dispatch handles the reflection automatically.  See
-//  Source/Utils/CAMR_setup.cpp:19-21 for the mapping tables.
+//  Source/Utils/PSAMR_setup.cpp:19-21 for the mapping tables.
 // ---------------------------------------------------------------------
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE

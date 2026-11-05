@@ -16,7 +16,7 @@
 //  Device access: the generated arrays are host globals; the lookups read
 //  them through gergtab::tables() — host pointers on the host, a
 //  __constant__ struct of device-copy pointers on the device, filled once
-//  by gergtab::device_init() (gergtab_device.cpp, from CAMR::read_params).
+//  by gergtab::device_init() (gergtab_device.cpp, from PSAMR::read_params).
 //  No managed memory; docs/FUTURE_WORK.md §9.
 // =====================================================================
 #ifdef AMREX_USE_GPU

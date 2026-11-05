@@ -5,7 +5,7 @@
 #   bash Exec/triage_run_data.sh [ARCHIVE_DIR]            # print the plan, run nothing
 #   bash Exec/triage_run_data.sh [ARCHIVE_DIR] --apply    # execute it
 #
-# ARCHIVE_DIR defaults to $HOME/camr_archive/<today>.  Run from anywhere; the
+# ARCHIVE_DIR defaults to $HOME/psamr_archive/<today>.  Run from anywhere; the
 # script cds to the repository root (the parent of this Exec/ directory).
 # Every destructive command is echoed before it runs; without --apply the
 # echo is all that happens.  Tracked files are never touched: everything
@@ -28,7 +28,7 @@
 #   directories, harvest CSVs, _c*.png, *refs.tgz, gerg_refs/g1_*, conv_data,
 #   rung; every tmp_build_dir, stale *.ex, Backtrace.*, _build_*.log,
 #   __pycache__, .DS_Store, AMReX_buildInfo.cpp under Exec/; the repository
-#   snapshot artefacts _camr_tracked.tar.gz and _untracked_inventory.txt.
+#   snapshot artefacts _psamr_tracked.tar.gz and _untracked_inventory.txt.
 
 set -u
 
@@ -41,13 +41,13 @@ for a in "$@"; do
     *) ARCHIVE="$a" ;;
   esac
 done
-: "${ARCHIVE:=$HOME/camr_archive/$(date +%F)}"
+: "${ARCHIVE:=$HOME/psamr_archive/$(date +%F)}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 1
 
-KEEP_EXE_1D="${KEEP_EXE_1D:-Exec/CO2_RiemannSuite/CAMR1d.gnu.PS.PR.ex}"
-KEEP_EXE_2D="${KEEP_EXE_2D:-Exec/CO2_PipeBreak/CAMR2d.gnu.MPI.PS.PR.ex}"
+KEEP_EXE_1D="${KEEP_EXE_1D:-Exec/CO2_RiemannSuite/PSAMR1d.gnu.PS.PR.ex}"
+KEEP_EXE_2D="${KEEP_EXE_2D:-Exec/CO2_PipeBreak/PSAMR2d.gnu.MPI.PS.PR.ex}"
 
 PB=Exec/CO2_PipeBreak
 RS=Exec/CO2_RiemannSuite
@@ -119,8 +119,8 @@ echo
 echo "== $PB/DEMO3A: keep only if it ran on the rebuilt executable =="
 if [ -d "$PB/DEMO3A" ]; then
   ji="$(find "$PB/DEMO3A" -name job_info -print -quit 2>/dev/null)"
-  if [ -n "$ji" ] && grep -Eq '^ *CAMR\.ps_lw_skip_contact *= *2 *$' "$ji"; then
-    echo "  keep: $ji records CAMR.ps_lw_skip_contact = 2"
+  if [ -n "$ji" ] && grep -Eq '^ *PSAMR\.ps_lw_skip_contact *= *2 *$' "$ji"; then
+    echo "  keep: $ji records PSAMR.ps_lw_skip_contact = 2"
   else
     echo "  archive: ${ji:-no job_info found} does not record ps_lw_skip_contact = 2 (stale-executable run)"
     archive "$PB/DEMO3A"
@@ -139,7 +139,7 @@ echo
 # ---------------------------------------------------------------- RiemannSuite
 echo "== $RS scratch =="
 # harness and probe run directories, by prefix (directories only)
-RS_PREFIXES="vp_ wp_ vc_ vc4_ vcrp0_ vcrp1_ vz_ v4_ vcb12_ vcb_ ex_wp_ ex_hllc_ pc_ c1_ g1_ ab b54 dc_ hem_ ch_ fs_ lw plt_ rgr_ mt_std mt_camr s2_ f0c_ f0x_ f1f_ f1t_ f1g_ dt7_plt cvg"
+RS_PREFIXES="vp_ wp_ vc_ vc4_ vcrp0_ vcrp1_ vz_ v4_ vcb12_ vcb_ ex_wp_ ex_hllc_ pc_ c1_ g1_ ab b54 dc_ hem_ ch_ fs_ lw plt_ rgr_ mt_std mt_psamr s2_ f0c_ f0x_ f1f_ f1t_ f1g_ dt7_plt cvg"
 for pre in $RS_PREFIXES; do
   for d in "$RS"/"$pre"*; do
     [ -d "$d" ] || continue
@@ -180,7 +180,7 @@ echo
 
 # ---------------------------------------------------------------- snapshot artefacts
 echo "== review snapshot artefacts at the repository root =="
-for f in _camr_tracked.tar.gz _untracked_inventory.txt; do [ -f "$f" ] && run rm -f "$f"; done
+for f in _psamr_tracked.tar.gz _untracked_inventory.txt; do [ -f "$f" ] && run rm -f "$f"; done
 echo
 
 if [ "$APPLY" = 1 ]; then

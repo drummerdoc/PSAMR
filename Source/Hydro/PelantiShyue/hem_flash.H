@@ -22,9 +22,9 @@ namespace hem {
 //  hyperbolic step creates no trace phase.  ps_flash_source_cell seeds
 //  the minority phase toward alpha_birth and declines everywhere else;
 //  the relaxation kernels then own the cell.  Enabled by
-//  CAMR.ps_flash_tau (read in PS_sources.H; default 1e-7 s, <= 0 off).
+//  PSAMR.ps_flash_tau (read in PS_sources.H; default 1e-7 s, <= 0 off).
 //  P_sat(T) comes from PsPhaseAPI::Psat_of_T (the fluid's own EOS;
-//  EOS::Psat under CAMR).  docs/MODEL_AND_ALGORITHM.md §5.5.
+//  EOS::Psat under PSAMR).  docs/MODEL_AND_ALGORITHM.md §5.5.
 // =====================================================================
 
 // -----------------------------------------------------------------
@@ -73,7 +73,7 @@ inline long& ps_triple_point_count() { return ps_counters().triple_point_count; 
 // True when (T, P) lies below the CO2 sublimation line, where the EOS
 // extrapolates analytically past the solid region.  The triple point
 // comes from the EOS metadata the api carries.  The response is
-// selected by CAMR.ps_triple_point_action (read in PS_sources.H).
+// selected by PSAMR.ps_triple_point_action (read in PS_sources.H).
 AMREX_GPU_HOST_DEVICE
 inline bool ps_below_triple_point(double T, double P_Pa, const PsPhaseAPI& eos) {
     const double T_triple = eos.t_triple();   // K
@@ -159,7 +159,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     double alpha_1 = U[0];
     if (!std::isfinite(alpha_1)) PS_FLASH_REFUSE(PS_FLR_A_NAN);
 
-    // CAMR.ps_flash_alpha_thr (documented at its accessor): dominance
+    // PSAMR.ps_flash_alpha_thr (documented at its accessor): dominance
     // threshold.
     const double flash_alpha_thr = eos.dials.flash_alpha_thr;
     const bool liq_dominant = (alpha_1 > 1.0 - flash_alpha_thr);
@@ -216,7 +216,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     // (b) Metastability window: a liquid-dominant cell boils as P falls
     //     below (1 - margin) P_sat, a vapour-dominant cell condenses as P
     //     rises above (1 + margin) P_sat, each a smooth ramp.
-    // CAMR.ps_flash_metastable_margin (documented at its accessor).
+    // PSAMR.ps_flash_metastable_margin (documented at its accessor).
     const double meta_margin = eos.dials.flash_meta_margin;
     const bool flash_liq = liq_dominant;
     const double bw_P = meta_margin * P_sat_here;   // pressure ramp band
@@ -288,7 +288,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
         if (liq_dominant) eos.state_from_rho_e_phase(2, rho_2, e_2, p_other);
         else              eos.state_from_rho_e_phase(1, rho_1, e_1, p_other);
     }
-    // CAMR.ps_flash_h_mode (documented at its accessor): energy carried
+    // PSAMR.ps_flash_h_mode (documented at its accessor): energy carried
     // when a trace phase already exists (the projection path below
     // overrides it); 1 avg, 0 dom, 2 auto.
     const int h_mode = eos.dials.flash_h_mode;

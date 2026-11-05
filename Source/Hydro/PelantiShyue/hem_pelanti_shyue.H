@@ -21,7 +21,7 @@
 //  refusal is a verdict).  Mixture mass, momentum and total energy are
 //  invariant under every kernel by construction.
 //
-//  Dials: all read once via the CAMR.* ParmParse accessors in
+//  Dials: all read once via the PSAMR.* ParmParse accessors in
 //  hem_eos_api.H and documented at their accessor (ps_dial_*, ps_diag_*);
 //  the kernels read them from PsPhaseAPI::dials (PsKernelDials).
 // =====================================================================

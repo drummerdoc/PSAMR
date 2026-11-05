@@ -5,7 +5,7 @@ Planar guillotine rupture without embedded boundaries: the $x$-lo face is the ru
 Build and run (six ranks, ~50 min to `stop_time = 2.5` ms, 505 coarse steps; checkpoints every 50):
 
     make -j8 COMP=gnu DIM=2 USE_MPI=TRUE Eos_Model=PR
-    mpiexec -np 6 ./CAMR2d.gnu.MPI.PS.PR.ex inputs.satjet_demo2
+    mpiexec -np 6 ./PSAMR2d.gnu.MPI.PS.PR.ex inputs.satjet_demo2
 
 | Deck / script | Purpose |
 |---|---|

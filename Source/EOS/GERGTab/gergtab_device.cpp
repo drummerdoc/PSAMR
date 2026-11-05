@@ -5,7 +5,7 @@
 //  (gergtab_table_data.cpp) stay host globals; gergtab::tables() returns
 //  host pointers on the host and a __constant__ struct of device-copy
 //  pointers on the device, filled once by gergtab::device_init() from
-//  CAMR::read_params.  No managed memory.  docs/FUTURE_WORK.md §9.
+//  PSAMR::read_params.  No managed memory.  docs/FUTURE_WORK.md §9.
 // =====================================================================
 #include "gergtab_bicubic.H"
 #include <AMReX_Gpu.H>

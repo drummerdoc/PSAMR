@@ -24,7 +24,7 @@
 //   - classify_T_rho: spline compare; never a fallback to another EOS
 //     surface.
 //
-//  Dial: CAMR.gerg_ext_c (1) — see ext_c_enabled() below.
+//  Dial: PSAMR.gerg_ext_c (1) — see ext_c_enabled() below.
 // =====================================================================
 
 #include "gerg_co2_sat.H"
@@ -50,7 +50,7 @@ GERG_HD double soft_floor(double P)
 constexpr double RHO_MIN   = 1.0e-6;   // kg/m3
 constexpr double RHO_MAX   = 1500.0;   // kg/m3 (GERG CO2 validity edge)
 
-// ---- Extension sound speed (CAMR.gerg_ext_c) ---------------------------
+// ---- Extension sound speed (PSAMR.gerg_ext_c) ---------------------------
 //  The extension surface P = P_edge + CSQ_FLOOR (rho - rho_edge) at fixed
 //  T has cv and dP/dT|rho frozen at the edge, so its own isentropic
 //  sound speed is not free but follows from the identity
@@ -60,7 +60,7 @@ constexpr double RHO_MAX   = 1500.0;   // kg/m3 (GERG CO2 validity edge)
 //  1/rho^2.  Freezing gamma at the edge instead (c = c_edge throughout)
 //  is refuted: see docs/MODEL_AND_ALGORITHM.md §7.3.
 //
-//  CAMR.gerg_ext_c (1): c from the extension surface's identity, capped;
+//  PSAMR.gerg_ext_c (1): c from the extension surface's identity, capped;
 //  0 = c = sqrt(CSQ_FLOOR) = 50 m/s throughout the extension, a 3.5x-7x
 //  discontinuity at the edge that drives a growing finest-level
 //  oscillation.  0 exists for reproduction and bisection only; it is not
@@ -68,11 +68,11 @@ constexpr double RHO_MAX   = 1500.0;   // kg/m3 (GERG CO2 validity edge)
 //
 //  This header is AMReX-free and cannot read ParmParse: the flag is a
 //  settable value that EOS::gerg_ext_c_init() (GERG/EOS.H, called from
-//  CAMR::read_params) sets from CAMR.gerg_ext_c and force-adds so every
+//  PSAMR::read_params) sets from PSAMR.gerg_ext_c and force-adds so every
 //  job_info records which surface produced the plotfile.  Unset, it
 //  falls back to the GERG_EXT_C environment variable for the standalone
 //  probe harnesses; ParmParse wins when both are present.
-//  Retire-candidate (the getenv fallback; dials are CAMR.* keys only):
+//  Retire-candidate (the getenv fallback; dials are PSAMR.* keys only):
 //  see docs/GROUND_RULES.md §1 rule 20.
 inline int& ext_c_flag()                     // -1 = not set -> use the env var
 { static int f = -1; return f; }

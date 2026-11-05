@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Full CO2 Riemann battery: CAMR (current build) vs validated standalone
+"""Full CO2 Riemann battery: PSAMR (current build) vs validated standalone
 (co2-eos-cfd ppm_1d_ps_wp), matched config (wp flux, mechanical P-relax, MT off).
-Modes:  std <cases...> | camr <cases...> | montage
+Modes:  std <cases...> | psamr <cases...> | montage
 Case list mirrors the standalone CASES[] (A1-A6, B1-B10, C1-C3)."""
 import os, sys, glob, csv, subprocess, numpy as np
 import ps_plotfile as R   # rd1d/hdr
@@ -19,21 +19,21 @@ ANALYTIC = REFS + '/profiles'
 # 1-D executable.  DISCOVERED, not hard-coded: the build name carries
 # DIM/COMP/profiling/MPI and the Eos_Model suffix, so any
 # hard-coded name goes stale the moment a build option changes.
-# Override with CAMR_EXE=... if several 1-D builds are present.
-def _find_camr_exe():
+# Override with PSAMR_EXE=... if several 1-D builds are present.
+def _find_psamr_exe():
     import glob as _g
-    if os.environ.get('CAMR_EXE'): return os.environ['CAMR_EXE']
-    c = sorted(_g.glob('./CAMR1d.*.ex'), key=os.path.getmtime, reverse=True)
+    if os.environ.get('PSAMR_EXE'): return os.environ['PSAMR_EXE']
+    c = sorted(_g.glob('./PSAMR1d.*.ex'), key=os.path.getmtime, reverse=True)
     if not c:
         raise SystemExit(
-            "no 1-D CAMR executable found in %s\n"
+            "no 1-D PSAMR executable found in %s\n"
             "  build one with:  make -j8 DIM=1 USE_MPI=FALSE\n"
             "  (the GNUmakefile defaults to DIM=2; the suite is 1-D)" % os.getcwd())
     return c[0]
-CAMR = _find_camr_exe()
+PSAMR = _find_psamr_exe()
 N = int(os.environ.get('PS_N', 64))
 STD_OUT = 'std_ref'      # standalone CSV refs
-CAMR_PRE = 'fs_'         # CAMR plotfile prefix per case
+PSAMR_PRE = 'fs_'         # PSAMR plotfile prefix per case
 os.makedirs(STD_OUT, exist_ok=True)
 
 # (name, L=(kind,T,P_bar,x,phase,u), R=(...), t_final)  kind: TP/SATL/SATV/TX
@@ -105,7 +105,7 @@ CD = {c[0]: c for c in CASES}
 # Per-case PHYSICS config (activate the features each regime needs), matched
 # on both codes.  VAPOR single-phase (A,C): no phase change -> mechanical relax,
 # MT off, frozen-consistent.  Two-phase (all B): ISOCHORIC pressure + finite
-# THERMAL relaxation (CAMR mode 2) with finite mass transfer -- thermal coupling
+# THERMAL relaxation (PSAMR mode 2) with finite mass transfer -- thermal coupling
 # is required so the dilute phase does not overheat; MT tau matched to
 # the standalone via PS_MT_TAU.  (B4/B10 cross-critical: MT is dome-gated off
 # internally, mode 2 still gives the correct thermal coupling.)
@@ -115,7 +115,7 @@ TWO_PHASE = {'B1-Comp-L-expand','B2-Evap-wave','B3-Sat-LV-contact','B4-Cross-cri
              'B11-Subcrit-contact-dT','B12-TwoPhase-Wall-Reflection'}
 MT_TAU = 1.0e-4
 def case_cfg(name):
-    """-> (camr_overrides dict, standalone env dict, standalone extra flags).
+    """-> (psamr_overrides dict, standalone env dict, standalone extra flags).
 
     PS_FROZEN=1 selects the TAU -> INFINITY limit: all relaxation and phase
     change disabled.  In that limit an EXACT solution exists
@@ -132,24 +132,24 @@ def case_cfg(name):
         # single mixture pressure, so ps_do_relax=0 would compare a P1!=P2
         # solution against a P1==P2 reference and blame the difference on
         # numerics.  (First attempt got this wrong and inflated every B case.)
-        camr = {'CAMR.ps_do_relax': 1,        # mechanical relaxation ON
-                'CAMR.ps_relax_mode': 0,      # instantaneous mechanical only
-                'CAMR.ps_mt_tau': 0,          # mass transfer OFF
-                'CAMR.ps_flash_tau': 0.0}     # no nucleation source
+        psamr = {'PSAMR.ps_do_relax': 1,        # mechanical relaxation ON
+                'PSAMR.ps_relax_mode': 0,      # instantaneous mechanical only
+                'PSAMR.ps_mt_tau': 0,          # mass transfer OFF
+                'PSAMR.ps_flash_tau': 0.0}     # no nucleation source
         senv = {'PS_ORDER': '2', 'PS_MT_TAU': '1e30'}
-        return camr, senv, ['--pressure-only']
+        return psamr, senv, ['--pressure-only']
     if name in TWO_PHASE:
-        camr = {'CAMR.ps_relax_mode':2, 'CAMR.ps_theta_tau':MT_TAU, 'CAMR.ps_mt_tau':MT_TAU}
+        psamr = {'PSAMR.ps_relax_mode':2, 'PSAMR.ps_theta_tau':MT_TAU, 'PSAMR.ps_mt_tau':MT_TAU}
         senv = {'PS_ORDER':'2', 'PS_MT_TAU':repr(MT_TAU)}   # MT on (no --pressure-only)
         sflg = []
-        return camr, senv, sflg
+        return psamr, senv, sflg
     # vapor single-phase (A,C): mechanical relax, no MT
-    camr = {'CAMR.ps_relax_mode':0, 'CAMR.ps_mt_tau':0}
+    psamr = {'PSAMR.ps_relax_mode':0, 'PSAMR.ps_mt_tau':0}
     senv = {'PS_ORDER':'2'}
     sflg = ['--pressure-only']
-    return camr, senv, sflg
+    return psamr, senv, sflg
 
-def camr_side(side, suf):
+def psamr_side(side, suf):
     kind,T,Pbar,x,ph,u = side
     P = Pbar*1e5
     if kind=='TP':
@@ -169,18 +169,18 @@ def run_std(name):
     subprocess.run([STD, f'--N={N}', f'--case={name}', f'--outdir={STD_OUT}'] + sflg,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120, env=env)
 
-def run_camr(name):
+def run_psamr(name):
     c = CD[name]; tf = c[3]
     ov = {'amr.n_cell':N,'geometry.prob_lo':0.0,'geometry.prob_hi':1.0,'prob.x_diaph':0.5,
           'prob.alpha_trace':1.0e-6,'prob.p_amb':5.0e6,
-          'CAMR.ps_flux':'wp','CAMR.ps_wp_order':2,'CAMR.cfl':0.25,
-          'CAMR.do_mol':0,'CAMR.ps_do_relax':1,
+          'PSAMR.ps_flux':'wp','PSAMR.ps_wp_order':2,'PSAMR.cfl':0.25,
+          'PSAMR.do_mol':0,'PSAMR.ps_do_relax':1,
           'stop_time':tf}
     cc,_,_ = case_cfg(name); ov.update(cc)     # per-case relax mode + MT
-    ov.update(camr_side(c[1],'L')); ov.update(camr_side(c[2],'R'))
-    pref = CAMR_PRE+name+'_'
-    cmd = [CAMR,'inputs']+[f'{k}={v}' for k,v in ov.items()]
-    cmd += ['amr.plot_int=-1', f'amr.plot_per={tf}', f'amr.plot_file={pref}','amr.v=0','CAMR.v=0']
+    ov.update(psamr_side(c[1],'L')); ov.update(psamr_side(c[2],'R'))
+    pref = PSAMR_PRE+name+'_'
+    cmd = [PSAMR,'inputs']+[f'{k}={v}' for k,v in ov.items()]
+    cmd += ['amr.plot_int=-1', f'amr.plot_per={tf}', f'amr.plot_file={pref}','amr.v=0','PSAMR.v=0']
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=150)
 
 def load_std(name):
@@ -193,8 +193,8 @@ def load_std(name):
     return dict(x=x, rho=col['rho_mix[kg/m^3]'], u=col['u[m/s]'],
                 P=col['P_mix[bar]']*1e5, a=col['alpha_1'])
 
-def load_camr(name):
-    g=[p for p in glob.glob(CAMR_PRE+name+'_*') if os.path.isdir(p) and '.old' not in p]
+def load_psamr(name):
+    g=[p for p in glob.glob(PSAMR_PRE+name+'_*') if os.path.isdir(p) and '.old' not in p]
     if not g: return None
     p=max(g,key=os.path.getmtime)
     rho=R.rd1d(p,'density'); n=len(rho); x=(np.arange(n)+0.5)/n
@@ -207,23 +207,23 @@ if __name__=='__main__':
     mode=sys.argv[1]; sel=sys.argv[2:] or [c[0] for c in CASES]
     if mode=='std':
         for nm in sel: run_std(nm); print('std',nm,'ok' if os.path.exists(f'{STD_OUT}/{nm}.csv') else 'FAIL')
-    elif mode=='camr':
-        for nm in sel: run_camr(nm); print('camr',nm,'done')
+    elif mode=='psamr':
+        for nm in sel: run_psamr(nm); print('psamr',nm,'done')
     elif mode=='montage':
         import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
         rows=[]
         with PdfPages('CO2_Riemann_full_suite.pdf') as pdf:
-            fig=plt.figure(figsize=(11,8.5)); fig.text(0.5,0.93,'CO2 Riemann battery - CAMR vs validated standalone',ha='center',fontsize=16,weight='bold')
+            fig=plt.figure(figsize=(11,8.5)); fig.text(0.5,0.93,'CO2 Riemann battery - PSAMR vs validated standalone',ha='center',fontsize=16,weight='bold')
             fig.text(0.5,0.895,'PER-CASE matched config: wp flux, 2nd-order.  Vapor A/C: mechanical relax, MT off, N=64.',ha='center',fontsize=10)
-            fig.text(0.5,0.87,'Two-phase B: isochoric P + finite thermal relax (CAMR mode 2) + finite MT (tau=1e-4), N=32.',ha='center',fontsize=10)
+            fig.text(0.5,0.87,'Two-phase B: isochoric P + finite thermal relax (PSAMR mode 2) + finite MT (tau=1e-4), N=32.',ha='center',fontsize=10)
             fig.text(0.5,0.83,'Note: relative diffs inflate where |u|~0\n'
                      '(e.g. B4 |u|~9 m/s); density & pressure are the meaningful metrics.  * = strong flashing case.',
                      ha='center',fontsize=8,style='italic',color='0.3')
             FLASH={'B2-Evap-wave','B7-Rupture-Sonic','B9-Deep-Expansion'}
             lines=['%-24s %10s %10s %10s'%('case','rho','u','P'),'-'*58]
             for nm,*_ in [(c[0],) for c in CASES]:
-                s=load_std(nm); m=load_camr(nm)
+                s=load_std(nm); m=load_psamr(nm)
                 if s is None or m is None: lines.append('%-22s   (missing)'%nm); continue
                 dr,du,dP=reldiff(s['rho'],m['rho']),reldiff(s['u']+1e-9,m['u']+1e-9),reldiff(s['P'],m['P'])
                 rows.append((nm,dr,du,dP))
@@ -232,12 +232,12 @@ if __name__=='__main__':
             fig.text(0.11,0.79,'\n'.join(lines),family='monospace',fontsize=9,va='top')
             pdf.savefig(fig); plt.close(fig)
             for c in CASES:
-                nm=c[0]; s=load_std(nm); m=load_camr(nm)
+                nm=c[0]; s=load_std(nm); m=load_psamr(nm)
                 if s is None or m is None: continue
                 fig,ax=plt.subplots(2,2,figsize=(11,8.5))
                 for axi,(k,lab) in zip(ax.ravel(),[('rho','density [kg/m3]'),('u','velocity [m/s]'),('P','pressure [Pa]'),('a','alpha_1')]):
                     axi.plot(s['x'],s[k],'-',color='0.55',lw=3,label='standalone (ref)')
-                    axi.plot(m['x'],m[k],'--',color='C3',lw=1.3,label='CAMR')
+                    axi.plot(m['x'],m[k],'--',color='C3',lw=1.3,label='PSAMR')
                     axi.set_ylabel(lab); axi.set_xlabel('x'); axi.grid(alpha=0.3)
                 ax[0,0].legend(fontsize=8,loc='best')
                 dr,du,dP=reldiff(s['rho'],m['rho']),reldiff(s['u']+1e-9,m['u']+1e-9),reldiff(s['P'],m['P'])

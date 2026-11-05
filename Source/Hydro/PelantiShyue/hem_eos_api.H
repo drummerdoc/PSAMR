@@ -5,7 +5,7 @@
 //  the fold mechanics (fold_phase, the vanish and T-floor folds), the
 //  runtime and diagnostic dial accessors, and ps_state_from_cons.
 //  Every per-cell function is AMREX_GPU_HOST_DEVICE: the EOS is reached
-//  through PsPhaseAPI's member functions (the CAMR EOS, device-callable)
+//  through PsPhaseAPI's member functions (the PSAMR EOS, device-callable)
 //  and the numerical dials through PsPhaseAPI::dials, resolved on the
 //  host; the dial accessors themselves are host-only.
 //  Part of the hem_pelanti_shyue.H umbrella; the kernel headers
@@ -25,7 +25,7 @@
 #include <string>
 #include <AMReX.H>           // amrex::Abort (dial-contract violations)
 #include <AMReX_GpuQualifiers.H>
-#include "EOS.H"            // the CAMR EOS behind PsPhaseAPI
+#include "EOS.H"            // the PSAMR EOS behind PsPhaseAPI
 #include "PS_util.H"        // ps_pure_species
 #include "PS_constants.H"   // ps_const:: shared numeric floors
 #include "PS_dials.H"       // ps_dial_int / ps_dial_real
@@ -34,7 +34,7 @@
 namespace hem {
 
 // ---------------------------------------------------------------------
-//  Runtime dials.  Every dial is a CAMR.* ParmParse key read once per
+//  Runtime dials.  Every dial is a PSAMR.* ParmParse key read once per
 //  process into a function-local static through ps_dial_* (PS_dials.H),
 //  which adds the resolved value back so the configuration lands in
 //  job_info.  The accessors are host-only; a dial a per-cell kernel
@@ -198,24 +198,24 @@ inline bool ps_eos_T_seeded(int phase, double rho, double e, double T_seed,
 //  by ps_kernel_dials() from their single-read accessors and carried to
 //  the kernels by value inside PsPhaseAPI.  The fields have no defaults
 //  of their own (a second default is a second source of truth): a
-//  PsPhaseAPI not built by ps_make_camr_eos_api is invalid anyway.
+//  PsPhaseAPI not built by ps_make_psamr_eos_api is invalid anyway.
 //  Each key is documented at its accessor.
 // ---------------------------------------------------------------------
 struct PsKernelDials {
-    double single_phase_threshold = 0.0;   // CAMR.ps_single_phase_threshold
-    int    pr_fd1                 = 0;     // CAMR.ps_pr_fd1
-    int    mt_bootstrap           = 0;     // CAMR.ps_mt_bootstrap
-    double mt_step_frac           = 0.0;   // CAMR.ps_mt_step_frac
-    double mt_alpha_thr           = 0.0;   // CAMR.ps_mt_alpha_thr
-    int    mt_nest_pr             = 0;     // CAMR.ps_mt_nest_pr
-    int    mt_explicit            = 0;     // CAMR.ps_mt_explicit
-    int    mt_no_dome_gate        = 0;     // CAMR.ps_mt_no_dome_gate
-    int    mt_form                = 0;     // CAMR.ps_mt_form
-    double mt_srt_d               = 0.0;   // CAMR.ps_mt_srt_d
-    double mt_srt_delta           = 0.0;   // CAMR.ps_mt_srt_delta
-    double flash_alpha_thr        = 0.0;   // CAMR.ps_flash_alpha_thr
-    double flash_meta_margin      = 0.0;   // CAMR.ps_flash_metastable_margin
-    int    flash_h_mode           = 0;     // CAMR.ps_flash_h_mode (0 dom, 1 avg, 2 auto)
+    double single_phase_threshold = 0.0;   // PSAMR.ps_single_phase_threshold
+    int    pr_fd1                 = 0;     // PSAMR.ps_pr_fd1
+    int    mt_bootstrap           = 0;     // PSAMR.ps_mt_bootstrap
+    double mt_step_frac           = 0.0;   // PSAMR.ps_mt_step_frac
+    double mt_alpha_thr           = 0.0;   // PSAMR.ps_mt_alpha_thr
+    int    mt_nest_pr             = 0;     // PSAMR.ps_mt_nest_pr
+    int    mt_explicit            = 0;     // PSAMR.ps_mt_explicit
+    int    mt_no_dome_gate        = 0;     // PSAMR.ps_mt_no_dome_gate
+    int    mt_form                = 0;     // PSAMR.ps_mt_form
+    double mt_srt_d               = 0.0;   // PSAMR.ps_mt_srt_d
+    double mt_srt_delta           = 0.0;   // PSAMR.ps_mt_srt_delta
+    double flash_alpha_thr        = 0.0;   // PSAMR.ps_flash_alpha_thr
+    double flash_meta_margin      = 0.0;   // PSAMR.ps_flash_metastable_margin
+    int    flash_h_mode           = 0;     // PSAMR.ps_flash_h_mode (0 dom, 1 avg, 2 auto)
 };
 
 // ---------------------------------------------------------------------
@@ -226,7 +226,7 @@ struct PsKernelDials {
 //  See docs/MODEL_AND_ALGORITHM.md §7.2.
 // ---------------------------------------------------------------------
 struct PsPhaseAPI {
-    // Set by ps_make_camr_eos_api; a default-constructed API is invalid.
+    // Set by ps_make_psamr_eos_api; a default-constructed API is invalid.
     bool has_eos  = false;
     bool has_psat = false;   // the flash requires Psat and refuses without it
 
@@ -272,7 +272,7 @@ struct PsPhaseAPI {
     // rho_k = m_k/alpha_k may not leave [rho_dom_lo, rho_dom_hi], because
     // P_k(rho_k) is undefined there and a Newton stepping past the edge
     // iterates on garbage (solver correctness, not a guard).  Unset (0) =
-    // no barrier; CAMR sets these under presence (ps_make_camr_eos_api).
+    // no barrier; PSAMR sets these under presence (ps_make_psamr_eos_api).
     double rho_dom_lo = 0.0;
     double rho_dom_hi = 0.0;
     AMREX_GPU_HOST_DEVICE bool has_rho_dom() const { return rho_dom_lo > 0.0 && rho_dom_hi > rho_dom_lo; }
@@ -359,17 +359,17 @@ inline bool ps_apply_vanish_fold(V6& U, double alpha_vanish)
 //  One read per dial: these accessors are the single source of truth for
 //  the keys they name (a dial with two readers is a dial with two defaults
 //  waiting to disagree).
-//  CAMR.ps_mt_h_weight (0.5): interface enthalpy h_I = (1-w) h_1 + w h_2
+//  PSAMR.ps_mt_h_weight (0.5): interface enthalpy h_I = (1-w) h_1 + w h_2
 //    carried by transferred mass; w < 0 = donor's enthalpy (upwind).
-//  CAMR.ps_mt_srt_d (0.1 m): morphology length D in the SRT interfacial
+//  PSAMR.ps_mt_srt_d (0.1 m): morphology length D in the SRT interfacial
 //    area closure Sigma = (16/pi)(alpha_recv + delta) alpha_send / D;
 //    the one undialled number in the chain (docs/MODEL_AND_ALGORITHM.md §5.6).
-//  CAMR.ps_mt_srt_delta (0.01): receiving-phase seed delta in Sigma
+//  PSAMR.ps_mt_srt_delta (0.01): receiving-phase seed delta in Sigma
 //    (Lund & Aursand's value), so transfer can start from nothing.
-//  CAMR.ps_mt_no_dome_gate (0): 1 disables the coexistence gate globally
+//  PSAMR.ps_mt_no_dome_gate (0): 1 disables the coexistence gate globally
 //    (non-CO2 or mock EOS); read here for both the split kernel and
 //    ps_mass_transfer_relax_cell.
-//  CAMR.ps_mt_form (0): the form of the finite-rate step, documented at
+//  PSAMR.ps_mt_form (0): the form of the finite-rate step, documented at
 //    its use in ps_mass_transfer_finite_cell.
 inline double ps_dial_mt_h_weight()       { static const double v = ps_dial_real("ps_mt_h_weight",      0.5); return v; }
 inline double ps_dial_mt_srt_d()          { static const double v = ps_dial_real("ps_mt_srt_d",         0.1); return v; }
@@ -378,47 +378,47 @@ inline int    ps_dial_mt_no_dome_gate()   { static const int    v = ps_dial_int 
 inline int    ps_dial_mt_form()           { static const int    v = ps_dial_int ("ps_mt_form",          0);  return v; }
 
 //  Diagnostic dials, one read each (all default off).
-//  CAMR.ps_pres_diag (0): [PS-X3]/[PS-DT]/[PS-GATE]/[PS-FLASH-REF] reports.
-//  CAMR.ps_mt_diag (0): PsMtStats; >= 2 adds the contraction ratio.
+//  PSAMR.ps_pres_diag (0): [PS-X3]/[PS-DT]/[PS-GATE]/[PS-FLASH-REF] reports.
+//  PSAMR.ps_mt_diag (0): PsMtStats; >= 2 adds the contraction ratio.
 inline int ps_diag_pres()       { static const int v = ps_dial_int("ps_pres_diag",     0); return v; }
 inline int ps_diag_mt()         { static const int v = ps_dial_int("ps_mt_diag",       0); return v; }
 
 //  Kernel numerics dials, one read each; the kernels see them through
 //  PsKernelDials.
-//  CAMR.ps_single_phase_threshold (5e-3): below this alpha_k the
+//  PSAMR.ps_single_phase_threshold (5e-3): below this alpha_k the
 //    pressure and mass-transfer kernels skip the cell as single-phase.
 //    The minority phase's (rho_k, e_k) is then typically off its EOS
 //    domain, so its P_k and derivatives are meaningless and a Newton fed
 //    with them sees a wild slope; the minority contributes < threshold of
 //    the flux anyway, and the cell re-enters relaxation when it grows.
-//  CAMR.ps_pr_fd1 (0): ps_iso_pressure_relax_cell's slope is a central FD
+//  PSAMR.ps_pr_fd1 (0): ps_iso_pressure_relax_cell's slope is a central FD
 //    (4 inversions); 1 = one-sided difference reusing r (2 inversions),
 //    which changes the Newton trajectory but not the root.
-//  CAMR.ps_mt_bootstrap (1): sign-aware step caps in the Gibbs-target
+//  PSAMR.ps_mt_bootstrap (1): sign-aware step caps in the Gibbs-target
 //    Newton -- evaporation is bounded by the donor m_1, condensation by
 //    m_2.  0 caps both signs by min(m1, m2), which makes an evaporation
 //    front starting from trace vapour crawl at step_frac * m_2 per step.
-//  CAMR.ps_mt_step_frac (-1 = use PsMassTransferParams::dm_step_frac):
+//  PSAMR.ps_mt_step_frac (-1 = use PsMassTransferParams::dm_step_frac):
 //    the cap fraction.
-//  CAMR.ps_mt_alpha_thr (5e-3): finite-rate transfer only in genuinely
+//  PSAMR.ps_mt_alpha_thr (5e-3): finite-rate transfer only in genuinely
 //    mixed cells, alpha_1 in (thr, 1 - thr); at trace alpha the
 //    fixed-alpha rho_k = m_k/alpha_k is hypersensitive to dm.
-//  CAMR.ps_mt_nest_pr (0): nested pressure relaxation inside the
+//  PSAMR.ps_mt_nest_pr (0): nested pressure relaxation inside the
 //    equilibrium-target solve.  0 off; 1 full nesting; N > 1 caps the
 //    inner Newton at N iterations, which makes the target solve fail
 //    almost always and silently disables the transfer -- do not use.
 //    Off is the default because the cell has just been mechanically
 //    relaxed and re-projecting inside every Gibbs iteration makes the
 //    outer residual non-smooth, which is both the cost and the failures.
-//  CAMR.ps_mt_explicit (0): 1 selects the explicit forward-Euler forms of
+//  PSAMR.ps_mt_explicit (0): 1 selects the explicit forward-Euler forms of
 //    the finite-rate step (comparison only; they overshoot at sharp fronts).
-//  CAMR.ps_flash_alpha_thr (0.10): flash dominance threshold; the flash
+//  PSAMR.ps_flash_alpha_thr (0.10): flash dominance threshold; the flash
 //    acts only for alpha_dom > 1 - thr, mid-range cells belong to mass
 //    transfer.
-//  CAMR.ps_flash_metastable_margin (0.10): the required undershoot of the
+//  PSAMR.ps_flash_metastable_margin (0.10): the required undershoot of the
 //    flash metastability window, so static contacts with both sides at
 //    saturation do not false-trigger from marginal numerical dissipation.
-//  CAMR.ps_flash_h_mode ("auto"): energy carried by flashed mass when a
+//  PSAMR.ps_flash_h_mode ("auto"): energy carried by flashed mass when a
 //    trace phase already exists (the projection path overrides it):
 //      "avg" : h = (h_dom + h_trace)/2, the interface enthalpy -- right
 //              subcritical where latent heat is real, but pushes a low-rho

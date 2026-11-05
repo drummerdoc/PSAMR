@@ -6,7 +6,7 @@ FILE = inputs.base
 amr.n_cell           =   256   32   32
 geometry.prob_hi     =   1.0    0.125  0.125
 
-CAMR.lo_bc       =  Inflow     SlipWall   SlipWall
-CAMR.hi_bc       =  SlipWall   SlipWall   SlipWall
+PSAMR.lo_bc       =  Inflow     SlipWall   SlipWall
+PSAMR.hi_bc       =  SlipWall   SlipWall   SlipWall
 
 amr.plot_file = plt_sym_x_hi_

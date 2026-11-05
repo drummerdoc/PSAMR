@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Rank CAMR vs standalone by L2 error against the EXACT (frozen real-fluid)
+"""Rank PSAMR vs standalone by L2 error against the EXACT (frozen real-fluid)
 Riemann solution (co2-eos-cfd suite/profiles/<case>.csv). Lower error = more
 physically accurate numerics for the shared model. Uses the already-generated
-std_ref/ (standalone numerical) and fs_*/ (CAMR numerical) from full_suite."""
+std_ref/ (standalone numerical) and fs_*/ (PSAMR numerical) from full_suite."""
 import os, glob, csv, numpy as np
 import ps_plotfile as R
 # Standalone repo root.  Override with CO2_STANDALONE=... ; the old hard-coded
@@ -26,7 +26,7 @@ def load_std(name):
     col={k:np.array([float(r[i]) for r in d]) for i,k in enumerate(h)}
     return dict(x=col['x[m]'], rho=col['rho_mix[kg/m^3]'], u=col['u[m/s]'], P=col['P_mix[bar]']*1e5)
 
-def load_camr(name):
+def load_psamr(name):
     g=[p for p in glob.glob('fs_'+name+'_*') if os.path.isdir(p) and '.old' not in p]
     if not g: return None
     p=max(g,key=os.path.getmtime); rho=R.rd1d(p,'density'); n=len(rho)
@@ -65,35 +65,35 @@ TP=['B1-Comp-L-expand','B2-Evap-wave','B3-Sat-LV-contact','B4-Cross-critical',
 
 def run(group, label):
     print(f'\n=== {label}: rel-L2 error vs EXACT analytic (rho/u/P) ===')
-    print(f"{'case':22s} {'CAMR (rho,u,P)':>26s}   {'standalone (rho,u,P)':>26s}   winner")
-    agg={'camr':[], 'std':[]}
+    print(f"{'case':22s} {'PSAMR (rho,u,P)':>26s}   {'standalone (rho,u,P)':>26s}   winner")
+    agg={'psamr':[], 'std':[]}
     for nm in group:
-        a=load_analytic(nm); s=load_std(nm); m=load_camr(nm)
+        a=load_analytic(nm); s=load_std(nm); m=load_psamr(nm)
         # The standalone leg is OPTIONAL.  Requiring it meant a bare
         # "(missing)" whenever std_ref/ was empty -- which hid the fact that
-        # the CAMR-vs-analytic comparison (the actual correctness test) was
+        # the PSAMR-vs-analytic comparison (the actual correctness test) was
         # perfectly computable.  Report WHICH input is absent, never a bare
         # "missing": that ambiguity cost a debugging cycle.
         if a is None or m is None:
-            lack=[n for n,v in (('analytic',a),('CAMR',m)) if v is None]
+            lack=[n for n,v in (('analytic',a),('PSAMR',m)) if v is None]
             print(f'{nm:22s}  (no {", ".join(lack)})'); continue
         ec=l2(m,a)
-        cc=np.mean([ec['rho'],ec['u'],ec['P']]); agg['camr'].append(cc)
-        camr_s=f'{ec["rho"]:.3f},{ec["u"]:.3f},{ec["P"]:.3f}'
+        cc=np.mean([ec['rho'],ec['u'],ec['P']]); agg['psamr'].append(cc)
+        psamr_s=f'{ec["rho"]:.3f},{ec["u"]:.3f},{ec["P"]:.3f}'
         if s is None:
-            print(f'{nm:22s}  {camr_s:>26s}   {"(no standalone)":>26s}   -'); continue
+            print(f'{nm:22s}  {psamr_s:>26s}   {"(no standalone)":>26s}   -'); continue
         es=l2(s,a); cs=np.mean([es['rho'],es['u'],es['P']])
         # NaN from a leg means that code FAILED on the case; it must not win by
         # default.  (np.nan < x is False, so a bare `cc<cs` silently awarded the
         # case to whichever side crashed.)
         if not np.isfinite(cs):
-            print(f'{nm:22s}  {camr_s:>26s}   {"FAILED (NaN)":>26s}   CAMR'); continue
+            print(f'{nm:22s}  {psamr_s:>26s}   {"FAILED (NaN)":>26s}   PSAMR'); continue
         agg['std'].append(cs)
-        win='CAMR' if cc<cs else 'standalone'
-        print(f'{nm:22s}  {camr_s:>26s}   '
+        win='PSAMR' if cc<cs else 'standalone'
+        print(f'{nm:22s}  {psamr_s:>26s}   '
               f'{es["rho"]:.3f},{es["u"]:.3f},{es["P"]:.3f}   {win}')
-    if agg['camr']:
-        line=f"  MEAN over group:  CAMR={np.mean(agg['camr']):.4f}"
+    if agg['psamr']:
+        line=f"  MEAN over group:  PSAMR={np.mean(agg['psamr']):.4f}"
         if agg['std']: line+=f"   standalone={np.mean(agg['std']):.4f}"
         print(line)
     return agg
