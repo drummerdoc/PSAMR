@@ -1,6 +1,6 @@
-TOP ?= $(CAMR_HOME)
+TOP ?= $(PSAMR_HOME)
 
-EBASE = CAMR
+EBASE = PSAMR
 
 #Turn off all fortran in amrex
 BL_NO_FORT = TRUE
@@ -13,7 +13,7 @@ ifeq ($(USE_EB), TRUE)
 endif
 
 ifeq ($(USE_MOVING_EB), TRUE)
-  DEFINES += -DCAMR_USE_MOVING_EB
+  DEFINES += -DPSAMR_USE_MOVING_EB
 endif
 
 # Pelanti-Shyue six-equation hydro module.  Off by default; per-case
@@ -42,7 +42,7 @@ endif
 
 # ---------------------------------------------------------------------
 #  Put the EOS backend into the executable name and the object directory
-#  (CAMR2d.llvm.TPROF.MPI.PS.PR.ex, ...PS.GERGTab.ex).  Without it a binary
+#  (PSAMR2d.llvm.TPROF.MPI.PS.PR.ex, ...PS.GERGTab.ex).  Without it a binary
 #  built for one backend can be run for another unnoticed, and, because
 #  AMReX derives the object directory from the same suffix, switching
 #  Eos_Model without `make realclean` silently reuses objects compiled
@@ -71,9 +71,9 @@ endif
 #  them with `make clean-tables`.  Neither is invoked by `make clean` /
 #  `make realclean`.
 # ---------------------------------------------------------------------
-PRTAB_TOOLS  := $(CAMR_HOME)/Source/EOS/PRTab/tools
-PRTAB_DATA   := $(CAMR_HOME)/Source/EOS/PRTab/prtab_table_data.cpp
-PRTAB_PARAMS := $(CAMR_HOME)/Source/EOS/PRTab/prtab_table_params.H
+PRTAB_TOOLS  := $(PSAMR_HOME)/Source/EOS/PRTab/tools
+PRTAB_DATA   := $(PSAMR_HOME)/Source/EOS/PRTab/prtab_table_data.cpp
+PRTAB_PARAMS := $(PSAMR_HOME)/Source/EOS/PRTab/prtab_table_params.H
 
 .PHONY: tables clean-tables
 tables:
@@ -108,14 +108,14 @@ ifeq ($(Eos_Model),$(filter $(Eos_Model),PRTab))
      endif
    endif
 endif
-GERGTAB_TOOLS := $(CAMR_HOME)/Source/EOS/GERGTab/tools
-GERGTAB_DATA  := $(CAMR_HOME)/Source/EOS/GERGTab/gergtab_table_data.cpp
+GERGTAB_TOOLS := $(PSAMR_HOME)/Source/EOS/GERGTab/tools
+GERGTAB_DATA  := $(PSAMR_HOME)/Source/EOS/GERGTab/gergtab_table_data.cpp
 .PHONY: gergtab-tables clean-gergtab-tables
 gergtab-tables:
 	@echo "Generating GERGTab T(rho,e) tables (auto + liquid + vapor)..."
 	cd $(GERGTAB_TOOLS) && g++ -O2 -std=c++17 gen_gergtab.cpp -o gen_gergtab && ./gen_gergtab 256
 clean-gergtab-tables:
-	@$(RM) $(GERGTAB_DATA) $(CAMR_HOME)/Source/EOS/GERGTab/gergtab_table_params.H $(GERGTAB_TOOLS)/gen_gergtab
+	@$(RM) $(GERGTAB_DATA) $(PSAMR_HOME)/Source/EOS/GERGTab/gergtab_table_params.H $(GERGTAB_TOOLS)/gen_gergtab
 	@echo "removed generated GERGTab tables (rerun 'make gergtab-tables')"
 
 ifeq ($(Eos_Model),$(filter $(Eos_Model),GERGTab))
@@ -139,21 +139,21 @@ ifeq ($(Eos_Model),$(filter $(Eos_Model),GERG))
    # function is called (no cross-EOS fallback).
 endif
 
-Bdirs := $(CAMR_HOME)/Source
-Bdirs += $(CAMR_HOME)/Source/Hydro
-Bdirs += $(CAMR_HOME)/Source/Hydro/Godunov
-Bdirs += $(CAMR_HOME)/Source/Hydro/MOL
+Bdirs := $(PSAMR_HOME)/Source
+Bdirs += $(PSAMR_HOME)/Source/Hydro
+Bdirs += $(PSAMR_HOME)/Source/Hydro/Godunov
+Bdirs += $(PSAMR_HOME)/Source/Hydro/MOL
 ifeq ($(USE_PS_HYDRO), TRUE)
-  Bdirs += $(CAMR_HOME)/Source/Hydro/PelantiShyue
+  Bdirs += $(PSAMR_HOME)/Source/Hydro/PelantiShyue
 endif
-Bdirs += $(CAMR_HOME)/Source/Utils
-Bdirs += $(CAMR_HOME)/Source/EOS/$(EOS_DIR) $(CAMR_HOME)/Source/EOS
-Bdirs += $(CAMR_HOME)/Source/Params/param_includes
+Bdirs += $(PSAMR_HOME)/Source/Utils
+Bdirs += $(PSAMR_HOME)/Source/EOS/$(EOS_DIR) $(PSAMR_HOME)/Source/EOS
+Bdirs += $(PSAMR_HOME)/Source/Params/param_includes
 
 Pdirs := Base Amr Boundary AmrCore
 ifeq ($(USE_EB), TRUE)
   Pdirs += EB
-  Bdirs += $(CAMR_HOME)/Source/EB
+  Bdirs += $(PSAMR_HOME)/Source/EB
 endif
 
 Bpack += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)

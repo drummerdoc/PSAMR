@@ -1,5 +1,5 @@
 % =====================================================================
-%  The six-equation Pelanti--Shyue model AS IMPLEMENTED IN CAMR
+%  The six-equation Pelanti--Shyue model AS IMPLEMENTED IN PSAMR
 %
 %  Revised for the shared release against the current source on branch
 %  co2-eos.  Every equation and every source term below is anchored to a
@@ -18,7 +18,7 @@
 %  (S6.2); characteristic (NSCBC) outflow with a choked-fan flashing ghost
 %  is documented in S8.
 %
-%  Build:  pdflatex camr_ps_model.tex   (twice, for references)
+%  Build:  pdflatex psamr_ps_model.tex   (twice, for references)
 % =====================================================================
 \documentclass[11pt,a4paper]{article}
 
@@ -36,9 +36,9 @@
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\src}[1]{{\color{gray}\code{#1}}}
 
-\title{The six-equation two-phase model as implemented in CAMR\\
+\title{The six-equation two-phase model as implemented in PSAMR\\
        \large Governing equations, closures and source terms}
-\author{Generated from \code{CAMR} branch \code{co2-eos}}
+\author{Generated from \code{PSAMR} branch \code{co2-eos}}
 \date{Revised for the shared release}
 
 \begin{document}
@@ -59,13 +59,13 @@ are flagged explicitly in \S\ref{sec:caveats}.
 % =====================================================================
 
 The conserved state carries the two-phase slots
-\src{Utils/IndexDefines.H} alongside CAMR's ordinary single-fluid
+\src{Utils/IndexDefines.H} alongside PSAMR's ordinary single-fluid
 slots \src{:17--18,~74--76}:
 
 \begin{equation}
   \mathbf{U} =
   \bigl(\
-    \underbrace{\rho,\ \rho\uvec,\ \rho E,\ \rho e,\ T}_{\text{stock CAMR}},\
+    \underbrace{\rho,\ \rho\uvec,\ \rho E,\ \rho e,\ T}_{\text{stock PSAMR}},\
     \underbrace{\alpha_1,\ \alpha_1\rho_1,\ \alpha_2\rho_2,\
                 \alpha_1\rho_1E_1,\ \alpha_2\rho_2E_2}_{\text{PS extension}}\
   \bigr)^{\!\top}.
@@ -88,7 +88,7 @@ as the phase sums.  The two identities
 are therefore invariants to be \emph{maintained}, not consequences of the
 discretisation.  They are re-established every step by
 \code{ps\_resync\_mixture\_mass} and \code{ps\_resync\_phase\_energy}
-\src{CAMR\_advance.cpp} and monitored as checks V4 and V5 of
+\src{PSAMR\_advance.cpp} and monitored as checks V4 and V5 of
 \code{ps\_validate\_state}.  Historically the mass identity drifted at
 $\sim\!0.4\,\%$ per production run before anyone was watching it.
 
@@ -178,7 +178,7 @@ The default relaxation is the \textbf{coupled X3 operator}
 (\code{ps\_relax\_mode}$=5$, the default and the acceptance configuration;
 an unrecognised or retired mode \emph{aborts} rather than falling
 through \src{PS\_relax.H}).  Per reaction substep
-\src{CAMR\_advance.cpp}:
+\src{PSAMR\_advance.cpp}:
 \begin{equation}
   \text{hydro}\ \longrightarrow\
   \underbrace{\text{vanish fold}}_{\text{phase death}}\ \longrightarrow\
@@ -204,7 +204,7 @@ mode 0 is mechanical-only (the frozen limit) and must be asked for
 explicitly; mode 2 (isochoric $P$, finite-rate thermal, split Gibbs-driven
 transfer) is retained as the finite-rate control closure.  In mode 5 the
 split mass-transfer source is \emph{owned by X3}: enabling it separately
-aborts \src{CAMR\_advance.cpp}.
+aborts \src{PSAMR\_advance.cpp}.
 
 % ---------------------------------------------------------------
 \subsection{Mechanical relaxation: $\mathcal{S}_\alpha$}
@@ -242,7 +242,7 @@ $1/\theta$ \src{hem\_pelanti\_shyue.H, ps\_iso\_thermal\_relax\_cell\_finite}:
 \end{equation}
 where $\mathcal{E}^{\mathrm{eq}}$ is the isochoric $T_1\!=\!T_2$ state.  Note
 the form: this is an \emph{exponential relaxation onto a precomputed
-equilibrium}.  \code{CAMR.ps\_theta\_tau} \textbf{defaults to
+equilibrium}.  \code{PSAMR.ps\_theta\_tau} \textbf{defaults to
 $10^{-7}$~s} --- near-instantaneous at
 hydrodynamic scales --- and its semantics are: $\theta>0$ a finite
 backward-Euler rate; $\theta\le0$ \emph{instantaneous} thermal
@@ -252,7 +252,7 @@ $P_1\!=\!P_2$ DAE (``$\theta\le0$ does not mean off''
 
 The leg is gated by a two-phase coexistence test --- both phase temperatures
 strictly inside $(T_{\mathrm{triple}},T_{\mathrm{crit}}) = (216.592,\,304.13)$~K
---- shared with mass transfer and the flash.  \code{CAMR.ps\_coexist\_action}
+--- shared with mass transfer and the flash.  \code{PSAMR.ps\_coexist\_action}
 (default $0$) selects what happens when a phase leaves that band: $0$ silent
 no-op, $1$ abort, $2$ run the thermal leg for low-side exits, $3$ run it for
 any exit.  The gate carries a \textbf{runaway clause}
@@ -275,7 +275,7 @@ flashing-vent reference instead of the monotone ratchet.  Runaway activations
 are counted (\code{n\_exit\_runaway}, exit-code bit 8) and printed in
 \code{[PS-COEXIT-TH]}.
 
-(The per-cell HRM-correlation option \code{CAMR.ps\_theta\_model}$=1$ ---
+(The per-cell HRM-correlation option \code{PSAMR.ps\_theta\_model}$=1$ ---
 Downar-Zapolski $\theta=\theta_0\alpha_v^{-0.54}\psi^{-1.76}$ --- was
 \textbf{retired}: measured to be the wrong mapping for
 \emph{thermal} contact between phases, since the correlation slows toward
@@ -319,8 +319,8 @@ to equilibrium over the instantaneous physical rate, per Lund \& Aursand,
 \src{hem\_pelanti\_shyue.H}: the kinetic prefactor is
 parameter-free statistical rate theory; the \emph{interfacial-area} closure
 $\Sigma$ is not --- it carries the stratified-pipe morphology placeholder
-$D=$ \code{CAMR.ps\_mt\_srt\_d} (default $0.1$~m) and the receiving-phase
-seed $\delta=$ \code{CAMR.ps\_mt\_srt\_delta} (default $0.01$).  A
+$D=$ \code{PSAMR.ps\_mt\_srt\_d} (default $0.1$~m) and the receiving-phase
+seed $\delta=$ \code{PSAMR.ps\_mt\_srt\_delta} (default $0.01$).  A
 degenerate $\Gamma$ falls back to the constant-$\tau$ form so the dial can
 never invent a rate.  The morphology dependence this hides is quantified in
 \S\ref{sec:caveats}(ii).  The constant \code{ps\_mt\_tau} route belongs to
@@ -337,7 +337,7 @@ Transferred mass carries the interface total enthalpy
   \end{cases}
   \label{eq:carrier}
 \end{equation}
-selected by \code{CAMR.ps\_mt\_h\_weight}.
+selected by \code{PSAMR.ps\_mt\_h\_weight}.
 
 \paragraph{Volume co-moves with the mass (E.1).}
 Under the presence model the transfer moves volume at the \emph{donor's own}
@@ -424,7 +424,7 @@ with $\rho_k=m_k/\alpha_k$ far below anything its branch can answer
 (measured: a promotion at $\rho_1=0.076$~kg/m$^3$, $e_1=7.6\times10^{7}$~J/kg,
 which the branch-locked inversion rightly refused).  The regime classifier
 \code{ps\_regime} therefore requires, in addition, $m_k>\rho_{\mathrm{deg}}\,\alpha_k$
-(division-free) with $\rho_{\mathrm{deg}}=$ \code{CAMR.ps\_presence\_rho\_deg}
+(division-free) with $\rho_{\mathrm{deg}}=$ \code{PSAMR.ps\_presence\_rho\_deg}
 $=0.5$~kg/m$^3$; otherwise the phase stays \textsc{corridor} whatever its
 $\alpha_k$.  The value is fixed by two measurements: the minimum legitimate
 independent-phase density over all battery finals is $1.406$~kg/m$^3$ (C3) and
@@ -435,10 +435,10 @@ $m_k\le\rho_{\mathrm{deg}}\alpha_k$, or a phase with $e_k$ outside
 $[\code{ps\_presence\_e\_deg\_lo},\code{ps\_presence\_e\_deg\_hi}]=[-2\times10^{6},2\times10^{7}]$~J/kg,
 is folded into its host with mass and energy conserved; counted
 \code{n\_cdeg}/\code{n\_edeg} in \code{[PS-FOLD]}).  Checked promotion
-(\code{CAMR.ps\_promote\_checked}$=1$, \code{PS\_promote.H}) additionally
+(\code{PSAMR.ps\_promote\_checked}$=1$, \code{PS\_promote.H}) additionally
 demotes a would-be independent phase whose energy quotient defines no state
 on its own branch.  Finally the relaxation gate carries hysteresis
-(\code{CAMR.ps\_relax\_hyst}$=1$, \code{ps\_presence\_relax\_gate}): a phase in
+(\code{PSAMR.ps\_relax\_hyst}$=1$, \code{ps\_presence\_relax\_gate}): a phase in
 the upper corridor, $\alpha_k\ge\alpha_{\mathrm{cond}}/2$ with
 $m_k>\rho_{\mathrm{deg}}\alpha_k$, still counts as relaxable, so the source
 on/off boundary no longer coincides with the exact $\alpha$ the relaxation
@@ -454,14 +454,14 @@ retired; the band is always on in host builds).  The hysteresis band is evaluate
 % =====================================================================
 
 The interior scheme is \textbf{single-path}: wave
-propagation (\code{CAMR.ps\_flux}$=$\code{wp}, the Berger--LeVeque
+propagation (\code{PSAMR.ps\_flux}$=$\code{wp}, the Berger--LeVeque
 fluctuation form) is the only interior flux.  \code{llf}, \code{hllc}, a
 set \code{ps\_ctu}, \code{ps\_recon} or \code{ps\_alpha\_limiter} key all
 \emph{abort} with retirement notes \src{PS\_umeth.cpp};
 \code{PS\_reconstruction.H} is deleted --- the wp interior works from raw
 cell averages.  Under AMR the fluctuation form refluxes through the
 standard register with $\alpha$ moved alongside
-(\code{CAMR.ps\_bl\_reflux}, on by default; any nonzero value is the $\alpha$ co-move).
+(\code{PSAMR.ps\_bl\_reflux}, on by default; any nonzero value is the $\alpha$ co-move).
 
 One Riemann solve per face produces a wave decomposition (retained in
 \code{PS\_hllc.H}, which now serves the wp fluctuations), from which the
@@ -469,7 +469,7 @@ code takes \emph{two different exits}.
 
 \paragraph{Conserved slots} ($\rho,\rho\uvec,\rho E,m_1,m_2$) receive a single
 recovered interface flux $F^\star = F(\mathbf{U}_L) + \mathsf{A}^-\Delta Q$,
-which telescopes exactly to the fluctuation update, so CAMR's ordinary
+which telescopes exactly to the fluctuation update, so PSAMR's ordinary
 flux-difference path and its AMReX flux register are used unchanged.
 
 \paragraph{Non-conserved slots} ($\alpha_1,\mathcal{E}_1,\mathcal{E}_2$) get a
@@ -504,7 +504,7 @@ with the Wallis frozen mixture speed \src{PS\_hllc.H}
 \end{equation}
 ``Frozen'' means no mass transfer during the acoustic response; the much
 slower equilibrium speed belongs to the relaxation operator, which is applied
-separately.  (\code{CAMR.ps\_cmix\_model}, which offered $c=\max(c_1,c_2)$
+separately.  (\code{PSAMR.ps\_cmix\_model}, which offered $c=\max(c_1,c_2)$
 and the Wood equilibrium form, was measured and \textbf{retired}: MAX gains 3\,\% on a contact because $S_L,S_R$ only bound the
 fan, and WOOD aborts B9 with a real-fluid EOS
 \src{PS\_presence.H}.  The frozen mass-weighted form is now the
@@ -585,7 +585,7 @@ $P\,\mathrm{d}v$ for its \emph{own} volume change,
   \label{eq:estar}
 \end{equation}
 with $P$ the \emph{mixture} pressure \eqref{eq:pmix}.  (The per-phase
-alternative \code{CAMR.ps\_pk\_energy\_flux}$=1$ is retired; a set key
+alternative \code{PSAMR.ps\_pk\_energy\_flux}$=1$ is retired; a set key
 aborts.)  Whenever \eqref{eq:volclosure} is solved exactly,
 $\sum_k m_k^\star E_k^\star = r_K\bigl[\rho E+\rho(S_M-u_K)S_M\bigr]+P\,(r_K-1)$,
 term for term the B.14 mixture sum, so the mixture energy Rankine--Hugoniot
@@ -636,13 +636,13 @@ local Lax--Friedrichs flux.  Nothing is clamped to make the star state exist.
 \subsection{Second-order correction and the contact-wave taper}
 \label{sec:limiter}
 
-At \code{CAMR.ps\_wp\_order}$=2$ (the acceptance order, set by every
+At \code{PSAMR.ps\_wp\_order}$=2$ (the acceptance order, set by every
 deck; the compiled default is $1$) each wave carries a van Leer-limited
-Lax--Wendroff correction flux (\code{CAMR.ps\_wp\_limiter}, \code{vanleer};
+Lax--Wendroff correction flux (\code{PSAMR.ps\_wp\_limiter}, \code{vanleer};
 \code{none} gives the unlimited correction for smooth order-of-accuracy
 tests only).  The limiter ratio is one scalar per wave, formed from a
 nondimensionalised projection of the wave onto its upwind neighbour
-(\code{CAMR.ps\_wp\_proj\_scale}$=1$), so the per-wave linear identities
+(\code{PSAMR.ps\_wp\_proj\_scale}$=1$), so the per-wave linear identities
 $W[\rho]=W[m_1]+W[m_2]$ and $W[\rho E]=W[\mathcal{E}_1]+W[\mathcal{E}_2]$
 survive limiting: scaling a wave by a scalar preserves them, whereas limiting
 slots individually would not.  The contact wave ($S_M$) carries the
@@ -658,7 +658,7 @@ correction by one face weight \src{PS\_umeth.cpp},
   \mathrm{smoothstep}(t)=t^2(3-2t),\ \ t\in[0,1],
   \label{eq:wckeep}
 \end{equation}
-(\code{CAMR.ps\_lw\_skip\_contact}$=2$, the default): $|\Delta\alpha|=0$ ---
+(\code{PSAMR.ps\_lw\_skip\_contact}$=2$, the default): $|\Delta\alpha|=0$ ---
 uniform trace or single-phase --- keeps the full correction and the A/C mean
 $0.0350$ exactly; $|\Delta\alpha|\ge\alpha_{\mathrm{cond}}$, a material
 interface, drops it; the smoothstep between removes the on/off kink that a
@@ -726,7 +726,7 @@ Any condition written on the frozen eigenstructure returns it, with
 reflection $(Z_f-Z_{\mathrm{rel}})/(Z_f+Z_{\mathrm{rel}})$ ($0.29$ predicted
 and $0.22$ measured at $\alpha_1=0.05$, 280\,K, for a characteristic ghost
 and for a plain copy alike).  An NSCBC face
-(\code{CAMR.ps\_bc\_use\_nscbc}, per face \code{ps\_bc\_nscbc\_\{x,y,z\}\{lo,hi\}};
+(\code{PSAMR.ps\_bc\_use\_nscbc}, per face \code{ps\_bc\_nscbc\_\{x,y,z\}\{lo,hi\}};
 \code{Inflow} faces only) is therefore two pieces.
 
 \paragraph{The ghost} carries no boundary model: where the flow leaves,
@@ -772,7 +772,7 @@ refused trial leaves the fan's wave and is counted.  There is no Mach
 dispatch: the frozen fan decides whether an acoustic wave enters.  In a
 single-phase cell $\mathcal R$ is the identity and $g$ is the classical
 condition.  $P_\infty$ is \code{prob.p\_amb}, per face
-\code{CAMR.ps\_bc\_p\_amb\_\{x,y,z\}\{lo,hi\}}.
+\code{PSAMR.ps\_bc\_p\_amb\_\{x,y,z\}\{lo,hi\}}.
 
 \paragraph{Face types} (\code{ps\_bc\_nscbc\_type\_\{face\}}, a deck
 choice).  \code{nr} is the condition above.  \code{vent} is a plenum at

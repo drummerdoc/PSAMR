@@ -1,4 +1,4 @@
-CAMR_HOME      ?= ../../../
+PSAMR_HOME      ?= ../../../
 AMREX_HOME     ?= ../../../../amrex
 
 # AMReX
@@ -28,7 +28,7 @@ DEBUG = FALSE
 #TEST = TRUE
 #USE_ASSERTION = TRUE
 
-# CAMR
+# PSAMR
 USE_EB = TRUE
 USE_MOVING_EB = TRUE
 Eos_Model := GammaLaw
@@ -37,4 +37,4 @@ Eos_Model := GammaLaw
 Bpack := ./Make.package
 Blocs := .
 
-include $(CAMR_HOME)/Exec/Make.CAMR
+include $(PSAMR_HOME)/Exec/Make.PSAMR

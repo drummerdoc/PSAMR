@@ -1,7 +1,7 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 
 amrex::Real
-CAMR::sumDerive(const std::string& name, amrex::Real time, bool local)
+PSAMR::sumDerive(const std::string& name, amrex::Real time, bool local)
 {
 #ifdef AMREX_USE_EB
   amrex::Abort("sumDerive undefined for EB");
@@ -35,10 +35,10 @@ CAMR::sumDerive(const std::string& name, amrex::Real time, bool local)
 }
 
 amrex::Real
-CAMR::volWgtSum(
+PSAMR::volWgtSum(
   const std::string& name, amrex::Real time, bool local, bool finemask)
 {
-  BL_PROFILE("CAMR::volWgtSum()");
+  BL_PROFILE("PSAMR::volWgtSum()");
 
   amrex::Real sum = 0.0;
 
@@ -65,9 +65,9 @@ CAMR::volWgtSum(
 }
 
 amrex::Real
-CAMR::volWgtSquaredSum(const std::string& name, amrex::Real time, bool local)
+PSAMR::volWgtSquaredSum(const std::string& name, amrex::Real time, bool local)
 {
-  BL_PROFILE("CAMR::volWgtSquaredSum()");
+  BL_PROFILE("PSAMR::volWgtSquaredSum()");
 
   amrex::Real sum = 0.0;
   auto mf = derive(name, time, 0);
@@ -98,7 +98,7 @@ CAMR::volWgtSquaredSum(const std::string& name, amrex::Real time, bool local)
 }
 
 amrex::Real
-CAMR ::volWgtSquaredSumDiff(int comp, amrex::Real /*time*/, bool local)
+PSAMR ::volWgtSquaredSumDiff(int comp, amrex::Real /*time*/, bool local)
 {
   // Calculate volume weighted sum of the square of the difference
   // between the old and new quantity
@@ -134,10 +134,10 @@ CAMR ::volWgtSquaredSumDiff(int comp, amrex::Real /*time*/, bool local)
 }
 
 amrex::Real
-CAMR::volWgtSumMF(
+PSAMR::volWgtSumMF(
   const amrex::MultiFab& mf, int comp, bool local, bool finemask)
 {
-  BL_PROFILE("CAMR::volWgtSumMF()");
+  BL_PROFILE("PSAMR::volWgtSumMF()");
 
   amrex::Real sum = 0.0;
   amrex::MultiFab vol(grids, dmap, 1, 0);
@@ -162,7 +162,7 @@ CAMR::volWgtSumMF(
 }
 
 amrex::Real
-CAMR::maxDerive(const std::string& name, amrex::Real time, bool local)
+PSAMR::maxDerive(const std::string& name, amrex::Real time, bool local)
 {
   // Note: Includes all cells in MF, even those covered by finer grids or EB
   auto mf = derive(name, time, 0);
@@ -173,7 +173,7 @@ CAMR::maxDerive(const std::string& name, amrex::Real time, bool local)
 }
 
 amrex::Real
-CAMR::minDerive(const std::string& name, amrex::Real time, bool local)
+PSAMR::minDerive(const std::string& name, amrex::Real time, bool local)
 {
   // Note: Includes all cells in MF, even those covered by finer grids or EB
   auto mf = derive(name, time, 0);
@@ -184,7 +184,7 @@ CAMR::minDerive(const std::string& name, amrex::Real time, bool local)
 }
 
 int
-CAMR::find_datalog_index(const std::string& logname)
+PSAMR::find_datalog_index(const std::string& logname)
 {
   for (int ii = 0; ii < parent->NumDataLogs(); ii++) {
     if (logname == parent->DataLogName(ii)) {

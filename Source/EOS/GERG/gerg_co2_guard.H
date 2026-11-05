@@ -23,7 +23,7 @@
 //   - classify_T_rho: spline compare; never a fallback to another EOS
 //     surface.
 //
-//  Dial: CAMR.gerg_ext_c (1) — see ext_c_enabled() below.
+//  Dial: PSAMR.gerg_ext_c (1) — see ext_c_enabled() below.
 // =====================================================================
 
 #include "gerg_co2_sat.H"
@@ -49,14 +49,14 @@ GERG_HD double soft_floor(double P)
 constexpr double RHO_MIN   = 1.0e-6;   // kg/m3
 constexpr double RHO_MAX   = 1500.0;   // kg/m3 (GERG CO2 validity edge)
 
-// ---- Extension sound speed (CAMR.gerg_ext_c) ---------------------------
+// ---- Extension sound speed (PSAMR.gerg_ext_c) ---------------------------
 //  The extension surface P = P_edge + CSQ_FLOOR (rho - rho_edge) at fixed
 //  T has cv and dP/dT|rho frozen at the edge, so its sound speed follows
 //  from c^2 = (dP/drho)_T + T (dP/dT)_rho^2 / (rho^2 cv), continuous with
 //  the raw surface at the edge; the thermal term is capped at its edge
 //  value (uncapped, the liquid extension's c grows as 1/rho^2).  Rejected:
 //  c = c_edge throughout (docs/MODEL_AND_ALGORITHM.md §7.3).
-//  CAMR.gerg_ext_c (1): 0 = c = sqrt(CSQ_FLOOR) = 50 m/s throughout the
+//  PSAMR.gerg_ext_c (1): 0 = c = sqrt(CSQ_FLOOR) = 50 m/s throughout the
 //  extension, discontinuous at the edge; reproduction and bisection only.
 //  Set by EOS::gerg_ext_c_init() (GERG/EOS.H; this header is AMReX-free);
 //  unset, the GERG_EXT_C environment variable is read.

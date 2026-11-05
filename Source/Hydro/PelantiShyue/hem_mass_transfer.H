@@ -4,7 +4,7 @@
 //  (PsMassTransferParams, ps_mass_transfer_relax_cell), the finite-rate
 //  step (ps_mass_transfer_finite_cell, SRT / exponential forms) and the
 //  [PS-MTCAUSE] early-return cause split (PsMtCause, PS_MT_REFUSE).
-//  Live for CAMR.ps_relax_mode != 5 (PS_sources.H); at mode 5 the X3
+//  Live for PSAMR.ps_relax_mode != 5 (PS_sources.H); at mode 5 the X3
 //  operator carries the transfer.  Host-only.  Part of the
 //  hem_pelanti_shyue.H umbrella; needs the mechanical projector of
 //  hem_relax_x3.H.  docs/MODEL_AND_ALGORITHM.md §5.4, §5.6.
@@ -65,7 +65,7 @@ struct PsMassTransferParams {
     double dm_step_frac  = 0.1;     // Newton step cap as a fraction of
                                     //  the donor mass
     // Interface enthalpy carrier: h_I = (1-w) h_1 + w h_2; w < 0 = donor's
-    // (upwind).  Set from CAMR.ps_mt_h_weight by the caller.
+    // (upwind).  Set from PSAMR.ps_mt_h_weight by the caller.
     double h_interface_weight = 0.5;
     // Re-impose P_1 = P_2 (alpha-adjusting kernel) after each candidate dm.
     bool   nest_pressure_relax = true;
@@ -108,7 +108,7 @@ inline bool ps_mass_transfer_relax_cell(
     if (!s0.valid) return false;
 
     // Coexistence gate (see PsMassTransferParams::dome_gate).
-    // CAMR.ps_mt_no_dome_gate (0): 1 disables the gate globally (non-CO2 or
+    // PSAMR.ps_mt_no_dome_gate (0): 1 disables the gate globally (non-CO2 or
     // mock EOS); accessor shared with ps_mass_transfer_finite_cell.
     const bool mt_no_dome_gate_k = ps_dial_mt_no_dome_gate() != 0;
     if (mt_p.dome_gate && !mt_no_dome_gate_k) {
@@ -175,11 +175,11 @@ inline bool ps_mass_transfer_relax_cell(
         return true;
     };
 
-    // CAMR.ps_mt_bootstrap (1): sign-aware step caps -- evaporation is
+    // PSAMR.ps_mt_bootstrap (1): sign-aware step caps -- evaporation is
     // bounded by the donor m_1, condensation by m_2.  0 caps both signs by
     // min(m1, m2), which makes an evaporation front starting from trace
     // vapour crawl at step_frac * m_2 per Newton step.
-    // CAMR.ps_mt_step_frac (-1 = use dm_step_frac): the cap fraction.
+    // PSAMR.ps_mt_step_frac (-1 = use dm_step_frac): the cap fraction.
     static const bool sign_aware =
         ps_dial_int("ps_mt_bootstrap", 1) != 0;
     static const double step_frac_knob =
@@ -194,7 +194,7 @@ inline bool ps_mass_transfer_relax_cell(
     double g2_cur = s0.p2.g;
     for (int iter = 0; iter < mt_p.max_iter; ++iter) {
         { PsMtStats& st = ps_mt_stats(); ++st.iters;
-          if (iter + 1 > st.itmax) st.itmax = iter + 1; }   // CAMR.ps_mt_diag
+          if (iter + 1 > st.itmax) st.itmax = iter + 1; }   // PSAMR.ps_mt_diag
         const double g_diff = g1_cur - g2_cur;
         const double g_scale = std::max({std::abs(g1_cur),
                                           std::abs(g2_cur), 1.0});
@@ -252,7 +252,7 @@ inline bool ps_mass_transfer_relax_cell(
 
 // ---------------------------------------------------------------------
 //  Finite-rate mass transfer: the split source for relaxation modes
-//  other than 5 (PS_sources.H); form selected by CAMR.ps_mt_form
+//  other than 5 (PS_sources.H); form selected by PSAMR.ps_mt_form
 //  (hem_eos_api.H), default the exact relaxation onto the target of
 //  ps_mass_transfer_relax_cell.  Mass positivity is enforced by per-step
 //  brackets; the energy moves with the interface enthalpy so mixture
@@ -272,14 +272,14 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
 {
     if (tau_g <= 0.0 || dt <= 0.0) return false;
     if (!eos.valid()) return false;
-    ++ps_mt_stats().seen;                                  // CAMR.ps_mt_diag
+    ++ps_mt_stats().seen;                                  // PSAMR.ps_mt_diag
     double alpha1 = U[0];
     if (!std::isfinite(alpha1)) { ++ps_mt_stats().gated;
         PS_MT_REFUSE(PS_MT_A_NONFIN, false); }
     if (alpha1 <= alpha_floor || alpha1 >= 1.0 - alpha_floor) {
         ++ps_mt_stats().gated; PS_MT_REFUSE(PS_MT_A_FLOOR, true); }
 
-    // CAMR.ps_mt_alpha_thr (5e-3): transfer only in genuinely mixed cells,
+    // PSAMR.ps_mt_alpha_thr (5e-3): transfer only in genuinely mixed cells,
     // alpha_1 in (thr, 1 - thr); at trace alpha the fixed-alpha rho_k =
     // m_k/alpha_k is hypersensitive to dm.
     static const double alpha_mt_thr = ps_dial_real("ps_mt_alpha_thr", 5.0e-3);
@@ -312,7 +312,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
 
     // Coexistence gate: both T_k inside (T_triple, T_crit), else the cell
     // is left to pressure relaxation and the exit is recorded by side
-    // (CAMR.ps_mt_no_dome_gate, documented at its accessor).
+    // (PSAMR.ps_mt_no_dome_gate, documented at its accessor).
     const bool mt_no_dome_gate = ps_dial_mt_no_dome_gate() != 0;
     if (!mt_no_dome_gate) {
         const double T_trip = eos.t_triple(), T_crit = eos.t_crit();  // fluid props from EOS
@@ -357,7 +357,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
     const double g_diff = p1.g - p2.g;
     double dm;
 
-    // CAMR.ps_mt_nest_pr (0): nested pressure relaxation inside the
+    // PSAMR.ps_mt_nest_pr (0): nested pressure relaxation inside the
     // equilibrium-target solve.  0 off; 1 full nesting; N > 1 caps the
     // inner Newton at N iterations, which makes the target solve fail
     // almost always and silently disables the transfer -- do not use.
@@ -396,10 +396,10 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
     };
 
     // ---- finite-rate mass-transfer amount dm ----------------------------
-    // CAMR.ps_mt_explicit (0): 1 selects the explicit forward-Euler forms
+    // PSAMR.ps_mt_explicit (0): 1 selects the explicit forward-Euler forms
     // at the end of this chain (comparison only; they overshoot at sharp fronts).
     static const bool mt_explicit = ps_dial_int("ps_mt_explicit", 0) != 0;
-    // CAMR.ps_mt_form: 0 exact relaxation, 1 backward Euler against the SRT
+    // PSAMR.ps_mt_form: 0 exact relaxation, 1 backward Euler against the SRT
     // source (documented at its accessor, hem_eos_api.H).
     const int mt_form = ps_dial_mt_form();
     if (mt_form == 1) {
@@ -557,7 +557,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
         PsMassTransferParams mt_eq;
         PsPressureRelaxParams pr_eq;
         eq_solver_params(mt_eq, pr_eq);
-        ++ps_mt_stats().eqsolve;                           // CAMR.ps_mt_diag
+        ++ps_mt_stats().eqsolve;                           // PSAMR.ps_mt_diag
         if (!ps_mass_transfer_relax_cell(Ueq, eos, mt_eq, pr_eq)) ++ps_mt_stats().eqfail;
         const double dm_eq = m1 - Ueq[1];               // mass leaving phase 1
         // tau_model 2 (ASY1): tau = |dm_eq| / Gamma(q*), distance to
@@ -652,7 +652,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
     U[5] = U5_new;
     if (upd) U[0] = alpha_new;   // else rho_k adjusts inversely with m_k
 
-    // Contraction-ratio diagnostic (CAMR.ps_mt_diag >= 2): re-solve the
+    // Contraction-ratio diagnostic (PSAMR.ps_mt_diag >= 2): re-solve the
     // equilibrium on a copy of the updated state; the residual transfer it
     // still wants over the dm just applied measures how far the donor-rho
     // path with carrier H_I landed from the new equilibrium.  A refused

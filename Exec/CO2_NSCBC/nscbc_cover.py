@@ -37,17 +37,17 @@ shown on a failure line, so every failure is reproducible by hand.
             (sum of nscbc_zg_slots > 0 on the [PS-GUARD] lines, zg_cause
             printed) and still complete with rc = 0; a 1.01x jump gives
             exactly 0 refusals.
-  probe     N1 (128 cells, 1 ms) with CAMR.ps_bc_nscbc_probe_cell = the xhi
+  probe     N1 (128 cells, 1 ms) with PSAMR.ps_bc_nscbc_probe_cell = the xhi
             boundary cell.  The code evaluates 2 seeds + nsec secant updates
             + 1 re-evaluation at the chosen amplitude when a probe is on, so:
             [PS-BCRX-CELL] lines = (nsec + 3) x (steps on which xhi reports
             n = 1), for nsec = 2 and nsec = 0; nsec = 0 completes (rc = 0);
             the probes are diagnostics, so the final plotfile is
             byte-identical to the run without them.
-  wall      Face set (D1): N1 with CAMR.lo_bc = SlipWall and the global
+  wall      Face set (D1): N1 with PSAMR.lo_bc = SlipWall and the global
             switch on.  The inherited switch must not reach the wall: the
             banner says xlo=0, and every Level_0/Cell_D_* of every plotfile
-            is byte-identical to the same run with CAMR.ps_bc_nscbc_xlo=0.
+            is byte-identical to the same run with PSAMR.ps_bc_nscbc_xlo=0.
   jobinfo   job_info records the resolved boundary keys.  With
             ps_bc_use_nscbc=1 ps_bc_nscbc_xlo=0 type_xhi=vent
             ps_bc_p_amb_xhi=1.9e6: the plotfile after step 1
@@ -65,7 +65,7 @@ wave identities, relaxed-alpha star, folds, corridor (0-D C++ harnesses); the
 GPU compile check; fine AMR level on a domain face.
 
 Usage:  [EXE=...] [EXE_RS=...] [COVER_KEEP=dir] python3 nscbc_cover.py [test ...]
-        EXE     1-D executable of this directory (default: newest ./CAMR1d.*.ex)
+        EXE     1-D executable of this directory (default: newest ./PSAMR1d.*.ex)
         EXE_RS  1-D executable of ../CO2_RiemannSuite (default: newest there)
         COVER_KEEP  keep the run directories under this path (default: a
                     temporary directory outside the tree, removed at exit)
@@ -78,7 +78,7 @@ sys.path.insert(0, RS)
 import ps_plotfile as R
 
 def newest(d):
-    g = sorted(glob.glob(os.path.join(d, 'CAMR1d.*.ex')), key=os.path.getmtime)
+    g = sorted(glob.glob(os.path.join(d, 'PSAMR1d.*.ex')), key=os.path.getmtime)
     if not g: sys.exit('no 1-D executable in %s' % d)
     return g[-1]
 EXE = os.environ.get('EXE') or newest(HERE)
@@ -127,8 +127,8 @@ def same_bytes(fa, fb):
 def t_vent_in():
     T = 'vent_in'; ok = True; out = {}
     base = ['amr.n_cell=128', 'prob.ic=0', 'prob.p0=1.8e6', 'stop_time=12.0e-3', 'amr.plot_per=1.0e-3',
-            'CAMR.ps_bc_nscbc_probe=1']
-    for leg, extra in (('vent', ['CAMR.ps_bc_nscbc_type_xlo=vent', 'CAMR.ps_bc_nscbc_type_xhi=vent']), ('nr', [])):
+            'PSAMR.ps_bc_nscbc_probe=1']
+    for leg, extra in (('vent', ['PSAMR.ps_bc_nscbc_type_xlo=vent', 'PSAMR.ps_bc_nscbc_type_xhi=vent']), ('nr', [])):
         rc, log, fs, cmd = run(T + '_' + leg, base + extra)
         if not check(T, rc == 0 and len(fs) >= 12, '%s leg: rc=%d, %d plotfiles' % (leg, rc, len(fs)), cmd): return False
         traj = [(np.mean(R.rd1d(p, 'pressure')) - P_AMB) / (1.8e6 - P_AMB) for p in fs]
@@ -147,8 +147,8 @@ def t_vent_in():
 # ---------------------------------------------------------------- lo_mirror
 def t_lo_mirror():
     T = 'lo_mirror'; ok = True; res = {}
-    for leg, args in (('H', ['prob.xc=0.7', 'prob.amp=1.0', 'CAMR.ps_bc_nscbc_xlo=0', 'CAMR.ps_bc_nscbc_xhi=1']),
-                      ('L', ['prob.xc=0.3', 'prob.amp=-1.0', 'CAMR.ps_bc_nscbc_xlo=1', 'CAMR.ps_bc_nscbc_xhi=0'])):
+    for leg, args in (('H', ['prob.xc=0.7', 'prob.amp=1.0', 'PSAMR.ps_bc_nscbc_xlo=0', 'PSAMR.ps_bc_nscbc_xhi=1']),
+                      ('L', ['prob.xc=0.3', 'prob.amp=-1.0', 'PSAMR.ps_bc_nscbc_xlo=1', 'PSAMR.ps_bc_nscbc_xhi=0'])):
         rc, log, fs, cmd = run(T + '_' + leg, ['amr.n_cell=256', 'prob.ic=1', 'stop_time=2.0e-3', 'amr.plot_per=5.0e-4'] + args)
         if not check(T, rc == 0 and len(fs) >= 5, 'leg %s: rc=%d, %d plotfiles' % (leg, rc, len(fs)), cmd): return False
         P0 = R.rd1d(fs[0], 'pressure'); Pi = R.rd1d(pick(fs, 5.0e-4), 'pressure'); Pr = R.rd1d(pick(fs, 2.0e-3), 'pressure')
@@ -170,8 +170,8 @@ def t_lo_mirror():
 def t_nr_in():
     T = 'nr_in'; ok = True; m = {}
     base = ['amr.n_cell=128', 'prob.ic=3', 'prob.amp=0.05', 'prob.u0=50', 'prob.xc=0.7', 'prob.two_phase=0',
-            'stop_time=12.0e-3', 'amr.plot_per=1.0e-3', 'CAMR.ps_bc_nscbc_probe=1']
-    for leg, extra in (('copy', ['CAMR.ps_bc_nscbc_xlo=0']), ('nr', ['CAMR.ps_bc_nscbc_xlo=1'])):
+            'stop_time=12.0e-3', 'amr.plot_per=1.0e-3', 'PSAMR.ps_bc_nscbc_probe=1']
+    for leg, extra in (('copy', ['PSAMR.ps_bc_nscbc_xlo=0']), ('nr', ['PSAMR.ps_bc_nscbc_xlo=1'])):
         rc, log, fs, cmd = run(T + '_' + leg, base + extra)
         if not check(T, rc == 0 and len(fs) >= 12, 'xlo=%s: rc=%d, %d plotfiles' % (leg, rc, len(fs)), cmd): return False
         Pb = R.rd1d(fs[0], 'pressure')[0]
@@ -206,8 +206,8 @@ def t_extrap():
         args = ['amr.n_cell=128', 'geometry.prob_lo=0.0', 'geometry.prob_hi=1.0', 'prob.x_diaph=0.7',
                 'prob.phase_L=0', 'prob.T_L=500', 'prob.p_L=%g' % pL, 'prob.u_L=0', 'prob.x_qual_L=1.0',
                 'prob.phase_R=0', 'prob.T_R=500', 'prob.p_R=%g' % pR, 'prob.u_R=0', 'prob.x_qual_R=1.0',
-                'prob.alpha_trace=1.0e-6', 'prob.p_amb=%g' % pR, 'CAMR.ps_bc_p_amb_xlo=%g' % pL,
-                'CAMR.ps_bc_use_nscbc=1', 'CAMR.ps_diag_mass=1', 'CAMR.ps_bc_nscbc_probe=1',
+                'prob.alpha_trace=1.0e-6', 'prob.p_amb=%g' % pR, 'PSAMR.ps_bc_p_amb_xlo=%g' % pL,
+                'PSAMR.ps_bc_use_nscbc=1', 'PSAMR.ps_diag_mass=1', 'PSAMR.ps_bc_nscbc_probe=1',
                 'stop_time=1.5e-3', 'amr.plot_int=-1', 'amr.plot_per=1.5e-3']
         rc, log, fs, cmd = run(T + '_' + tag, args, exe=exe, deck=os.path.join(RS, 'inputs'))
         zg = sum(int(x) for x in re.findall(r'nscbc_zg_slots=(\d+)', log))
@@ -233,9 +233,9 @@ def t_probe():
     base = ['amr.n_cell=128', 'prob.ic=1', 'prob.xc=0.8', 'stop_time=1.0e-3', 'amr.plot_per=1.0e-3']
     ref = {}
     for nsec in (2, 0):
-        rc0, _, f0, cmd0 = run('%s_n%d_off' % (T, nsec), base + ['CAMR.ps_bc_nscbc_nsec=%d' % nsec])
-        rc, log, fs, cmd = run('%s_n%d_on' % (T, nsec), base + ['CAMR.ps_bc_nscbc_nsec=%d' % nsec,
-                               'CAMR.ps_bc_nscbc_probe=1', 'CAMR.ps_bc_nscbc_probe_cell=127'])
+        rc0, _, f0, cmd0 = run('%s_n%d_off' % (T, nsec), base + ['PSAMR.ps_bc_nscbc_nsec=%d' % nsec])
+        rc, log, fs, cmd = run('%s_n%d_on' % (T, nsec), base + ['PSAMR.ps_bc_nscbc_nsec=%d' % nsec,
+                               'PSAMR.ps_bc_nscbc_probe=1', 'PSAMR.ps_bc_nscbc_probe_cell=127'])
         if not check(T, rc == 0 and rc0 == 0, 'nsec=%d: rc=%d (probe on), %d (off)' % (nsec, rc, rc0), cmd): ok = False; continue
         ncell = len(re.findall(r'\[PS-BCRX-CELL\] L0 step \d+ xhi \(127,', log))
         nother = log.count('[PS-BCRX-CELL]') - ncell
@@ -257,11 +257,11 @@ def t_probe():
 # --------------------------------------------------------------------- wall
 def t_wall():
     T = 'wall'
-    base = ['amr.n_cell=128', 'prob.ic=1', 'stop_time=3.0e-3', 'amr.plot_per=1.0e-3', 'CAMR.lo_bc=SlipWall']
+    base = ['amr.n_cell=128', 'prob.ic=1', 'stop_time=3.0e-3', 'amr.plot_per=1.0e-3', 'PSAMR.lo_bc=SlipWall']
     rcA, logA, fA, cmdA = run(T + '_inherit', base)
-    rcB, logB, fB, cmdB = run(T + '_xlo0', base + ['CAMR.ps_bc_nscbc_xlo=0'])
+    rcB, logB, fB, cmdB = run(T + '_xlo0', base + ['PSAMR.ps_bc_nscbc_xlo=0'])
     if not check(T, rcA == 0 and rcB == 0, 'rc=%d (inherited), %d (xlo=0)' % (rcA, rcB), cmdA): return False
-    ban = re.search(r'CAMR bcfill:.*?(xlo=\d+ xhi=\d+)', logA)
+    ban = re.search(r'PSAMR bcfill:.*?(xlo=\d+ xhi=\d+)', logA)
     same, why = same_bytes(fA, fB)
     print('      banner (inherited): %s;  %s: %s' % (ban.group(1) if ban else 'MISSING', 'byte-identical' if same else 'DIFFERENT', why))
     ok = check(T, bool(ban) and ban.group(1) == 'xlo=0 xhi=1', 'banner does not resolve the wall face to 0', cmdA)
@@ -274,8 +274,8 @@ def t_wall():
 # ------------------------------------------------------------------ jobinfo
 def t_jobinfo():
     T = 'jobinfo'; ok = True
-    rc, log, fs, cmd = run(T, ['amr.n_cell=64', 'max_step=1', 'amr.plot_int=1', 'amr.plot_per=-1', 'CAMR.ps_bc_nscbc_xlo=0',
-                               'CAMR.ps_bc_nscbc_type_xhi=vent', 'CAMR.ps_bc_p_amb_xhi=1.9e6'])
+    rc, log, fs, cmd = run(T, ['amr.n_cell=64', 'max_step=1', 'amr.plot_int=1', 'amr.plot_per=-1', 'PSAMR.ps_bc_nscbc_xlo=0',
+                               'PSAMR.ps_bc_nscbc_type_xhi=vent', 'PSAMR.ps_bc_p_amb_xhi=1.9e6'])
     if not check(T, rc == 0 and len(fs) == 2, 'rc=%d, %d plotfiles (expected plt_00000 and plt_00001)' % (rc, len(fs)), cmd): return False
     want = [('ps_bc_use_nscbc', '1'), ('ps_bc_nscbc_xlo', '0'), ('ps_bc_nscbc_xhi', '1'),
             ('ps_bc_nscbc_type_xlo', 'nr'), ('ps_bc_nscbc_type_xhi', 'vent'), ('ps_bc_nscbc_nsec', '2'),
@@ -283,7 +283,7 @@ def t_jobinfo():
     for p in fs:
         ji = open(p + '/job_info').read(); miss = []
         for k, v in want:
-            vals = re.findall(r'^CAMR\.%s\s*(?:\(nvals = \d+\)\s*::|=)\s*(.*)$' % k, ji, re.M)
+            vals = re.findall(r'^PSAMR\.%s\s*(?:\(nvals = \d+\)\s*::|=)\s*(.*)$' % k, ji, re.M)
             vals = [x.strip().strip('[]"') for x in vals]
             if not vals: miss.append(k + ' absent')
             elif v is not None and not any(abs(float(x) - float(v)) < 1e-9 * max(1.0, abs(float(v))) if re.match(r'^[-+0-9.eE]+$', x) and re.match(r'^[-+0-9.eE]+$', v) else x == v for x in vals):

@@ -33,7 +33,7 @@
 #include <AMReX_GpuQualifiers.H>
 
 //  Host-only diagnostic counters (PsCounters, PS_counters.H), reported
-//  and reset in CAMR_advance.cpp:
+//  and reset in PSAMR_advance.cpp:
 //    promote_refuse : would-be-Independent phases demoted to Corridor
 //                     for energy-unreachability ([PS-PROMOTE]).
 //    floor_skip     : per-phase floor legs skipped on a non-Independent

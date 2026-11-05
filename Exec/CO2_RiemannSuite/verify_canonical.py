@@ -16,7 +16,7 @@ Checks:
      absent phases; the presence paths must give the same battery)
   2. B4 theta-independence — mode 5 at theta = 1e-4 AND 1e-7, u-err
      ~0.126 at both (the X3 fixed point is theta-independent); measured
-     at the code default CAMR.ps_flash_metastable_margin = 0.10
+     at the code default PSAMR.ps_flash_metastable_margin = 0.10
   3. B9 finite-rate control closure (mode 2, tau=1e-4) — u-err matches
      the recorded value 0.752
   4. zero-trace two-phase — frozen B4 with prob.alpha_trace=0 (fold and
@@ -86,18 +86,18 @@ def run_case(name, extra, pref, N=64, env=None):
     c = F.CD[name]; tf = c[3]
     ov = {'amr.n_cell': N, 'geometry.prob_lo': 0.0, 'geometry.prob_hi': 1.0,
           'prob.x_diaph': 0.5, 'prob.alpha_trace': 1.0e-6, 'prob.p_amb': 5.0e6,
-          'CAMR.ps_flux': 'wp', 'CAMR.ps_wp_order': 2, 'CAMR.cfl': 0.25, 'CAMR.do_mol': 0, 'CAMR.ps_do_relax': 1,
+          'PSAMR.ps_flux': 'wp', 'PSAMR.ps_wp_order': 2, 'PSAMR.cfl': 0.25, 'PSAMR.do_mol': 0, 'PSAMR.ps_do_relax': 1,
           'stop_time': tf}
     ov.update(extra)
-    ov.update(F.camr_side(c[1], 'L')); ov.update(F.camr_side(c[2], 'R'))
+    ov.update(F.psamr_side(c[1], 'L')); ov.update(F.psamr_side(c[2], 'R'))
     #  PROBE_OV="k=v,k=v": one-off overrides, applied last so they always
     #  win (as in exact_suite.py).
     for _kv in os.environ.get('PROBE_OV', '').split(','):
         if _kv.strip():
             _k, _v = _kv.split('='); ov[_k.strip()] = _v.strip()
-    cmd = [F.CAMR, 'inputs'] + [f'{k}={v}' for k, v in ov.items()]
+    cmd = [F.PSAMR, 'inputs'] + [f'{k}={v}' for k, v in ov.items()]
     cmd += ['amr.plot_int=-1', f'amr.plot_per={tf}', f'amr.plot_file={pref}',
-            'amr.v=0', 'CAMR.v=0']
+            'amr.v=0', 'PSAMR.v=0']
     e = dict(os.environ); e.update(env or {})
     _RUN_T0[0] = time.time() - 1.0     # mtime granularity margin
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -106,7 +106,7 @@ def run_case(name, extra, pref, N=64, env=None):
 
 # ---------------------------------------------------------------- check 0
 print('== 0. build freshness ==')
-exe = F.CAMR
+exe = F.PSAMR
 SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'Source')
 exe_m = os.path.getmtime(exe)
 stale = []
@@ -139,8 +139,8 @@ EXPECT = {  # (rho, u, P) rel-L2, frozen config (relax_mode 0, mt/flash tau 0)
  'C2-Acoustic-limit': (0.000, 0.125, 0.000),
  'C3-Strong-shock-V': (0.029, 0.108, 0.027),
 }
-frozen_cfg = {'CAMR.ps_do_relax': 1, 'CAMR.ps_relax_mode': 0,
-              'CAMR.ps_mt_tau': 0, 'CAMR.ps_flash_tau': 0.0}
+frozen_cfg = {'PSAMR.ps_do_relax': 1, 'PSAMR.ps_relax_mode': 0,
+              'PSAMR.ps_mt_tau': 0, 'PSAMR.ps_flash_tau': 0.0}
 #  Two configurations of the same battery: the corridor seed
 #  prob.alpha_trace=1e-6 (the run_case default) and exact-zero absent
 #  phases (prob.alpha_trace=0).  Both must reproduce the recorded tuples:
@@ -170,12 +170,12 @@ for label, extra, pref in (('alpha_trace=1e-6', {}, 'vc_'),
 print('== 2. B4 theta-independence (mode 5) ==')
 #  X3 at theta = 1e-4 and 1e-7 s (flash tau swept with it); the fixed point
 #  is theta-independent, so the u error must not move.  Measured at the
-#  code default CAMR.ps_flash_metastable_margin = 0.10.
+#  code default PSAMR.ps_flash_metastable_margin = 0.10.
 u_errs = {}
 for tau in (1e-4, 1e-7):
     m = run_case('B4-Cross-critical',
-                 {'CAMR.ps_relax_mode': 5, 'CAMR.ps_theta_tau': tau,
-                  'CAMR.ps_flash_tau': tau},
+                 {'PSAMR.ps_relax_mode': 5, 'PSAMR.ps_theta_tau': tau,
+                  'PSAMR.ps_flash_tau': tau},
                  f'vc5_B4_{tau:.0e}_')
     u_errs[tau] = l2(m, load_hem_analytic('B4'))['u'] if m else float('nan')
 check('B4 u-err ~0.126 at theta=1e-4', abs(u_errs[1e-4] - 0.126) < 0.02,
@@ -188,8 +188,8 @@ check('B4 flat across theta', abs(u_errs[1e-4] - u_errs[1e-7]) < 0.01,
 # ---------------------------------------------------------------- check 3
 print('== 3. B9 finite-rate control closure (mode 2, tau=1e-4) ==')
 m = run_case('B9-Deep-Expansion',
-             {'CAMR.ps_relax_mode': 2, 'CAMR.ps_theta_tau': 1e-4,
-              'CAMR.ps_mt_tau': 1e-4},
+             {'PSAMR.ps_relax_mode': 2, 'PSAMR.ps_theta_tau': 1e-4,
+              'PSAMR.ps_mt_tau': 1e-4},
              'vcrp1_B9_')
 res_b9 = l2(m, load_hem_analytic('B9'))['u'] if m else float('nan')
 # The reference value is a recorded output of this implementation with the
@@ -201,8 +201,8 @@ check('B9 u-err reproduces the recorded value (~0.752)', abs(res_b9 - 0.752) < 0
 # ---------------------------------------------------------------- check 4
 print('== 4. zero-trace two-phase: frozen B4 with exactly absent phases (fold + birth live) ==')
 m = run_case('B4-Cross-critical',
-             {'CAMR.ps_do_relax': 1, 'CAMR.ps_relax_mode': 0,
-              'CAMR.ps_mt_tau': 0, 'CAMR.ps_flash_tau': 0.0,
+             {'PSAMR.ps_do_relax': 1, 'PSAMR.ps_relax_mode': 0,
+              'PSAMR.ps_mt_tau': 0, 'PSAMR.ps_flash_tau': 0.0,
               'prob.alpha_trace': 0.0},
              'vz_B4f_')
 if m is None:
@@ -215,8 +215,8 @@ else:
 # ---------------------------------------------------------------- check 5
 print('== 5. operator gating under presence ==')
 m = run_case('B5-Both-2P',
-             {'CAMR.ps_do_relax': 1, 'CAMR.ps_relax_mode': 0,
-              'CAMR.ps_mt_tau': 0, 'CAMR.ps_flash_tau': 0.0,
+             {'PSAMR.ps_do_relax': 1, 'PSAMR.ps_relax_mode': 0,
+              'PSAMR.ps_mt_tau': 0, 'PSAMR.ps_flash_tau': 0.0,
               'prob.alpha_trace': 0.0},
              'v4_B5_')
 if m is None:
@@ -228,7 +228,7 @@ else:
     check('frozen B5 u-err ~0.39 (guard retired)',
           abs(e['u'] - 0.388) < 0.03, f"got {e['u']:.3f}")
 m = run_case('B2-Evap-wave',
-             {'CAMR.ps_relax_mode': 5, 'prob.alpha_trace': 0.0},
+             {'PSAMR.ps_relax_mode': 5, 'prob.alpha_trace': 0.0},
              'v5_B2_')
 if m is None:
     check('B2 front stability', False, 'run failed')
@@ -259,8 +259,8 @@ else:
 print('== 6. B12 two-phase wall reflection: per-phase compression bound ==')
 B12 = 'B12-TwoPhase-Wall-Reflection'
 _pref = 'vcb12_'
-run_case(B12, {'CAMR.ps_relax_mode': 0, 'CAMR.ps_mt_tau': 0,
-               'CAMR.ps_flash_tau': 0.0}, _pref)
+run_case(B12, {'PSAMR.ps_relax_mode': 0, 'PSAMR.ps_mt_tau': 0,
+               'PSAMR.ps_flash_tau': 0.0}, _pref)
 _g = fresh_plotfiles(_pref)
 if not _g:
     check('B12 ran (plotfile written)', False, 'no plotfile — did the run abort?')

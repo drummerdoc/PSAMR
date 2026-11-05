@@ -2,7 +2,7 @@
 #define PS_RELAX_H
 // =====================================================================
 //  PS_relax.H — the relaxation dispatch of the six-equation Pelanti–Shyue
-//  model on the CAMR grid: the EOS callback (ps_make_camr_eos_api), the
+//  model on the PSAMR grid: the EOS callback (ps_make_psamr_eos_api), the
 //  presence relax gate and entry gate, the per-mode cell wrappers over
 //  the hem kernels (modes 0, 2 and the default coupled X3, mode 5),
 //  the relaxation dials, and ps_apply_relaxation with its sweep reports
@@ -23,7 +23,7 @@
 #include "PS_constants.H"  // ps_const:: shared numeric floors
 #include "PS_util.H"       // ps_kinetic_energy, ps_pack_v6 / ps_unpack_v6
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
-#include "PS_dials.H"      // ps_dial_int / ps_dial_real (CAMR.* reads)
+#include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Print.H>
@@ -41,7 +41,7 @@ inline PsPresDiag&  ps_pres_diag_data() { return ps_counters().pres; }
 
 
 // -----------------------------------------------------------------
-//  ps_make_camr_eos_api — the PsPhaseAPI callback every hem kernel here
+//  ps_make_psamr_eos_api — the PsPhaseAPI callback every hem kernel here
 //  uses.  Fluid metadata (critical and triple points, density domain,
 //  Psat(T), molar mass) comes from the EOS, so no kernel carries a fluid
 //  constant.  state_from_rho_e_phase is branch-locked (phase 1 liquid,
@@ -52,7 +52,7 @@ inline PsPresDiag&  ps_pres_diag_data() { return ps_counters().pres; }
 //  never an abort (docs/MODEL_AND_ALGORITHM.md §7.2).
 // -----------------------------------------------------------------
 inline hem::PsPhaseAPI
-ps_make_camr_eos_api()
+ps_make_psamr_eos_api()
 {
     hem::PsPhaseAPI api;
     api.T_crit_K   = double(EOS::T_crit());
@@ -100,7 +100,7 @@ ps_make_camr_eos_api()
         amrex::Real Yw[NUM_SPECIES];
         ps_pure_species(Yw);
         amrex::Real wbar = amrex::Real(0.0);
-        EOS::Y2WBAR(Yw, wbar);            // [kg/mol] in every CAMR backend
+        EOS::Y2WBAR(Yw, wbar);            // [kg/mol] in every PSAMR backend
         api.M_kg_mol = double(wbar);
         api.R_gas_J_molK = double(hem::R_gas);
     }
@@ -351,7 +351,7 @@ ps_x3_grid_relax_cell(int i, int j, int k,
 
 
 
-// CAMR.ps_relax_mode (5): 5 = the coupled X3 operator
+// PSAMR.ps_relax_mode (5): 5 = the coupled X3 operator
 // (ps_x3_grid_relax_cell); 0 = mechanical only, for frozen-limit tests;
 // 2 = isochoric P + finite-rate thermal with the split Gibbs-driven
 // transfer source (the finite-rate alternative, retained as the control
@@ -366,7 +366,7 @@ inline int ps_relax_mode()
     static const int m = []() -> int {
         const int v = ps_dial_int("ps_relax_mode", 5);
         if (v != 0 && v != 2 && v != 5) {
-            amrex::Abort("CAMR.ps_relax_mode = " + std::to_string(v) +
+            amrex::Abort("PSAMR.ps_relax_mode = " + std::to_string(v) +
                          " is not a mode (valid: 0,2,5)");
         }
         return v;
@@ -375,7 +375,7 @@ inline int ps_relax_mode()
 }
 
 // -----------------------------------------------------------------
-//  CAMR.ps_coexist_action (0): the thermal leg's response when a phase
+//  PSAMR.ps_coexist_action (0): the thermal leg's response when a phase
 //  leaves the coexistence band (T outside (T_triple, T_crit)), mode 5
 //  (PsX3Params.coexist_action).  One predicate gates thermal relaxation,
 //  mass transfer and the flash, so a cell whose vapour has left the band
@@ -390,13 +390,13 @@ inline int ps_coexist_action()
     static const int a = []() -> int {
         const int v = ps_dial_int("ps_coexist_action", 0);
         if (v != 0 && v != 1) {
-            amrex::Abort("CAMR.ps_coexist_action must be 0 or 1");
+            amrex::Abort("PSAMR.ps_coexist_action must be 0 or 1");
         }
         return v; }();
     return a;
 }
 
-// CAMR.ps_theta_tau (1e-7 s): thermal relaxation time, modes 2 and 5.
+// PSAMR.ps_theta_tau (1e-7 s): thermal relaxation time, modes 2 and 5.
 //   theta > 0   finite backward-Euler rate (the linearised T1-T2 decay time).
 //   theta <= 0  instantaneous thermal equilibrium: at mode 5, T1 = T2 joins
 //               the P1 = P2 constraint.  It never means "thermal off" —
@@ -409,7 +409,7 @@ inline amrex::Real ps_theta_tau()
     return v;
 }
 
-// CAMR.ps_work_kappa (1.0): cost of one branch-locked EOS solve relative to
+// PSAMR.ps_work_kappa (1.0): cost of one branch-locked EOS solve relative to
 //   one cell's hydro update, the weight of n_solve in the work estimate
 //   w = 1 + kappa * n_solve that amr.loadbalance_with_workestimates
 //   knapsacks (docs/DESIGN_DECISIONS.md O-23).  Scheduling only: the
@@ -426,7 +426,7 @@ inline amrex::Real ps_work_kappa()
 //  once, resets the per-sweep counters, dispatches every cell to the
 //  kernel for ps_relax_mode, then prints the gated reports ([PS-WORK], [PS-CORRIDOR],
 //  [PS-GATE], [PS-DT], [PS-X3]).  Called from apply_ps_reaction under
-//  CAMR.ps_do_relax; do_print = false (the Strang pre-half step, a trial
+//  PSAMR.ps_do_relax; do_print = false (the Strang pre-half step, a trial
 //  of the relaxed boundary) prints nothing and leaves the [PS-X3]
 //  statistics running.  Host-only: the kernels take a
 //  std::function callback.  work, when given (valid cells of S_new's
@@ -438,10 +438,10 @@ ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
                     amrex::MultiFab* work = nullptr)
 {
     // EOS-heavy (branch-locked solves per phase per cell): the dominant
-    // physics cost of CAMR_advance.
+    // physics cost of PSAMR_advance.
     BL_PROFILE("PS::ps_apply_relaxation()");
 
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
 
     // Reset the per-sweep counters.
     ps_counters().n_gate_presence = 0;

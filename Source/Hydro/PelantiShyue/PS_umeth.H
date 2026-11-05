@@ -5,7 +5,7 @@
 //                 interior: entry point and flux-selector accessors.
 //
 //  The signature mirrors MOL_umeth so Hydro_umdrv.cpp dispatches between
-//  Godunov / MOL / PS behind the single runtime flag CAMR.ps_hydro.  The
+//  Godunov / MOL / PS behind the single runtime flag PSAMR.ps_hydro.  The
 //  fluctuation kernel is PS_HLLC::fluctuations (PS_hllc.H), driven by the
 //  ParallelFor kernels in PS_umeth.cpp.  See docs/MODEL_AND_ALGORITHM.md
 //  §1-§3 and the header of PS_umeth.cpp for the contract.
@@ -18,7 +18,7 @@
 //  Single host-side readers of the flux selector; every banner prints
 //  the resolved value these return, so the log never names a flux that
 //  did not run.
-const char* ps_flux_name();              // "wp", the only interior flux; any other CAMR.ps_flux aborts
+const char* ps_flux_name();              // "wp", the only interior flux; any other PSAMR.ps_flux aborts
 
 //  The signature carries what the solver reads: the conserved state, the
 //  update and flux arrays it writes, pdivu (zeroed), the transverse-term

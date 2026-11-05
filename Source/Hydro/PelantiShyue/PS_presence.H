@@ -20,7 +20,7 @@
 //
 //  PsPres is a by-value POD read once on the host (ps_presence_params)
 //  and captured into kernels; the classifier reads alpha_k and phase
-//  totals only, never species.  Dials (all CAMR.*): ps_alpha_cond (2e-2),
+//  totals only, never species.  Dials (all PSAMR.*): ps_alpha_cond (2e-2),
 //  ps_alpha_birth (4e-2), ps_presence_vanish (1e-8), ps_presence_rho_deg
 //  (0.5), ps_presence_e_deg_lo/_hi (-2e6 / 2e7).
 // =====================================================================

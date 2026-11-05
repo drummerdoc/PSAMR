@@ -3,7 +3,7 @@
 # note, name can have two values, as (a, b).  a will be the name used
 # in the inputs file, b is the variable name in the C++ class.
 
-@namespace: CAMR CAMR static
+@namespace: PSAMR PSAMR static
 
 #-----------------------------------------------------------------------------
 # category: AMR
@@ -48,7 +48,7 @@ do_mol                       int          0
 ps_hydro                     int          0
 
 
-# Coarse-fine α co-move in CAMR::reflux (docs/MODEL_AND_ALGORITHM.md
+# Coarse-fine α co-move in PSAMR::reflux (docs/MODEL_AND_ALGORITHM.md
 # §1.5, §4.9): after the conservative FluxRegister has refluxed the
 # partial masses, α₁ is moved with its own mass in capacity form,
 # Δα = Δm₁/ρ₁, so ρ_k = m_k/α_k stays consistent across the coarse-fine

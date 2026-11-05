@@ -19,7 +19,7 @@
 //  refusal is a verdict).  Mixture mass, momentum and total energy are
 //  invariant under every kernel by construction.
 //
-//  Dials: CAMR.* keys read once, through the accessors of hem_eos_api.H
+//  Dials: PSAMR.* keys read once, through the accessors of hem_eos_api.H
 //  (ps_dial_*, ps_diag_*) and function-local statics in the kernels; each
 //  is documented at its read site.
 // =====================================================================

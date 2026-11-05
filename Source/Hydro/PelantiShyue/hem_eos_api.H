@@ -30,7 +30,7 @@
 namespace hem {
 
 // ---------------------------------------------------------------------
-//  Runtime dials.  Every dial is a CAMR.* ParmParse key read once per
+//  Runtime dials.  Every dial is a PSAMR.* ParmParse key read once per
 //  process into a function-local static through ps_dial_* (PS_dials.H),
 //  which adds the resolved value back so the configuration lands in
 //  job_info.  Safe because every kernel here is host-only.
@@ -100,12 +100,12 @@ struct PsPhaseAPI {
 
     // Equilibrium vapour mass fraction of the mixture state (rho, e) on the
     // backend's own dome; NaN when (rho, e) is not inside it.  Optional:
-    // only the HRM-source probe of the flash kernel (CAMR.ps_flash_hrm = 1)
+    // only the HRM-source probe of the flash kernel (PSAMR.ps_flash_hrm = 1)
     // asks for it.
     std::function<double(double rho, double e)> xsat_of_rho_e;
 
     // Fluid critical and triple-point data, set from the EOS so the
-    // two-phase gates stay fluid-agnostic (ps_make_camr_eos_api sets all).
+    // two-phase gates stay fluid-agnostic (ps_make_psamr_eos_api sets all).
     double T_crit_K   = 0.0;
     double P_crit_Pa  = 0.0;
     double T_triple_K = 0.0;
@@ -115,7 +115,7 @@ struct PsPhaseAPI {
     // rho_k = m_k/alpha_k may not leave [rho_dom_lo, rho_dom_hi], because
     // P_k(rho_k) is undefined there and a Newton stepping past the edge
     // iterates on garbage (solver correctness, not a guard).  Unset (0) =
-    // no barrier; CAMR sets these under presence (ps_make_camr_eos_api).
+    // no barrier; PSAMR sets these under presence (ps_make_psamr_eos_api).
     double rho_dom_lo = 0.0;
     double rho_dom_hi = 0.0;
     bool has_rho_dom() const { return rho_dom_lo > 0.0 && rho_dom_hi > rho_dom_lo; }
@@ -200,20 +200,20 @@ inline bool ps_apply_vanish_fold(V6& U, double alpha_vanish)
 //  One read per dial: these accessors are the single source of truth for
 //  the keys they name (a dial with two readers is a dial with two defaults
 //  waiting to disagree).
-//  CAMR.ps_mt_h_weight (0.5): interface enthalpy h_I = (1-w) h_1 + w h_2
+//  PSAMR.ps_mt_h_weight (0.5): interface enthalpy h_I = (1-w) h_1 + w h_2
 //    carried by transferred mass; w < 0 = donor's enthalpy (upwind).
-//  CAMR.ps_mt_srt_d (0.1 m): morphology length D in the SRT interfacial
+//  PSAMR.ps_mt_srt_d (0.1 m): morphology length D in the SRT interfacial
 //    area closure Sigma = (16/pi)(alpha_recv + delta) alpha_send / D;
 //    the one undialled number in the chain (docs/MODEL_AND_ALGORITHM.md §5.6).
-//  CAMR.ps_mt_srt_delta (0.01): receiving-phase seed delta in Sigma
+//  PSAMR.ps_mt_srt_delta (0.01): receiving-phase seed delta in Sigma
 //    (Lund & Aursand's value), so transfer can start from nothing.
 inline double ps_dial_mt_h_weight()       { static const double v = ps_dial_real("ps_mt_h_weight",      0.5); return v; }
 inline double ps_dial_mt_srt_d()          { static const double v = ps_dial_real("ps_mt_srt_d",         0.1); return v; }
 inline double ps_dial_mt_srt_delta()      { static const double v = ps_dial_real("ps_mt_srt_delta",    0.01); return v; }
-//  CAMR.ps_mt_no_dome_gate (0): 1 disables the coexistence gate globally
+//  PSAMR.ps_mt_no_dome_gate (0): 1 disables the coexistence gate globally
 //    (non-CO2 or mock EOS), in both split mass-transfer kernels.
 inline int    ps_dial_mt_no_dome_gate()   { static const int    v = ps_dial_int ("ps_mt_no_dome_gate",  0);  return v; }
-//  CAMR.ps_mt_form (0): form of the split finite-rate step
+//  PSAMR.ps_mt_form (0): form of the split finite-rate step
 //    (ps_mass_transfer_finite_cell).  0 = exact relaxation toward the
 //    Gibbs-equilibrium target, dm = (1 - exp(-dt/tau)) dm_eq: unconditionally
 //    stable, cannot cross dm_eq; tau_g -> 0 is instantaneous.  1 = backward
@@ -225,9 +225,9 @@ inline int    ps_dial_mt_no_dome_gate()   { static const int    v = ps_dial_int 
 inline int    ps_dial_mt_form()           { static const int    v = ps_dial_int ("ps_mt_form",          0);  return v; }
 
 //  Diagnostic dials, one read each (all default off).
-//  CAMR.ps_pres_diag (0): the [PS-WORK]/[PS-CORRIDOR]/[PS-GATE]/[PS-DT]/
+//  PSAMR.ps_pres_diag (0): the [PS-WORK]/[PS-CORRIDOR]/[PS-GATE]/[PS-DT]/
 //    [PS-X3] sweep reports (PS_relax.H) and [PS-FLASH-REF].
-//  CAMR.ps_mt_diag (0): PsMtStats; >= 2 adds the contraction ratio.
+//  PSAMR.ps_mt_diag (0): PsMtStats; >= 2 adds the contraction ratio.
 inline int ps_diag_pres()       { static const int v = ps_dial_int("ps_pres_diag",     0); return v; }
 inline int ps_diag_mt()         { static const int v = ps_dial_int("ps_mt_diag",       0); return v; }
 

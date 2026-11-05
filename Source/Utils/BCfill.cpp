@@ -3,7 +3,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_PhysBCFunct.H>
 
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "prob.H"
 #include "PS_nscbc.H"
 #ifdef USE_PS_HYDRO
@@ -14,10 +14,10 @@ struct PCHypFillExtDir
 {
   ProbParmDevice const* lprobparm;
   // NSCBC dispatch settings, captured host-side when the functor is built
-  // (CAMR_bcfill_hyp) so the device operator() never reads ParmParse or
-  // CAMR statics.  See docs/MODEL_AND_ALGORITHM.md §6.
+  // (PSAMR_bcfill_hyp) so the device operator() never reads ParmParse or
+  // PSAMR statics.  See docs/MODEL_AND_ALGORITHM.md §6.
   // Per-face NSCBC enable, indexed [2*idir + (0=lo,1=hi)]; resolved in
-  // CAMR_bcfill_hyp.  Faces are selected individually because bcnormal
+  // PSAMR_bcfill_hyp.  Faces are selected individually because bcnormal
   // owns problem-specific faces (the pipe-break rupture plane) that a
   // global switch would replace wholesale.
   amrex::GpuArray<int, 2*AMREX_SPACEDIM> use_nscbc_face;
@@ -248,18 +248,18 @@ struct PCHypFillExtDir
 const PsNscbcCfg&
 ps_nscbc_cfg()
 {
-  //   CAMR.ps_bc_use_nscbc (0): global NSCBC outflow switch.
-  //   CAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
+  //   PSAMR.ps_bc_use_nscbc (0): global NSCBC outflow switch.
+  //   PSAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
   //     ambient pressure, for problems whose two ends see different far
   //     fields.
-  //   CAMR.ps_bc_nscbc_{x,y,z}{lo,hi} (-1 = inherit ps_bc_use_nscbc):
+  //   PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi} (-1 = inherit ps_bc_use_nscbc):
   //     per-face NSCBC enable.
   // The resolved values (after the no-USE_PS_HYDRO force-off) are
   // added back to the table so job_info records the BC
   // path that actually ran even when the deck was silent.
   static const PsNscbcCfg cfg = []() -> PsNscbcCfg {
     int u = 0;
-    amrex::ParmParse pp("CAMR");
+    amrex::ParmParse pp("PSAMR");
     pp.query("ps_bc_use_nscbc",   u);
     // Per-face ambient targets; -1 = inherit prob.p_amb at fill time.
     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> pa;
@@ -290,8 +290,8 @@ ps_nscbc_cfg()
 #endif
     for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
       if (uf[f] != -1 && uf[f] != 0 && uf[f] != 1) {
-        amrex::Abort("CAMR.ps_bc_nscbc_{x,y,z}{lo,hi}: accepts 0, 1, or "
-                     "unset (unset inherits CAMR.ps_bc_use_nscbc).");
+        amrex::Abort("PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi}: accepts 0, 1, or "
+                     "unset (unset inherits PSAMR.ps_bc_use_nscbc).");
       }
     }
 #ifndef USE_PS_HYDRO
@@ -306,8 +306,8 @@ ps_nscbc_cfg()
     for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
       const bool inflow = ((f % 2 == 0) ? lo_bc[f/2] : hi_bc[f/2]) == "Inflow";
       if (uf[f] == 1 && !inflow) {
-        amrex::Abort("CAMR.ps_bc_nscbc_{x,y,z}{lo,hi} = 1 on a face whose "
-                     "CAMR.lo_bc/hi_bc is not Inflow.");
+        amrex::Abort("PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi} = 1 on a face whose "
+                     "PSAMR.lo_bc/hi_bc is not Inflow.");
       }
       if (uf[f] == -1) { uf[f] = inflow ? u : 0; }
 #ifndef USE_PS_HYDRO
@@ -351,7 +351,7 @@ ps_nscbc_cfg()
 }
 
 void
-CAMR_bcfill_hyp(
+PSAMR_bcfill_hyp(
   amrex::Box const& bx,
   amrex::FArrayBox& data,
   const int dcomp,
@@ -362,7 +362,7 @@ CAMR_bcfill_hyp(
   const int bcomp,
   const int scomp)
 {
-  const ProbParmDevice* lprobparm = CAMR::d_prob_parm;
+  const ProbParmDevice* lprobparm = PSAMR::d_prob_parm;
 
   const PsNscbcCfg& nscbc_cfg = ps_nscbc_cfg();
 
@@ -372,7 +372,7 @@ CAMR_bcfill_hyp(
     if (!banner_shown) {
       static const char* fnm[6] = {"xlo","xhi","ylo","yhi","zlo","zhi"};
       amrex::Print()
-          << "  CAMR bcfill: outflow (Inflow-flagged) BC per face"
+          << "  PSAMR bcfill: outflow (Inflow-flagged) BC per face"
              " (1 = NSCBC, extrapolated ghost + relaxed boundary; 0 = the"
              " problem's bcnormal):";
       for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
@@ -393,7 +393,7 @@ CAMR_bcfill_hyp(
 }
 
 void
-CAMR_nullfill(
+PSAMR_nullfill(
   amrex::Box const& /*bx*/,
   amrex::FArrayBox& /*data*/,
   const int /*dcomp*/,

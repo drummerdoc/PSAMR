@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Generate CAMR grid-convergence data for the FULL CO2 Riemann battery (19 cases:
+Generate PSAMR grid-convergence data for the FULL CO2 Riemann battery (19 cases:
 A1-A6, B1-B10, C1-C3) at N = 128, 256, 512.
 
 Per-case physics config is inherited verbatim from full_suite.py (case_cfg):
   * vapor A/C            -> mechanical relax, MT off
   * two-phase B          -> isochoric P + finite thermal relax (mode 2) + finite MT
 Numerics matched to the suite: wp flux, 2nd-order (ps_wp_order=2),
-cfl=0.25, do_mol=0.  The current CAMR build (with the #88 metastable guard) is used.
+cfl=0.25, do_mol=0.  The current PSAMR build (with the #88 metastable guard) is used.
 
 RUN ON THE HOST (build the 1D exe first):
     cd Exec/CO2_RiemannSuite
-    make DIM=1 USE_MPI=FALSE COMP=<gnu|llvm> -j          # -> CAMR1d.<toolchain>.PS.ex
-    EXE=./CAMR1d.gnu.TPROF.PS.ex python3 gen_convergence.py
+    make DIM=1 USE_MPI=FALSE COMP=<gnu|llvm> -j          # -> PSAMR1d.<toolchain>.PS.ex
+    EXE=./PSAMR1d.gnu.TPROF.PS.ex python3 gen_convergence.py
   optional subset / resolutions:
-    EXE=./CAMR1d.gnu.TPROF.PS.ex RES=128,256,512 python3 gen_convergence.py B2-Evap-wave B9-Deep-Expansion
+    EXE=./PSAMR1d.gnu.TPROF.PS.ex RES=128,256,512 python3 gen_convergence.py B2-Evap-wave B9-Deep-Expansion
 
 Resumable: a case/resolution whose final plotfile already exists is skipped.
 Data location (printed at the end):
@@ -22,12 +22,12 @@ Data location (printed at the end):
 The N=512 two-phase cases are the slow ones (finite-MT liquid); let it run.
 """
 import os, sys, glob, shlex, subprocess, time
-import full_suite as F        # CASES, CD, camr_side, case_cfg  (same dir)
+import full_suite as F        # CASES, CD, psamr_side, case_cfg  (same dir)
 
-# EXE may be a full command ("mpiexec -np 1 ./CAMR1d.llvm.TPROF.MPI.PS.ex").
+# EXE may be a full command ("mpiexec -np 1 ./PSAMR1d.llvm.TPROF.MPI.PS.ex").
 # If unset, auto-detect the 1D PS exe in cwd (toolchain-independent).
-_auto = sorted(glob.glob('./CAMR1d*.PS.ex'))
-EXE = os.environ.get('EXE') or (_auto[0] if _auto else './CAMR1d.gnu.TPROF.PS.ex')
+_auto = sorted(glob.glob('./PSAMR1d*.PS.ex'))
+EXE = os.environ.get('EXE') or (_auto[0] if _auto else './PSAMR1d.gnu.TPROF.PS.ex')
 EXE_ARGV = shlex.split(EXE)
 RES = [int(x) for x in os.environ.get('RES', '128,256,512').split(',')]
 OUT = os.environ.get('CONV_OUT', 'conv_data')
@@ -46,14 +46,14 @@ def run_case(name, N):
         return 'skip', existing, 0.0
     ov = {'amr.n_cell': N, 'geometry.prob_lo': 0.0, 'geometry.prob_hi': 1.0,
           'prob.x_diaph': 0.5, 'prob.alpha_trace': 1.0e-6, 'prob.p_amb': 5.0e6,
-          'CAMR.ps_flux': 'wp', 'CAMR.ps_wp_order': 2,
-          'CAMR.cfl': 0.25, 'CAMR.do_mol': 0, 'CAMR.ps_do_relax': 1,
+          'PSAMR.ps_flux': 'wp', 'PSAMR.ps_wp_order': 2,
+          'PSAMR.cfl': 0.25, 'PSAMR.do_mol': 0, 'PSAMR.ps_do_relax': 1,
           'stop_time': tf, 'max_step': 2000000}
     cc, _, _ = F.case_cfg(name); ov.update(cc)          # per-case relax mode + MT
-    ov.update(F.camr_side(c[1], 'L')); ov.update(F.camr_side(c[2], 'R'))
+    ov.update(F.psamr_side(c[1], 'L')); ov.update(F.psamr_side(c[2], 'R'))
     cmd = EXE_ARGV + ['inputs'] + [f'{k}={v}' for k, v in ov.items()]
     cmd += ['amr.plot_int=-1', f'amr.plot_per={tf}', f'amr.plot_file={pref}',
-            'amr.v=0', 'CAMR.v=0']
+            'amr.v=0', 'PSAMR.v=0']
     t0 = time.time()
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     p = final_plt(pref)

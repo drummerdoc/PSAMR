@@ -40,7 +40,7 @@
 namespace PS_HLLC {
 
 // -------------------------------------------------------------------
-//  Per-side face state extracted from a CAMR NVAR array.
+//  Per-side face state extracted from a PSAMR NVAR array.
 // -------------------------------------------------------------------
 struct Face {
     amrex::Real alpha_1, alpha_2;
@@ -221,7 +221,7 @@ void ps_star_masses(const Face& fK, amrex::Real r_K,
 
 //  PsCounters::relax_fb counts the faces where the relaxed-alpha
 //  construction fell back to the equal-strain form; reported as
-//  [PS-RELAXFB] and reset with the face audit in CAMR_advance.cpp.
+//  [PS-RELAXFB] and reset with the face audit in PSAMR_advance.cpp.
 
 // ===================================================================
 //  ps_star_state: the HLLC star vector U_star (NVAR layout) on side K
@@ -355,7 +355,7 @@ bool ps_star_state(int idir, const Face& fK, const amrex::Real UK[NVAR],
 // -------------------------------------------------------------------
 //  Face audit (host-only, compiled out on GPU, no effect on the
 //  numerics; printed as [PS-FACE] / [PS-FLCAUSE] / [PS-RELAXFB] under
-//  CAMR.ps_face_diag, see CAMR_advance.cpp).  Face classes: 0 = every
+//  PSAMR.ps_face_diag, see PSAMR_advance.cpp).  Face classes: 0 = every
 //  (side, phase) Independent; 1 = at least one Corridor, no Absent; 2 = at
 //  least one Absent (a presence front).  Storage is the face section of
 //  PsCounters (PS_counters.H): per class, faces seen by fluctuations(),

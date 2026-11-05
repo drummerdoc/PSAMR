@@ -35,7 +35,7 @@ constexpr amrex::Real RHO_MIX_MIN      = amrex::Real(1.0e-6);
 //  non-positive per-phase c_k from the EOS.
 constexpr amrex::Real C_MIN            = amrex::Real(1.0);
 
-//  Reflux alpha floor [-] (CAMR::reflux): the alpha-vs-mass correction
+//  Reflux alpha floor [-] (PSAMR::reflux): the alpha-vs-mass correction
 //  skips alpha_1 <= this and clamps its result to [it, 1 - it].
 constexpr amrex::Real ALPHA_REFLUX_MIN = amrex::Real(1.0e-8);
 

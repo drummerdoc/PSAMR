@@ -5,8 +5,8 @@ Generator: `suite/exact_riemann.py --case <B> --eos pr --model hem|frozen --N 80
 (`profiles/<case>.csv` are `--model frozen`; `exact_<B>_pr.csv` are HEM; `_frozen` are the bracket rows for B2/B9;
 `_gerg` are the GERG-EOS variants, read by `verify_gerg.py` and by `exact_suite.py` under `EXACT_EOS=gerg`).
 
-Ground rule 19: these files have authority because they are computed independently of CAMR.
-They are frozen — never regenerate them as part of a CAMR change. To regenerate after a
+Ground rule 19: these files have authority because they are computed independently of PSAMR.
+They are frozen — never regenerate them as part of a PSAMR change. To regenerate after a
 deliberate standalone change, re-run the generator, update this file, and re-baseline the gate.
 
 Status in the standalone at vendoring time: `profiles/*.csv` are committed there;

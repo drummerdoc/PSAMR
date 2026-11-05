@@ -9,7 +9,7 @@
 #   ./nscbc_xhi_test.sh [NRANKS] [MAXSTEP] [VARIANT ...]
 #   variants (default: all):
 #     A   the deck as it ships: the relaxed boundary on xhi (vent) and ylo/yhi (nr), p_amb 20 bar
-#     B   xhi on the linearised-invariant path (CAMR.ps_bc_nscbc_xhi=0)  -> is the fan/branch the cause?
+#     B   xhi on the linearised-invariant path (PSAMR.ps_bc_nscbc_xhi=0)  -> is the fan/branch the cause?
 #     R   A with the probe line and the validator on (the cheaper protocol is a restart from a
 #         kept checkpoint, amr.restart=runs/nscbc_xhi/F/chk_F_03000, instead of a run from zero)
 #     G   as A on a 4 m domain (40 slot widths, same dx: 512x128 base)     -> does the recompression stay near 20 D (physics)
@@ -26,17 +26,17 @@ set -euo pipefail
 cd "$(dirname "$0")"
 NR=${1:-6}; MS=${2:-6000}; shift $(( $# >= 2 ? 2 : $# )) || true
 VARS=${*:-A B}
-EXE=$(ls -t ./CAMR2d.*.MPI.PS.PR.ex 2>/dev/null | head -1) || { echo "build the 2-D MPI exe first (make -j8 DIM=2 USE_MPI=TRUE Eos_Model=PR)"; exit 1; }
+EXE=$(ls -t ./PSAMR2d.*.MPI.PS.PR.ex 2>/dev/null | head -1) || { echo "build the 2-D MPI exe first (make -j8 DIM=2 USE_MPI=TRUE Eos_Model=PR)"; exit 1; }
 newest=$(find ../../Source -type f \( -name '*.H' -o -name '*.cpp' \) -newer "$EXE" | head -1)
 [ -n "$newest" ] && { echo "STALE BINARY: $EXE older than $newest"; exit 2; }
 COMMON=( amr.max_level=0 "max_step=$MS" stop_time=1.0 amr.plot_int=250 amr.check_int=1000
-         "amr.derive_plot_vars=x_velocity y_velocity pressure soundspeed MachNumber temp_1 temp_2" CAMR.ps_validate=0 )
+         "amr.derive_plot_vars=x_velocity y_velocity pressure soundspeed MachNumber temp_1 temp_2" PSAMR.ps_validate=0 )
 opt_for() {   # macOS ships bash 3.2 (no associative arrays)
   case "$1" in
     A) echo "" ;;
-    B) echo "CAMR.ps_bc_nscbc_xhi=0" ;;
+    B) echo "PSAMR.ps_bc_nscbc_xhi=0" ;;
     G) echo "geometry.prob_hi=4.0 1.0 amr.n_cell=512 128" ;;
-    R) echo "CAMR.ps_bc_nscbc_probe=1 CAMR.ps_validate=1" ;;
+    R) echo "PSAMR.ps_bc_nscbc_probe=1 PSAMR.ps_validate=1" ;;
     *) echo "unknown variant $1" >&2; exit 3 ;;
   esac
 }

@@ -18,7 +18,7 @@ CONV = os.environ.get('CONV_OUT', 'conv_data')
 RES  = [int(x) for x in os.environ.get('RES', '128,256,512').split(',')]
 ANALYTIC = os.environ.get('ANALYTIC', F.ANALYTIC)
 
-def load_camr(name, N):
+def load_psamr(name, N):
     pref = f'{CONV}/{name}_N{N}_'
     g = [p for p in glob.glob(pref+'*') if os.path.isdir(p) and '.old' not in p and not p.endswith('00000')]
     if not g: return None
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     sel = sys.argv[1:] or [c[0] for c in F.CASES]
     with PdfPages('convergence_montage.pdf') as pdf:
         for nm in sel:
-            sols = {N: load_camr(nm, N) for N in RES}
+            sols = {N: load_psamr(nm, N) for N in RES}
             if all(v is None for v in sols.values()):
                 print(f'  {nm}: no data, skip'); continue
             ana = load_analytic(nm)

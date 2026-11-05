@@ -5,7 +5,7 @@
 //  isochoric pressure and thermal kernels (ps_iso_pressure_relax_cell,
 //  ps_iso_thermal_relax_cell, ps_iso_thermal_relax_cell_finite), and the
 //  coupled X3 operator (PsX3Params, ps_x3_relax_cell: the production default,
-//  CAMR.ps_relax_mode=5).  Host-only; every kernel either converges and
+//  PSAMR.ps_relax_mode=5).  Host-only; every kernel either converges and
 //  writes U or returns false with U untouched.  Part of the
 //  hem_pelanti_shyue.H umbrella.  docs/MODEL_AND_ALGORITHM.md §5.1-§5.3.
 // =====================================================================
@@ -20,7 +20,7 @@ namespace hem {
 //  Relaxation kernels.
 // =====================================================================
 
-// CAMR.ps_single_phase_threshold (5e-3): below this alpha_k the
+// PSAMR.ps_single_phase_threshold (5e-3): below this alpha_k the
 // pressure and mass-transfer kernels skip the cell as single-phase.
 // The minority phase's (rho_k, e_k) is then typically off its EOS
 // domain, so its P_k and derivatives are meaningless and a Newton fed
@@ -111,7 +111,7 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
     double e_2      = e2;
 
     for (int iter = 0; iter < p.max_iter; ++iter) {
-        ++ps_mt_stats().pr_iters;   // CAMR.ps_mt_diag: the nesting multiplier
+        ++ps_mt_stats().pr_iters;   // PSAMR.ps_mt_diag: the nesting multiplier
         // Query per-phase P at current state.
         PsPhase ph1, ph2;
         ph1.alpha = alpha; ph2.alpha = 1.0 - alpha;
@@ -325,7 +325,7 @@ inline bool ps_iso_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         if (fv && std::abs(r) < tol_rel * P_ref) {
             commit(e1); return true; }
         const double de = 1.0e-4 * std::max(1.0e3, std::abs(e1));
-        // CAMR.ps_pr_fd1 (0): central FD (4 inversions); 1 = one-sided
+        // PSAMR.ps_pr_fd1 (0): central FD (4 inversions); 1 = one-sided
         // difference reusing r (2 inversions), which changes the Newton
         // trajectory but not the root.
         static const bool fd_one_sided = ps_dial_int("ps_pr_fd1", 0) != 0;
@@ -493,7 +493,7 @@ inline bool ps_iso_thermal_relax_cell_finite(V6& U, const PsPhaseAPI& eos,
 
 
 // =====================================================================
-//  X3 -- the coupled relaxation operator (CAMR.ps_relax_mode=5; grid
+//  X3 -- the coupled relaxation operator (PSAMR.ps_relax_mode=5; grid
 //  wrapper ps_x3_grid_relax_cell, PS_relax.H).  docs §5.1, §5.3, §5.4.
 //  P1 = P2 is a constraint imposed by the alpha-adjusting projector at
 //  every path evaluation (T1 = T2 joins it when theta <= 0); the heat q and
@@ -502,7 +502,7 @@ inline bool ps_iso_thermal_relax_cell_finite(V6& U, const PsPhaseAPI& eos,
 //  integrated by backward Euler on that manifold, so no operator ordering
 //  arises.  Admissible path state: projection succeeds, phases valid,
 //  c_k > 0, P_mix > 0.  Conservative by construction.  At q = dm = 0 (equal
-//  P, T, g) both rates vanish, so BE cannot cross it.  0-D: CAMR.ps_x3_test.
+//  P, T, g) both rates vanish, so BE cannot cross it.  0-D: PSAMR.ps_x3_test.
 // =====================================================================
 //  [PS-X3] outcome counters (PsX3Stats, PS_counters.H).
 inline PsX3Stats&  ps_x3_stats()  { return ps_counters().x3_stats; }
@@ -514,7 +514,7 @@ struct PsX3Params {
     double srt_delta  = 0.01;     // SRT receiving-phase seed
     bool   dome_gate  = true;     // the one eligibility question
     int    max_newton = 40;
-    //  Band-exit policy (CAMR.ps_coexist_action, read in PS_relax.H;
+    //  Band-exit policy (PSAMR.ps_coexist_action, read in PS_relax.H;
     //  default 0): 0 stand, counted; 1 abort with the cell context.  The
     //  runaway clause below is always active.
     int    coexist_action = 0;
@@ -636,7 +636,7 @@ inline bool ps_x3_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
                         << "  g1-g2 = " << (s0.p1.g - s0.p2.g) << " J/kg\n"
                         << "  band = (" << Ttr << ", " << Tcr << ") K\n";
                     amrex::Abort("PS-X3: phase left the coexistence band "
-                                 "(CAMR.ps_coexist_action=1)");
+                                 "(PSAMR.ps_coexist_action=1)");
                 }
                 ++x3s.n_gate_stood;
                 for (int n = 0; n < 6; ++n) U[n] = W0[n];

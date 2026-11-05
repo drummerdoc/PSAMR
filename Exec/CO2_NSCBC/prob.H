@@ -5,7 +5,7 @@
 //  CO2 state with one localised disturbance (prob_parm.H lists the
 //  types) and a zero-gradient bcnormal, so an Inflow face runs either
 //  the NSCBC outflow (extrapolated ghost + relaxed boundary,
-//  CAMR.ps_bc_use_nscbc = 1) or
+//  PSAMR.ps_bc_use_nscbc = 1) or
 //  a plain copy (= 0, the control).  docs/VERIFICATION.md §6.4.
 // =====================================================================
 
@@ -16,7 +16,7 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 // Single-phase state on the dominant branch with a physical trace phase
@@ -95,7 +95,7 @@ void nscbc_fill_mixture(amrex::Real* s, const ProbParmDevice& pp,
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& geomdata,
                ProbParmDevice const& pp)
@@ -141,7 +141,7 @@ CAMR_initdata( int i, int j, int k,
     for (int n = 0; n < NVAR; ++n) state(i,j,k,n) = s[n];
 }
 
-// Zero-gradient ghost: the control when CAMR.ps_bc_use_nscbc = 0.
+// Zero-gradient ghost: the control when PSAMR.ps_bc_use_nscbc = 0.
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void

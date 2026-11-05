@@ -22,11 +22,11 @@ amr.n_cell           =   256   32   32
 
 # Closed pipe end at x-lo (SlipWall); x-hi is Inflow, which dispatches to
 # the NSCBC outflow at p_amb.  Side walls SlipWall.
-CAMR.lo_bc       =  SlipWall   SlipWall   SlipWall
-CAMR.hi_bc       =  Inflow     SlipWall   SlipWall
+PSAMR.lo_bc       =  SlipWall   SlipWall   SlipWall
+PSAMR.hi_bc       =  Inflow     SlipWall   SlipWall
 #  The outlet vents 100 bar to 1 bar: a plenum (vent) face, whose outflow
 #  wave is the choked fan (docs/MODEL_AND_ALGORITHM.md §6.3).
-CAMR.ps_bc_nscbc_type_xhi = vent
+PSAMR.ps_bc_nscbc_type_xhi = vent
 
 # Final plotfile only.
 amr.plot_file         = plt

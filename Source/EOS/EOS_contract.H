@@ -1,7 +1,7 @@
 #ifndef EOS_CONTRACT_H
 #define EOS_CONTRACT_H
 // =====================================================================
-//  EOS_contract.H — the part of CAMR's namespace EOS free-function
+//  EOS_contract.H — the part of PSAMR's namespace EOS free-function
 //  contract that is the same for every CO2 backend (PR, PRTab, GERG,
 //  GERGTab): the branch-locked thin wrappers over the backend's _phase
 //  entries, and the forwarders the shared derives call.  No arithmetic

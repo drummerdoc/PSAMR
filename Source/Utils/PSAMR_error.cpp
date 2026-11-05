@@ -1,5 +1,5 @@
 
-#include <CAMR.H>
+#include <PSAMR.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_ParmParse.H>
 
@@ -12,7 +12,7 @@ using std::string;
 using namespace amrex;
 
 void
-CAMR::error_setup()
+PSAMR::error_setup()
 {
     //
     // Dynamically generated error tagging functions
@@ -129,7 +129,7 @@ CAMR::error_setup()
         if ( !isStateVariable(field, state_indx, ncomp) &&
              !derive_lst.canDerive(field) )
         {
-            Abort("CAMR::error_setup: refinement indicator asks to tag on \""
+            Abort("PSAMR::error_setup: refinement indicator asks to tag on \""
                   + field + "\", which is neither a state variable nor a "
                   "registered derived quantity");
         }
@@ -137,13 +137,13 @@ CAMR::error_setup()
 
     //
     // For hard-coded error estimation function, that would go in
-    // CAMR::errorEst()
+    // PSAMR::errorEst()
     //
 }
 
 
 void
-CAMR::errorEst (TagBoxArray& tags,
+PSAMR::errorEst (TagBoxArray& tags,
                 int          clearval,
                 int          tagval,
                 Real         time,

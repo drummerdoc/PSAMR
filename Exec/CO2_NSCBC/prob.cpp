@@ -1,6 +1,6 @@
 #include "AMReX_PROB_AMR_F.H"
 #include "AMReX_ParmParse.H"
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "prob.H"
 
 extern "C" {
@@ -11,7 +11,7 @@ extern "C" {
                         const amrex_real* /*probhi*/)
     {
         amrex::ParmParse pp("prob");
-        ProbParmDevice& p = *CAMR::h_prob_parm;
+        ProbParmDevice& p = *PSAMR::h_prob_parm;
         pp.query("p0",    p.p0);
         pp.query("T0",    p.T0);
         pp.query("u0",    p.u0);
@@ -39,7 +39,7 @@ extern "C" {
         if (p.ic < 0 || p.ic > 4) amrex::Abort("prob.ic: 0..4");
         if (p.ic == 4 && p.two_phase == 0) amrex::Abort("prob.ic=4 needs prob.two_phase=1");
         amrex::Gpu::copy(amrex::Gpu::hostToDevice,
-                         CAMR::h_prob_parm, CAMR::h_prob_parm+1,
-                         CAMR::d_prob_parm);
+                         PSAMR::h_prob_parm, PSAMR::h_prob_parm+1,
+                         PSAMR::d_prob_parm);
     }
 }

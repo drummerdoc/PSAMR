@@ -15,22 +15,22 @@ amr.n_cell           =    32   32   32
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-CAMR.lo_bc       =  Outflow  NoSlipWall   SlipWall
-CAMR.hi_bc       =  Outflow  NoSlipWall   SlipWall
+PSAMR.lo_bc       =  Outflow  NoSlipWall   SlipWall
+PSAMR.hi_bc       =  Outflow  NoSlipWall   SlipWall
 
-CAMR.cfl = 0.3  # cfl number for hyperbolic system
+PSAMR.cfl = 0.3  # cfl number for hyperbolic system
 
 # Use Godunov PPM
-CAMR.do_mol = 0
-CAMR.ppm_type = 1
+PSAMR.do_mol = 0
+PSAMR.ppm_type = 1
 
-CAMR.v = 2
+PSAMR.v = 2
 amr.v = 1
 
-CAMR.sum_interval = 1
+PSAMR.sum_interval = 1
 
-CAMR.redistribution_type = FluxRedist
-CAMR.redistribution_type = StateRedist
+PSAMR.redistribution_type = FluxRedist
+PSAMR.redistribution_type = StateRedist
 
 # LOAD BALANCE
 amr.loadbalance_with_workestimates = 0

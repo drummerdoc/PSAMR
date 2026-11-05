@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """table_ab.py -- is a table backend's error small against the error we already accept?
 
-    CAMR_EXE=<1-D PRTab or GERGTab build> python3 table_ab.py [case ...]
+    PSAMR_EXE=<1-D PRTab or GERGTab build> python3 table_ab.py [case ...]
 
-One binary, two arms: every case is run with CAMR.eos_table=1 (the table) and
-CAMR.eos_table=0 (the analytic parent), in the acceptance configuration of
+One binary, two arms: every case is run with PSAMR.eos_table=1 (the table) and
+PSAMR.eos_table=0 (the analytic parent), in the acceptance configuration of
 exact_suite.py.  Per field q in (rho, u, P) the table's effect
 
     D = RMS(q_table - q_analytic)            (same grid, field units)
@@ -30,13 +30,13 @@ import numpy as np
 F_BUDGET = 0.1
 ROUNDOFF = 1e-9
 
-exe_name = os.path.basename(os.environ.get('CAMR_EXE', ''))
+exe_name = os.path.basename(os.environ.get('PSAMR_EXE', ''))
 if '.PRTab.' in exe_name:
     os.environ['EXACT_EOS'] = 'pr'
 elif '.GERGTab.' in exe_name:
     os.environ['EXACT_EOS'] = 'gerg'
 else:
-    sys.exit('table_ab: CAMR_EXE must be a PRTab or GERGTab build (got %r)' % exe_name)
+    sys.exit('table_ab: PSAMR_EXE must be a PRTab or GERGTab build (got %r)' % exe_name)
 import exact_suite as X
 import full_suite as F
 
@@ -46,7 +46,7 @@ def fields(case, table):
     for p in glob.glob(pref + '*'):
         if os.path.isdir(p):
             shutil.rmtree(p)                     # never score a stale plotfile
-    os.environ['PROBE_OV'] = 'CAMR.eos_table=%d' % table
+    os.environ['PROBE_OV'] = 'PSAMR.eos_table=%d' % table
     try:
         rc, _ = X.run(case, 'wp', pref)
     finally:

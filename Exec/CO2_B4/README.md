@@ -3,7 +3,7 @@
 The standalone suite's B4 case as a 2-D (1-D-in-$x$) deck: liquid CO₂ at 270 K, 100 bar on the left, supercritical CO₂ at 350 K, 50 bar on the right, diaphragm at `prob.x_diaph = 0.5`, $t_{\mathrm{final}} = 7.339590\times10^{-4}$ s, both $x$ faces interior-copy outflow (`bcnormal` picks `p_amb_lo`/`p_amb_hi` by side), $y$ slip walls. The same case is in `CO2_RiemannSuite` for the 1-D gate; this directory exists for the things only a 2-D build with AMR can exercise — the coarse-fine handling of a Riemann fan that crosses a static refinement box.
 
     make -j8 COMP=gnu DIM=2 USE_MPI=TRUE Eos_Model=PR
-    mpiexec -np 4 ./CAMR2d.gnu.MPI.PS.PR.ex inputs-cf-contact
+    mpiexec -np 4 ./PSAMR2d.gnu.MPI.PS.PR.ex inputs-cf-contact
 
 | Deck | Purpose |
 |---|---|

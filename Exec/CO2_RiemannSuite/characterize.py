@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-characterize.py -- LOCK CAMR's current behaviour, so a refactor can be proven
+characterize.py -- LOCK PSAMR's current behaviour, so a refactor can be proven
 inert instead of argued about.
 
 This is deliberately NOT a correctness test.  It does not compare against the
 standalone, against an analytic solution, or against anything else external.
-It records what CAMR does today and tells you, later, whether that changed and
+It records what PSAMR does today and tells you, later, whether that changed and
 by how much.  Correctness lives in exact_suite.py / verify_canonical.py.
 
 WHY THIS EXISTS
@@ -27,7 +27,7 @@ USAGE
     ./characterize.py merge BASELINE part1 part2   # join batched --cases records
 
 CONFIGURATIONS
-    default        full_suite.run_camr: the matched CAMR-vs-standalone config
+    default        full_suite.run_psamr: the matched PSAMR-vs-standalone config
                    (mode 2, tau=1e-4 on two-phase cases, alpha_trace=1e-6).
     --defaults     exact_suite.run: bare code defaults, alpha_trace=0 -- the
                    acceptance configuration that exact_suite.py scores.  Use
@@ -74,7 +74,7 @@ def fingerprint(path):
 
 
 def latest_plotfile(name, pre=None):
-    g = [p for p in glob.glob((pre if pre else F.CAMR_PRE + name + '_') + '*')
+    g = [p for p in glob.glob((pre if pre else F.PSAMR_PRE + name + '_') + '*')
          if os.path.isdir(p) and '.old' not in p]
     return max(g, key=os.path.getmtime) if g else None
 
@@ -85,7 +85,7 @@ def cmd_record(tag, cases, defaults=False):
     if defaults:
         import exact_suite as X
     for nm in cases:
-        pre = ('ch_' + nm + '_') if defaults else (F.CAMR_PRE + nm + '_')
+        pre = ('ch_' + nm + '_') if defaults else (F.PSAMR_PRE + nm + '_')
         for p in glob.glob(pre + '*'):                   # clear stale output
             if os.path.isdir(p):
                 subprocess.run(['rm', '-rf', p])
@@ -94,7 +94,7 @@ def cmd_record(tag, cases, defaults=False):
                 rc, _ = X.run(nm, 'wp', pre)
                 if rc != 0: raise RuntimeError('rc=%d' % rc)
             else:
-                F.run_camr(nm)
+                F.run_psamr(nm)
         except Exception as e:
             print('  %-26s RUN FAILED (%s)' % (nm, e)); rec[nm] = None; continue
         p = latest_plotfile(nm, pre)

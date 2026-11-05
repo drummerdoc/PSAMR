@@ -1,10 +1,10 @@
 #C++ files
 CEXE_sources += main.cpp
-CEXE_sources += CAMR.cpp
-CEXE_sources += CAMR_advance.cpp
-CEXE_sources += CAMR_react.cpp
-CEXE_sources += CAMR_sources.cpp
+CEXE_sources += PSAMR.cpp
+CEXE_sources += PSAMR_advance.cpp
+CEXE_sources += PSAMR_react.cpp
+CEXE_sources += PSAMR_sources.cpp
 CEXE_sources += GravitySrc.cpp
 
 #C++ headers
-CEXE_headers += CAMR.H
+CEXE_headers += PSAMR.H

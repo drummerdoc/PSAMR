@@ -20,20 +20,20 @@ amr.n_cell           =  72 48 48
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-CAMR.lo_bc       =  Outflow  SlipWall   SlipWall
-CAMR.hi_bc       =  Outflow  SlipWall   SlipWall
+PSAMR.lo_bc       =  Outflow  SlipWall   SlipWall
+PSAMR.hi_bc       =  Outflow  SlipWall   SlipWall
 
-CAMR.cfl = 0.3  # cfl number for hyperbolic system
+PSAMR.cfl = 0.3  # cfl number for hyperbolic system
 
-CAMR.do_mol = 1
+PSAMR.do_mol = 1
 
-CAMR.v = 2
+PSAMR.v = 2
 amr.v = 1
 
-CAMR.sum_interval = 1
+PSAMR.sum_interval = 1
 
-CAMR.redistribution_type = FluxRedist
-CAMR.redistribution_type = StateRedist
+PSAMR.redistribution_type = FluxRedist
+PSAMR.redistribution_type = StateRedist
 
 # LOAD BALANCE
 amr.loadbalance_with_workestimates = 0
@@ -59,7 +59,7 @@ amr.plot_int          = 1      # number of timesteps between plotfiles
 amr.derive_plot_vars  = x_velocity y_velocity z_velocity vfrac
 
 # EB
-CAMR.geometry = "converging-nozzle"
+PSAMR.geometry = "converging-nozzle"
 converging_nozzle.d_inlet = 10.0
 converging_nozzle.l_inlet = 4.5
 converging_nozzle.l_nozzle = 9.0
@@ -74,4 +74,4 @@ prob.u_r   = 0.0
 prob.p_r   = 2.5
 prob.interface = -10.0
 
-CAMR.hydro_tile_size=1024 8 8
+PSAMR.hydro_tile_size=1024 8 8

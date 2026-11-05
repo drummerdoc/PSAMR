@@ -1,4 +1,4 @@
-# Working on CAMR's six-equation CO₂ code: the handbook for an agent
+# Working on PSAMR's six-equation CO₂ code: the handbook for an agent
 
 Read this before touching the tree. It is the set of conventions under which every result in `docs/VERIFICATION.md` was produced and every change since the September 2026 hand-over was proven. The maintainer (Marc) holds every design decision; the agent's job is to make changes whose effect is *known*, and to stop when it is not.
 
@@ -16,7 +16,7 @@ Read this before touching the tree. It is the set of conventions under which eve
 
 ## 2. The environment
 
-- **The VM** (where an agent's shell runs) mounts the repo at `$HOME/mnt/CAMR` with `amrex` beside it. Each call is capped at about 175 s; a build or run that needs longer is sliced (`tools/witness/build.sh` returns on the cap and is re-invoked; runs use `Exec/CO2_NSCBC/runchunk.sh` or `pipe_depress.py`'s `WALL`/`RESUME`). Background processes are suspended between calls: do not launch and poll.
+- **The VM** (where an agent's shell runs) mounts the repo at `$HOME/mnt/PSAMR` with `amrex` beside it. Each call is capped at about 175 s; a build or run that needs longer is sliced (`tools/witness/build.sh` returns on the cap and is re-invoked; runs use `Exec/CO2_NSCBC/runchunk.sh` or `pipe_depress.py`'s `WALL`/`RESUME`). Background processes are suspended between calls: do not launch and poll.
 - **The VM cannot delete.** Move anything to be deleted into `_to_delete/` at the repo root and tell the maintainer. Git lock files and `tmp_obj_*` debris go there too (`tools/witness/sweep.sh`); `git merge`, `git switch` with local changes and anything else that unlinks may half-complete — do not merge in the VM; give the maintainer the merge commands. Use `GIT_OPTIONAL_LOCKS=0 git status`. Never `git checkout` a file to revert: `git show HEAD:path > path`.
 - **`make` exits 2 on success** in some configurations (the `rm AMReX_buildInfo.cpp` step); check the executable's timestamp, or pass `KEEP_BUILDINFO_CPP=TRUE`.
 - **The remote connection drops.** Runs finish anyway; scoring may need to be redone. Never report a run complete without reading its log's last line.
@@ -28,7 +28,7 @@ Contraction-free is the witness configuration, because `cmp` needs bit-identical
     cd Exec/CO2_NSCBC
     make -j4 DIM=1 USE_MPI=FALSE COMP=gnu Eos_Model=PR TINY_PROFILE=FALSE TMP_BUILD_DIR=tmp_nc XTRA_CXXFLAGS="-ffp-contract=off"
 
-`tools/witness/build.sh <NSCBC|RS> <tag>` does this and copies the result to `exe_keep/nc_<tag>.ex` (the `RiemannSuite` GNUmakefile sets `TINY_PROFILE=TRUE`; the override is mandatory). Other backends: `Eos_Model=GERG` / `GERGTab` / `PRTab`; move a GERG executable to `exe_keep/` at once, or it becomes the "newest `CAMR1d.*.ex`" every test script picks up. A PS build with `USE_EB=TRUE` is a make error by design. The 2-D production build is `Exec/regen_refs.sh 2d` (build only; it runs and compares nothing).
+`tools/witness/build.sh <NSCBC|RS> <tag>` does this and copies the result to `exe_keep/nc_<tag>.ex` (the `RiemannSuite` GNUmakefile sets `TINY_PROFILE=TRUE`; the override is mandatory). Other backends: `Eos_Model=GERG` / `GERGTab` / `PRTab`; move a GERG executable to `exe_keep/` at once, or it becomes the "newest `PSAMR1d.*.ex`" every test script picks up. A PS build with `USE_EB=TRUE` is a make error by design. The 2-D production build is `Exec/regen_refs.sh 2d` (build only; it runs and compares nothing).
 
 ## 4. The witnesses: what "byte-identical" means here
 
@@ -42,7 +42,7 @@ Four contraction-free 1-D runs plus the battery, compared by `cmp` on every `Lev
 | `flashing_front` `vent` | `wit.sh FF` | 14 plotfiles and 85 `[PS-BCRX]` probe lines |
 | the 21-case battery | `tools/witness/w2.sh TAG REF` | `characterize.py compare BASE3_nc_defaults AUD_TAG_nc` → "21 identical" |
 
-`tools/witness/w1.sh TAG REF` builds RS and runs FF, N1, N4; `w2.sh` runs N1b and the battery. A refactor must show every count at `differ=0` and "21 identical, 0 changed". The current references are BASE3 (`Exec/CO2_RiemannSuite/characterization/BASE3_nc_*.json`, `refs/*_BASE3.txt`, provenance in `refs/PROVENANCE_BASE3.txt`). The 2-D witness is a before/after pair on `Exec/CO2_XC2D` (60 steps, 6 ranks, AMR, with and without `CAMR.ps_wp_transverse=1`; `diff -rq --exclude=job_info` on the final plotfiles), run by the maintainer; `regen_refs.sh windows` is the fingerprinted 65-minute production check.
+`tools/witness/w1.sh TAG REF` builds RS and runs FF, N1, N4; `w2.sh` runs N1b and the battery. A refactor must show every count at `differ=0` and "21 identical, 0 changed". The current references are BASE3 (`Exec/CO2_RiemannSuite/characterization/BASE3_nc_*.json`, `refs/*_BASE3.txt`, provenance in `refs/PROVENANCE_BASE3.txt`). The 2-D witness is a before/after pair on `Exec/CO2_XC2D` (60 steps, 6 ranks, AMR, with and without `PSAMR.ps_wp_transverse=1`; `diff -rq --exclude=job_info` on the final plotfiles), run by the maintainer; `regen_refs.sh windows` is the fingerprinted 65-minute production check.
 
 **Multi-rank AMR is not byte-reproducible across an allocation change.** `ROUNDROBIN`'s rank order is a sort on bytes allocated per rank, so anything that changes what a rank allocates (a new state, a flux register, a diagnostic buffer) can break a rank tie at a regrid, move box ownership and change the summation order of reflux; XC2D is round-off-chaotic past $t \approx 2\times10^{-4}$ under any such change (measured, `PLAN_sigma.md` §II.3-results). A 2-D pair is therefore valid only with the same build, the same rank count and the same allocations; a claim of "nothing changed" across a build that allocates differently is made on 1 rank, or with `max_level = 0`, or with `tools/witness/maxdiff.py` and the growth judged against a rank-count control. `ci.sh` reads the author line from `CLAUDE_MODEL` (set it to the model running the session).
 

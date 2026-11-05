@@ -109,7 +109,7 @@ hydro_umdrv (bool do_mol,
     GpuArray<int,AMREX_SPACEDIM> ldomhi{AMREX_D_DECL(domhi[0],domhi[1],domhi[2])};
     GpuArray<int,AMREX_SPACEDIM> lbclo{AMREX_D_DECL(bclo[0],bclo[1],bclo[2])};
     GpuArray<int,AMREX_SPACEDIM> lbchi{AMREX_D_DECL(bchi[0],bchi[1],bchi[2])};
-    // Under PS the primitives are not filled (CAMR_construct_hydro_source.cpp)
+    // Under PS the primitives are not filled (PSAMR_construct_hydro_source.cpp)
     // and difmag is 0 below, so divu is set to zero, not computed.
     if (do_ps_hydro) {
         divu.setVal<RunOn::Device>(0.0);
@@ -134,7 +134,7 @@ hydro_umdrv (bool do_mol,
         static std::atomic<bool> warned_ps_difmag{false};
         if (ps_warn_once(warned_ps_difmag)) {
             amrex::Warning(
-              "CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue "
+              "PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue "
               "6-eq integrator.  Artificial viscosity corrupts the WP-α "
               "and WP phase-energy invariants; PS has its own stabilization. "
               "See task #209.");

@@ -1,8 +1,8 @@
 tag: BASE (re-recorded 2026-09-11 at R-16, the PR coexistence Psat; previous BASE at 6a28954 in git history)
-camr: co2-eos at 5ec44e1 (R-16) + the docs/re-baseline commit that adds this file
+psamr: co2-eos at 5ec44e1 (R-16) + the docs/re-baseline commit that adds this file
 amrex: 65db2e4e678a15acec1b666d4c42e339ad5b9ec0
 host: Linux aarch64 (Cowork VM), g++ 11.4.0
-exe: CAMR1d.gnu.PS.PR.ex, DIM=1 USE_MPI=FALSE COMP=gnu Eos_Model=PR TINY_PROFILE=FALSE XTRA_CXXFLAGS="-ffp-contract=off"
+exe: PSAMR1d.gnu.PS.PR.ex, DIM=1 USE_MPI=FALSE COMP=gnu Eos_Model=PR TINY_PROFILE=FALSE XTRA_CXXFLAGS="-ffp-contract=off"
 gate: verify_canonical ALL PASS (A/C mean 0.0350, C1 exact, B12 R=0.0097; checks 2 and 5b re-baselined onto mode 5:
       B4 u-err 0.126 at theta = 1e-4 and 1e-7, B2 max|u| = 31.7)
 acceptance table (refs/exact_suite_BASE.txt) vs the pre-cleanup table: B2 P 0.1516 -> 0.1524, B7 u 0.7465 -> 0.7478,

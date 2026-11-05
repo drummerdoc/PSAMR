@@ -67,7 +67,7 @@ overrides shown on a failure line.
             now -- one pulse per cell as its trace fraction passes
             5e-3..6e-3, not a cycle; its cause is not localised
             (FUTURE_WORK.md).
-  selftest  CAMR.ps_ptg_selftest, ps_relax_sweep, ps_x3_test = 1 at
+  selftest  PSAMR.ps_ptg_selftest, ps_relax_sweep, ps_x3_test = 1 at
             max_step = 0.  Asserts rc = 0, a PASS verdict line, and no line
             of the log flagging a case FAIL or BAD.
 
@@ -85,11 +85,11 @@ import os, re, sys, glob, time, math, shutil, tempfile, subprocess
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 def newest(d):
-    g = sorted(glob.glob(os.path.join(d, 'CAMR1d.*.ex')), key=os.path.getmtime)
+    g = sorted(glob.glob(os.path.join(d, 'PSAMR1d.*.ex')), key=os.path.getmtime)
     if not g: sys.exit('no 1-D executable in %s' % d)
     return g[-1]
 EXE = os.environ.get('EXE') or newest(HERE)
-os.environ.setdefault('CAMR_EXE', EXE)      # full_suite discovers an executable at import
+os.environ.setdefault('PSAMR_EXE', EXE)      # full_suite discovers an executable at import
 _cwd = os.getcwd(); os.chdir(HERE); sys.path.insert(0, HERE)
 import ps_plotfile as R
 import full_suite as F
@@ -102,9 +102,9 @@ FAILS = []
 def case_args(case, n=64):
     c = F.CD[[k for k in F.CD if k == case or k.split('-')[0] == case][0]]
     ov = {'amr.n_cell': n, 'geometry.prob_lo': 0.0, 'geometry.prob_hi': 1.0, 'prob.x_diaph': 0.5,
-          'prob.alpha_trace': 0.0, 'prob.p_amb': 5.0e6, 'CAMR.cfl': 0.25, 'CAMR.do_mol': 0,
-          'stop_time': c[3], 'CAMR.ps_flux': 'wp', 'CAMR.ps_wp_order': 2}
-    ov.update(F.camr_side(c[1], 'L')); ov.update(F.camr_side(c[2], 'R'))
+          'prob.alpha_trace': 0.0, 'prob.p_amb': 5.0e6, 'PSAMR.cfl': 0.25, 'PSAMR.do_mol': 0,
+          'stop_time': c[3], 'PSAMR.ps_flux': 'wp', 'PSAMR.ps_wp_order': 2}
+    ov.update(F.psamr_side(c[1], 'L')); ov.update(F.psamr_side(c[2], 'R'))
     return c, ov
 
 def run(tag, case, extra=(), n=64, final_only=True, d=None):
@@ -117,7 +117,7 @@ def run(tag, case, extra=(), n=64, final_only=True, d=None):
     if final_only and 'amr.plot_int' not in ov: cmd += ['amr.plot_int=-1', 'amr.plot_per=%g' % c[3]]
     if 'amr.plot_file' not in ov: cmd += ['amr.plot_file=plt']
     if 'amr.check_file' not in ov: cmd += ['amr.check_file=chk']
-    cmd += ['amr.v=0', 'CAMR.v=0']
+    cmd += ['amr.v=0', 'PSAMR.v=0']
     r = subprocess.run(cmd, cwd=d, capture_output=True, text=True)
     log = r.stdout + r.stderr
     open(os.path.join(d, 'run.log'), 'a').write('#### ' + ' '.join(cmd) + '\n' + log)
@@ -148,7 +148,7 @@ def t_order():
     xa = dat[:, h.index('x[m]')]; ra = dat[:, h.index('rho[kg/m^3]')]
     for o in (1, 2):
         for n in (64, 128):
-            rc, log, fs, cmd = run('%s_o%d_n%d' % (T, o, n), 'A1', ['CAMR.ps_wp_order=%d' % o], n=n)
+            rc, log, fs, cmd = run('%s_o%d_n%d' % (T, o, n), 'A1', ['PSAMR.ps_wp_order=%d' % o], n=n)
             if not check(T, rc == 0 and fs, 'order %d, n=%d: rc=%d' % (o, n, rc), cmd): return False
             rho = R.rd1d(fs[-1], 'density'); x = (np.arange(n) + 0.5) / n
             ni = np.interp(xa, x, rho)
@@ -174,7 +174,7 @@ def t_limiter():
     ra = dat[:, h.index('rho[kg/m^3]')]; pl = np.abs(Pa - pstar) < 1e-6 * pstar
     kc = (np.abs(np.diff(ra)) * (pl[:-1] & pl[1:])).argmax(); xc = xa[kc + 1]             # the exact contact (density jump at p*)
     for lim in ('vanleer', 'none'):
-        rc, log, fs, cmd = run('%s_%s' % (T, lim), 'A2', ['CAMR.ps_wp_limiter=%s' % lim])
+        rc, log, fs, cmd = run('%s_%s' % (T, lim), 'A2', ['PSAMR.ps_wp_limiter=%s' % lim])
         if not check(T, rc == 0 and fs, 'limiter %s: rc=%d' % (lim, rc), cmd): return False
         P = R.rd1d(fs[-1], 'pressure'); n = len(P); x = (np.arange(n) + 0.5) / n
         star = (x > xc) & (x < xs)          # between the exact contact and the exact shock: P_exact = p*
@@ -190,15 +190,15 @@ def t_limiter():
 # ------------------------------------------------------------------ badkeys
 def t_badkeys():
     T = 'badkeys'; ok = True
-    for args, name in ((['CAMR.ps_wp_order=3'], 'ps_wp_order'),
-                       (['CAMR.ps_flux=hllc'], 'ps_flux'), (['CAMR.ps_relax_mode=7'], 'ps_relax_mode'),
-                       (['CAMR.ps_do_relax=0'], 'ps_do_relax')):
+    for args, name in ((['PSAMR.ps_wp_order=3'], 'ps_wp_order'),
+                       (['PSAMR.ps_flux=hllc'], 'ps_flux'), (['PSAMR.ps_relax_mode=7'], 'ps_relax_mode'),
+                       (['PSAMR.ps_do_relax=0'], 'ps_do_relax')):
         rc, log, fs, cmd = run(T, 'B3', args + ['max_step=1', 'amr.plot_files_output=0'])
         msg = [l for l in log.split('\n') if name in l and '[TOP]' not in l and 'nvals' not in l]
         print('      %-28s rc=%-4d %s' % (args[0], rc, (msg[0].strip()[:110] if msg else '(no line naming the key)')))
         ok &= check(T, rc != 0 and bool(msg), '%s: rc=%d, message naming %s: %s' % (args[0], rc, name, 'yes' if msg else 'no'), cmd)
     for case in ('A1', 'B3', 'B4'):
-        rc, log, fs, cmd = run(T, case, ['CAMR.ps_validate=2'])
+        rc, log, fs, cmd = run(T, case, ['PSAMR.ps_validate=2'])
         why = [l.strip() for l in log.split('\n') if 'first bulk violation' in l or ('[PS-VALIDATE]' in l and rc != 0)][-2:]
         print('      clean %s with ps_validate=2: rc=%d  %s' % (case, rc, ' || '.join(w[:230] for w in why) if rc else ''))
         ok &= check(T, rc == 0, 'a clean %s aborts under ps_validate=2 (rc=%d)' % (case, rc), cmd)
@@ -212,9 +212,9 @@ def t_strang():
 def strang_case(T, case):
     ok = True; f = {}
     for v in (0, 1):
-        rc, log, fs, cmd = run('%s_%s_%d' % (T, case, v), case, ['CAMR.ps_strang=%d' % v])
+        rc, log, fs, cmd = run('%s_%s_%d' % (T, case, v), case, ['PSAMR.ps_strang=%d' % v])
         if not check(T, rc == 0 and fs, 'ps_strang=%d: rc=%d' % (v, rc), cmd): return False
-        ji = re.findall(r'^CAMR\.ps_strang\s*=\s*(\d+)', open(fs[-1] + '/job_info').read(), re.M)
+        ji = re.findall(r'^PSAMR\.ps_strang\s*=\s*(\d+)', open(fs[-1] + '/job_info').read(), re.M)
         ok &= check(T, str(v) in ji, 'job_info records ps_strang = %s, expected %d' % (ji, v), cmd)
         f[v] = (fs[-1], cmd)
     same = same_bytes(f[0][0], f[1][0]); dP = maxrel(f[0][0], f[1][0], 'pressure'); dr = maxrel(f[0][0], f[1][0], 'density')
@@ -310,7 +310,7 @@ def t_front(T='front'):
 def t_selftest():
     T = 'selftest'; ok = True
     for k in ('ps_ptg_selftest', 'ps_relax_sweep', 'ps_x3_test'):
-        rc, log, fs, cmd = run(T, 'B4', ['max_step=0', 'amr.plot_files_output=0', 'CAMR.%s=1' % k])
+        rc, log, fs, cmd = run(T, 'B4', ['max_step=0', 'amr.plot_files_output=0', 'PSAMR.%s=1' % k])
         verdict = [l.strip() for l in log.split('\n') if 'PASS' in l and ('=====' in l or 'CI gate' in l)]
         flagged = [l.strip() for l in log.split('\n') if re.search(r'\bFAIL\b|\bBAD\b', l) and 'PASS =' not in l and 'FAIL =' not in l and '0 fail' not in l.lower()]
         print('      %-16s rc=%d  %s  flagged lines: %d' % (k, rc, ' | '.join(verdict) if verdict else '(no verdict line)', len(flagged)))

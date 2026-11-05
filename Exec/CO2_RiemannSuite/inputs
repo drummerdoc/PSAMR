@@ -23,28 +23,28 @@ geometry.prob_lo     =   0.0    0.0      0.0
 geometry.prob_hi     =   1.0    0.0078125 0.0078125
 amr.n_cell           =   256    2        2
 
-CAMR.lo_bc = Inflow SlipWall SlipWall
-CAMR.hi_bc = Inflow SlipWall SlipWall
+PSAMR.lo_bc = Inflow SlipWall SlipWall
+PSAMR.hi_bc = Inflow SlipWall SlipWall
 
-CAMR.cfl = 0.25
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
+PSAMR.cfl = 0.25
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
 
-CAMR.do_mol = 0
-CAMR.ppm_type = 1
+PSAMR.do_mol = 0
+PSAMR.ppm_type = 1
 
-CAMR.ps_hydro = 1
+PSAMR.ps_hydro = 1
 # wp = wave-propagation kernel (the compiled default) at second order
 # (ps_wp_order defaults to 1; 2 is the acceptance configuration).
-CAMR.ps_flux  = wp
-CAMR.ps_wp_order = 2
+PSAMR.ps_flux  = wp
+PSAMR.ps_wp_order = 2
 
-CAMR.ps_bc_use_nscbc = 0
+PSAMR.ps_bc_use_nscbc = 0
 
-CAMR.v = 0
+PSAMR.v = 0
 amr.v = 0
-CAMR.sum_interval = -1
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = -1
+PSAMR.redistribution_type = StateRedist
 
 amr.loadbalance_with_workestimates = 0
 amr.max_level       = 0

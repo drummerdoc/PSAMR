@@ -1,8 +1,8 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "IndexDefines.H"
 
 void
-CAMR::construct_old_ext_source(const amrex::MultiFab& S,
+PSAMR::construct_old_ext_source(const amrex::MultiFab& S,
                                amrex::Real time, amrex::Real dt, int ng)
 {
   old_sources[ext_src]->setVal(0.0);
@@ -21,7 +21,7 @@ CAMR::construct_old_ext_source(const amrex::MultiFab& S,
 }
 
 void
-CAMR::construct_new_ext_source(amrex::Real time, amrex::Real dt)
+PSAMR::construct_new_ext_source(amrex::Real time, amrex::Real dt)
 {
   const amrex::MultiFab& S_old = get_old_data(State_Type);
   const amrex::MultiFab& S_new = get_new_data(State_Type);
@@ -38,7 +38,7 @@ CAMR::construct_new_ext_source(amrex::Real time, amrex::Real dt)
 }
 
 void
-CAMR::fill_ext_source(
+PSAMR::fill_ext_source(
   amrex::Real /*time*/,
   amrex::Real /*dt*/,
   const amrex::MultiFab&

@@ -25,31 +25,31 @@ geometry.prob_lo     =   0.0    0.0
 geometry.prob_hi     =   1.0    0.125
 amr.n_cell           =   256    32
 
-CAMR.lo_bc = Inflow SlipWall
-CAMR.hi_bc = Inflow SlipWall
+PSAMR.lo_bc = Inflow SlipWall
+PSAMR.hi_bc = Inflow SlipWall
 
-CAMR.cfl = 0.25
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
+PSAMR.cfl = 0.25
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
 
-CAMR.do_mol   = 0
-CAMR.ppm_type = 1
+PSAMR.do_mol   = 0
+PSAMR.ppm_type = 1
 
-CAMR.ps_hydro        = 1
+PSAMR.ps_hydro        = 1
 #  wp (the compiled default) at second order (ps_wp_order defaults to
 #  1; 2 is the acceptance configuration); relaxation, mass transfer and
 #  flash off.
-CAMR.ps_flux         = wp
-CAMR.ps_wp_order     = 2
-CAMR.ps_do_relax     = 0
-CAMR.ps_mt_tau       = 0    # no mass transfer
-CAMR.ps_flash_tau    = 0    # no flash source
-CAMR.ps_bc_use_nscbc = 0
+PSAMR.ps_flux         = wp
+PSAMR.ps_wp_order     = 2
+PSAMR.ps_do_relax     = 0
+PSAMR.ps_mt_tau       = 0    # no mass transfer
+PSAMR.ps_flash_tau    = 0    # no flash source
+PSAMR.ps_bc_use_nscbc = 0
 
-CAMR.v = 1
+PSAMR.v = 1
 amr.v  = 1
-CAMR.sum_interval = -1
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = -1
+PSAMR.redistribution_type = StateRedist
 
 # --- 2-level AMR with a static refine box x in [0.30, 0.50] ----------
 amr.max_level       = 1
@@ -62,7 +62,7 @@ amr.grid_eff        = 0.99
 DistributionMapping.strategy = ROUNDROBIN
 
 # Geometric fixed-box tag: a BOX test with no field criterion tags exactly
-# the real box [0.30, 0.50] x [full y].  CAMR_error.cpp uses the BOX
+# the real box [0.30, 0.50] x [full y].  PSAMR_error.cpp uses the BOX
 # AMRErrorTag when only in_box_lo/hi are given, so the refined region is
 # static and does not track the waves.
 amr.refinement_indicators = fbox

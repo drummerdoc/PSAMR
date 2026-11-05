@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """verify_gerg.py -- the 1-D gate for GERG builds.
 
-    CAMR_EXE=<1-D GERG or GERGTab build> python3 verify_gerg.py          check
-    CAMR_EXE=<1-D GERG build>            python3 verify_gerg.py record   write the expected values
+    PSAMR_EXE=<1-D GERG or GERGTab build> python3 verify_gerg.py          check
+    PSAMR_EXE=<1-D GERG build>            python3 verify_gerg.py record   write the expected values
 
 The GERG counterpart of verify_canonical.py, on the two cases with a GERG
 exact solution (refs/exact/exact_{B4,B9}_gerg.csv, HEM).  Each case is run in
@@ -96,7 +96,7 @@ def main():
             sys.exit(1)
         commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=HERE, capture_output=True,
                                 text=True).stdout.strip()
-        rec = dict(got, _recorded=datetime.date.today().isoformat(), _exe=exe, _camr_commit=commit)
+        rec = dict(got, _recorded=datetime.date.today().isoformat(), _exe=exe, _psamr_commit=commit)
         with open(EXPECT_FILE, 'w') as f:
             json.dump(rec, f, indent=1, sort_keys=True)
             f.write('\n')

@@ -1,8 +1,8 @@
 #include <AMReX_LevelBld.H>
 
-#include "CAMR.H"
+#include "PSAMR.H"
 
-class CAMRBld : public amrex::LevelBld
+class PSAMRBld : public amrex::LevelBld
 {
   void variableSetUp() override;
   void variableCleanUp() override;
@@ -16,34 +16,34 @@ class CAMRBld : public amrex::LevelBld
     amrex::Real time) override;
 };
 
-CAMRBld CAMR_bld;
+PSAMRBld PSAMR_bld;
 
 amrex::LevelBld*
 getLevelBld()
 {
-  return &CAMR_bld;
+  return &PSAMR_bld;
 }
 
 void
-CAMRBld::variableSetUp()
+PSAMRBld::variableSetUp()
 {
-  CAMR::variableSetUp();
+  PSAMR::variableSetUp();
 }
 
 void
-CAMRBld::variableCleanUp()
+PSAMRBld::variableCleanUp()
 {
-  CAMR::variableCleanUp();
+  PSAMR::variableCleanUp();
 }
 
 amrex::AmrLevel*
-CAMRBld::operator()()
+PSAMRBld::operator()()
 {
-  return new CAMR;
+  return new PSAMR;
 }
 
 amrex::AmrLevel*
-CAMRBld::operator()(
+PSAMRBld::operator()(
   amrex::Amr& papa,
   int lev,
   const amrex::Geometry& level_geom,
@@ -51,5 +51,5 @@ CAMRBld::operator()(
   const amrex::DistributionMapping& dm,
   amrex::Real time)
 {
-  return new CAMR(papa, lev, level_geom, ba, dm, time);
+  return new PSAMR(papa, lev, level_geom, ba, dm, time);
 }

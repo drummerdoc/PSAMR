@@ -12,12 +12,12 @@
 #include <AMReX_EB_Redistribution.H>
 #endif
 
-#include "CAMR.H"
-#include "CAMR_Constants.H"
+#include "PSAMR.H"
+#include "PSAMR_Constants.H"
 #include "Derive.H"
 #include "prob.H"
 #include "Timestep.H"
-#include "CAMR_reset_internal_e.H"
+#include "PSAMR_reset_internal_e.H"
 #include "Tagging.H"
 #include "IndexDefines.H"
 #ifdef USE_PS_HYDRO
@@ -30,39 +30,39 @@
 #include "PS_constants.H"     // ps_const::ALPHA_REFLUX_MIN (reflux)
 #endif
 
-bool CAMR::signalStopJob = false;
-bool CAMR::dump_old = false;
-int CAMR::verbose = 0;
-amrex::BCRec CAMR::phys_bc;
+bool PSAMR::signalStopJob = false;
+bool PSAMR::dump_old = false;
+int PSAMR::verbose = 0;
+amrex::BCRec PSAMR::phys_bc;
 
 #ifdef _OPENMP
-amrex::IntVect     CAMR::hydro_tile_size(AMREX_D_DECL(1024,16,16));
+amrex::IntVect     PSAMR::hydro_tile_size(AMREX_D_DECL(1024,16,16));
 #else
-amrex::IntVect     CAMR::hydro_tile_size(AMREX_D_DECL(1024,1024,1024));
+amrex::IntVect     PSAMR::hydro_tile_size(AMREX_D_DECL(1024,1024,1024));
 #endif
 
-int CAMR::pstateVel = -1;
-int CAMR::pstateT = -1;
-int CAMR::pstateDia = -1;
-int CAMR::pstateRho = -1;
-int CAMR::pstateY = -1;
-int CAMR::pstateNum = 0;
+int PSAMR::pstateVel = -1;
+int PSAMR::pstateT = -1;
+int PSAMR::pstateDia = -1;
+int PSAMR::pstateRho = -1;
+int PSAMR::pstateY = -1;
+int PSAMR::pstateNum = 0;
 
-amrex::Vector<amrex::AMRErrorTag> CAMR::errtags;
+amrex::Vector<amrex::AMRErrorTag> PSAMR::errtags;
 
-#include "CAMR_defaults.H"
+#include "PSAMR_defaults.H"
 
-amrex::Vector<std::string> CAMR::spec_names;
+amrex::Vector<std::string> PSAMR::spec_names;
 
-amrex::Vector<int> CAMR::src_list;
+amrex::Vector<int> PSAMR::src_list;
 
 // this will be reset upon restart
-amrex::Real CAMR::previousCPUTimeUsed = 0.0;
-amrex::Real CAMR::startCPUTime = 0.0;
-int CAMR::num_state_type = 0;
+amrex::Real PSAMR::previousCPUTimeUsed = 0.0;
+amrex::Real PSAMR::startCPUTime = 0.0;
+int PSAMR::num_state_type = 0;
 
 void
-CAMR::read_params()
+PSAMR::read_params()
 {
   static bool read_params_done = false;
 
@@ -72,12 +72,12 @@ CAMR::read_params()
 
   read_params_done = true;
 
-  amrex::ParmParse pp("CAMR");
+  amrex::ParmParse pp("PSAMR");
 
-#include "CAMR_queries.H"
+#include "PSAMR_queries.H"
 
 #if defined(USE_GERG_EOS) || defined(USE_GERGTAB_EOS)
-  // CAMR.gerg_ext_c -> gerg::set_ext_c, once, before any hydro; the
+  // PSAMR.gerg_ext_c -> gerg::set_ext_c, once, before any hydro; the
   // resolved value is added to the ParmParse table so job_info records
   // which extension sound-speed surface produced every plotfile.  See
   // Source/EOS/GERG/gerg_co2_guard.H.
@@ -85,7 +85,7 @@ CAMR::read_params()
 #endif
 
   // ---------------------------------------------------------------------
-  //  Pelanti-Shyue dispatch check.  CAMR.ps_hydro (0) is a runtime flag
+  //  Pelanti-Shyue dispatch check.  PSAMR.ps_hydro (0) is a runtime flag
   //  that only takes effect in a build with USE_PS_HYDRO = TRUE (which
   //  compiles PS_umeth.cpp and the dispatch branch in Hydro_umdrv.cpp);
   //  a deck that sets it against a non-PS binary would silently run
@@ -93,19 +93,19 @@ CAMR::read_params()
   if (ps_hydro != 0) {
 #ifndef USE_PS_HYDRO
     amrex::Abort(
-        "CAMR.ps_hydro = 1 requires USE_PS_HYDRO = TRUE in the Exec "
+        "PSAMR.ps_hydro = 1 requires USE_PS_HYDRO = TRUE in the Exec "
         "GNUmakefile, but this binary was built without it.  Either "
-        "  (a) set CAMR.ps_hydro = 0 to run Godunov, or "
+        "  (a) set PSAMR.ps_hydro = 0 to run Godunov, or "
         "  (b) rebuild after adding 'USE_PS_HYDRO := TRUE' to your "
         "GNUmakefile.  See Source/Hydro/PelantiShyue/README.md .");
 #else
-    amrex::Print() << "CAMR: hydro solver = Pelanti-Shyue "
+    amrex::Print() << "PSAMR: hydro solver = Pelanti-Shyue "
                       "wave-propagation (USE_PS_HYDRO on, ps_hydro=1)\n";
 #endif
   } else if (do_mol != 0) {
-    amrex::Print() << "CAMR: hydro solver = MOL (do_mol=1)\n";
+    amrex::Print() << "PSAMR: hydro solver = MOL (do_mol=1)\n";
   } else {
-    amrex::Print() << "CAMR: hydro solver = Godunov"
+    amrex::Print() << "PSAMR: hydro solver = Godunov"
 #ifdef USE_PS_HYDRO
                       " (USE_PS_HYDRO built in but ps_hydro=0; 6-eq slots "
                       "carried as passive scalars)"
@@ -114,7 +114,7 @@ CAMR::read_params()
   }
 
 #ifdef USE_PS_HYDRO
-  // Retired CAMR.ps_* keys abort here, before any PS accessor reads the
+  // Retired PSAMR.ps_* keys abort here, before any PS accessor reads the
   // table (PS_retired_keys.H).
   ps_abort_on_retired_keys();
   // Resolve the boundary dials now, so a bad value aborts at startup and
@@ -190,24 +190,24 @@ CAMR::read_params()
   for (int dir = 0; dir < AMREX_SPACEDIM; dir++) {
     if (amrex::DefaultGeometry().isPeriodic(dir)) {
       if (lo_bc[dir] != Interior && amrex::ParallelDescriptor::IOProcessor()) {
-        std::cerr << "CAMR::read_params:periodic in direction " << dir
+        std::cerr << "PSAMR::read_params:periodic in direction " << dir
                   << " but low BC is not Interior\n";
         amrex::Error();
       }
       if (hi_bc[dir] != Interior && amrex::ParallelDescriptor::IOProcessor()) {
-        std::cerr << "CAMR::read_params:periodic in direction " << dir
+        std::cerr << "PSAMR::read_params:periodic in direction " << dir
                   << " but high BC is not Interior\n";
         amrex::Error();
       }
     } else {
       // If not periodic, should not be interior.
       if (lo_bc[dir] == Interior && amrex::ParallelDescriptor::IOProcessor()) {
-        std::cerr << "CAMR::read_params:interior bc in direction " << dir
+        std::cerr << "PSAMR::read_params:interior bc in direction " << dir
                   << " but not periodic\n";
         amrex::Error();
       }
       if (hi_bc[dir] == Interior && amrex::ParallelDescriptor::IOProcessor()) {
-        std::cerr << "CAMR::read_params:interior bc in direction " << dir
+        std::cerr << "PSAMR::read_params:interior bc in direction " << dir
                   << " but not periodic\n";
         amrex::Error();
       }
@@ -215,11 +215,11 @@ CAMR::read_params()
   }
 
   if (amrex::DefaultGeometry().IsRZ() && (lo_bc[0] != Symmetry)) {
-    amrex::Error("CAMR::read_params: must set r=0 boundary condition to "
+    amrex::Error("PSAMR::read_params: must set r=0 boundary condition to "
                  "Symmetry for r-z");
   }
 
-  // TODO: Any reason to support spherical in CAMR?
+  // TODO: Any reason to support spherical in PSAMR?
   if (amrex::DefaultGeometry().IsRZ()) {
     amrex::Abort("We don't support cylindrical coordinate systems in 3D");
   } else if (amrex::DefaultGeometry().IsSPHERICAL()) {
@@ -237,7 +237,7 @@ CAMR::read_params()
   // Check on PPM type
   if (do_mol == 0) {
     if (ppm_type != 0 && ppm_type != 1) {
-      amrex::Error("CAMR::ppm_type must be 0 (PLM) or 1 (PPM)");
+      amrex::Error("PSAMR::ppm_type must be 0 (PLM) or 1 (PPM)");
     }
   }
 
@@ -246,7 +246,7 @@ CAMR::read_params()
   // 4 (fourth-order blend), so any other value would silently be
   // treated as if it were 2.
   if (plm_iorder != 1 && plm_iorder != 2 && plm_iorder != 4) {
-    amrex::Error("CAMR::plm_iorder must be 1, 2 or 4");
+    amrex::Error("PSAMR::plm_iorder must be 1, 2 or 4");
   }
 
 #ifdef AMREX_USE_EB
@@ -295,13 +295,13 @@ CAMR::read_params()
 #endif
 }
 
-CAMR::CAMR()
+PSAMR::PSAMR()
   : old_sources(num_src),
     new_sources(num_src)
 {
 }
 
-CAMR::CAMR(
+PSAMR::PSAMR(
   amrex::Amr& papa,
   int lev,
   const amrex::Geometry& level_geom,
@@ -316,7 +316,7 @@ CAMR::CAMR(
 }
 
 void
-CAMR::init_stuff(amrex::Amr& papa,
+PSAMR::init_stuff(amrex::Amr& papa,
                  const amrex::Geometry& level_geom,
                  const amrex::BoxArray& bl,
                  const amrex::DistributionMapping& dm)
@@ -365,7 +365,7 @@ CAMR::init_stuff(amrex::Amr& papa,
 }
 
 void
-CAMR::buildMetrics()
+PSAMR::buildMetrics()
 {
 #ifdef AMREX_USE_EB
     // make sure dx == dy == dz
@@ -394,10 +394,10 @@ CAMR::buildMetrics()
     level_mask.clear();
     level_mask.define(grids,dmap,1,3);
     level_mask.BuildMask(geom.Domain(), geom.periodicity(),
-                         CAMRConstants::level_mask_covered,
-                         CAMRConstants::level_mask_notcovered,
-                         CAMRConstants::level_mask_physbnd,
-                         CAMRConstants::level_mask_interior);
+                         PSAMRConstants::level_mask_covered,
+                         PSAMRConstants::level_mask_notcovered,
+                         PSAMRConstants::level_mask_physbnd,
+                         PSAMRConstants::level_mask_interior);
 
 #endif
 
@@ -416,7 +416,7 @@ CAMR::buildMetrics()
 }
 
 void
-CAMR::setTimeLevel(amrex::Real time, amrex::Real dt_old, amrex::Real dt_new)
+PSAMR::setTimeLevel(amrex::Real time, amrex::Real dt_old, amrex::Real dt_new)
 {
   AmrLevel::setTimeLevel(time, dt_old, dt_new);
 }
@@ -426,20 +426,20 @@ CAMR::setTimeLevel(amrex::Real time, amrex::Real dt_old, amrex::Real dt_new)
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_prob_close()
+PSAMR_prob_close()
 {
 }
 */
 
 void
-CAMR::initData()
+PSAMR::initData()
 {
-  BL_PROFILE("CAMR::initData()");
+  BL_PROFILE("PSAMR::initData()");
 
   // Copy problem parameter structs to device
   amrex::Gpu::copy(
-    amrex::Gpu::hostToDevice, CAMR::h_prob_parm,
-    CAMR::h_prob_parm+ 1, CAMR::d_prob_parm);
+    amrex::Gpu::hostToDevice, PSAMR::h_prob_parm,
+    PSAMR::h_prob_parm+ 1, PSAMR::d_prob_parm);
 
   // int ns = NVAR;
   amrex::MultiFab& S_new = get_new_data(State_Type);
@@ -450,12 +450,12 @@ CAMR::initData()
   const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
   amrex::ignore_unused(dx);
 #if (AMREX_SPACEDIM >= 2)
-  if (std::abs(dx[0] - dx[1]) > CAMRConstants::small * dx[0]) {
+  if (std::abs(dx[0] - dx[1]) > PSAMRConstants::small * dx[0]) {
     amrex::Abort("dx != dy not supported");
   }
 #endif
 #if (AMREX_SPACEDIM == 3)
-  if (std::abs(dx[0] - dx[2]) > CAMRConstants::small * dx[0]) {
+  if (std::abs(dx[0] - dx[2]) > PSAMRConstants::small * dx[0]) {
     amrex::Abort("dx != dy != dz not supported");
   }
 #endif
@@ -478,10 +478,10 @@ CAMR::initData()
     amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
     {
       // Initialize the data
-      CAMR_initdata(i, j, k, sfab, geomdata, *lprobparm);
+      PSAMR_initdata(i, j, k, sfab, geomdata, *lprobparm);
 
       // Verify that the sum of (rho Y)_i = rho at every cell
-      CAMR_check_initial_species(i, j, k, sfab);
+      PSAMR_check_initial_species(i, j, k, sfab);
     });
 
   }
@@ -501,11 +501,11 @@ CAMR::initData()
 }
 
 void
-CAMR::init(AmrLevel& old)
+PSAMR::init(AmrLevel& old)
 {
-  BL_PROFILE("CAMR::init(old)");
+  BL_PROFILE("PSAMR::init(old)");
 
-  auto* oldlev = (CAMR*)&old;
+  auto* oldlev = (PSAMR*)&old;
 
   // Create new grid data by fillpatching from old.
   amrex::Real dt_new    = parent->dtLevel(level);
@@ -522,7 +522,7 @@ CAMR::init(AmrLevel& old)
 }
 
 void
-CAMR::set_state_in_checkpoint(amrex::Vector<int>& state_in_checkpoint)
+PSAMR::set_state_in_checkpoint(amrex::Vector<int>& state_in_checkpoint)
 {
   for (int i = 0; i < num_state_type; ++i) {
     state_in_checkpoint[i] = (i == Work_Estimate_Type) ? 0 : 1;
@@ -530,11 +530,11 @@ CAMR::set_state_in_checkpoint(amrex::Vector<int>& state_in_checkpoint)
 }
 
 void
-CAMR::init()
+PSAMR::init()
 {
   // This version inits the data on a new level that did not
   // exist before regridding.
-  BL_PROFILE("CAMR::init()");
+  BL_PROFILE("PSAMR::init()");
 
   amrex::Real dt = parent->dtLevel(level);
   amrex::Real cur_time = getLevel(level - 1).state[State_Type].curTime();
@@ -551,7 +551,7 @@ CAMR::init()
   FillCoarsePatch(get_new_data(Work_Estimate_Type), 0, cur_time,
                   Work_Estimate_Type, 0, 1);
 #ifdef USE_PS_HYDRO
-  // CAMR.ps_diag_alpha: alpha_1 range on a new fine level right after
+  // PSAMR.ps_diag_alpha: alpha_1 range on a new fine level right after
   // coarse->fine interpolation, to attribute a drive toward a pure phase
   // to the interpolation.  Retire-candidate: see docs/DESIGN_DECISIONS.md
   // §7 O-8.
@@ -567,9 +567,9 @@ CAMR::init()
 }
 
 amrex::Real
-CAMR::initialTimeStep()
+PSAMR::initialTimeStep()
 {
-  BL_PROFILE("CAMR::initialTimeStep()");
+  BL_PROFILE("PSAMR::initialTimeStep()");
 
   amrex::Real init_dt = 0.0;
 
@@ -583,9 +583,9 @@ CAMR::initialTimeStep()
   return init_dt;
 }
 
-amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
+amrex::Real PSAMR::estTimeStep(amrex::Real /*dt_old*/)
 {
-  BL_PROFILE("CAMR::estTimeStep()");
+  BL_PROFILE("PSAMR::estTimeStep()");
 
   if (fixed_dt > 0.0) {
     return fixed_dt;
@@ -597,7 +597,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
 
   const auto& dx = geom.CellSizeArray();
 
-  std::string limiter = "CAMR.max_dt";
+  std::string limiter = "PSAMR.max_dt";
 
   // Start the hydro with the max_dt value, but divide by CFL
   // to account for the fact that we multiply by it at the end.
@@ -627,7 +627,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
           amrex::Box const& bx, const amrex::Array4<const amrex::Real>& fab_arr,
           const amrex::Array4<const amrex::EBCellFlag>& flag_arr
           ) -> amrex::Real {
-          return CAMR_estdt_hydro(
+          return PSAMR_estdt_hydro(
             bx, fab_arr, flag_arr,
 #ifdef USE_PS_HYDRO
             l_ps_hydro_dt, l_pr_dt,
@@ -639,7 +639,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
         [=] AMREX_GPU_HOST_DEVICE(
           amrex::Box const& bx, const amrex::Array4<const amrex::Real>& fab_arr
           ) -> amrex::Real {
-            return CAMR_estdt_hydro( bx, fab_arr,
+            return PSAMR_estdt_hydro( bx, fab_arr,
 #ifdef USE_PS_HYDRO
                                      l_ps_hydro_dt, l_pr_dt,
 #endif
@@ -652,15 +652,15 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
     amrex::ParallelDescriptor::ReduceRealMin(estdt_hydro);
     estdt_hydro *= cfl;
 
-#ifdef CAMR_PS_DIAG
-    {   // CAMR.ps_dt_diag (default 0 = off): which cell/state sets dt.
-        static const int dtd = []() { int v = 0; amrex::ParmParse pp("CAMR");
+#ifdef PSAMR_PS_DIAG
+    {   // PSAMR.ps_dt_diag (default 0 = off): which cell/state sets dt.
+        static const int dtd = []() { int v = 0; amrex::ParmParse pp("PSAMR");
                                       pp.query("ps_dt_diag", v); return v; }();
         if (dtd != 0) {
           for (amrex::MFIter mfi(stateMF); mfi.isValid(); ++mfi) {
             const amrex::Box& dbx = mfi.validbox();
             auto const& sarr = stateMF.const_array(mfi);
-            CAMR_dt_diag_t dd = CAMR_estdt_hydro_diag(dbx, sarr,
+            PSAMR_dt_diag_t dd = PSAMR_estdt_hydro_diag(dbx, sarr,
 #ifdef USE_PS_HYDRO
                                                       l_ps_hydro_dt, l_pr_dt,
 #endif
@@ -674,7 +674,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
           }
         }
     }
-#endif  // CAMR_PS_DIAG
+#endif  // PSAMR_PS_DIAG
 
     if (verbose) {
       amrex::Print() << "...estimated hydro-limited timestep at level " << level
@@ -688,7 +688,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
     }
 
   if (verbose) {
-    amrex::Print() << "CAMR::estTimeStep (" << limiter << "-limited) at level "
+    amrex::Print() << "PSAMR::estTimeStep (" << limiter << "-limited) at level "
                    << level << ":  estdt = " << estdt << '\n';
   }
 
@@ -696,7 +696,7 @@ amrex::Real CAMR::estTimeStep(amrex::Real /*dt_old*/)
 }
 
 void
-CAMR::computeNewDt(
+PSAMR::computeNewDt(
   int finest_level,
   int /*sub_cycle*/,
   amrex::Vector<int>& n_cycle,
@@ -706,7 +706,7 @@ CAMR::computeNewDt(
   amrex::Real stop_time,
   int post_regrid_flag)
 {
-  BL_PROFILE("CAMR::computeNewDt()");
+  BL_PROFILE("PSAMR::computeNewDt()");
 
   // We are at the start of a coarse grid timecycle.
   // Compute the timesteps for the next iteration.
@@ -717,7 +717,7 @@ CAMR::computeNewDt(
   amrex::Real dt_0 = std::numeric_limits<amrex::Real>::max();
   int n_factor = 1;
   for (int i = 0; i <= finest_level; i++) {
-    CAMR& adv_level = getLevel(i);
+    PSAMR& adv_level = getLevel(i);
     dt_min[i] = adv_level.estTimeStep(dt_level[i]);
   }
 
@@ -732,7 +732,7 @@ CAMR::computeNewDt(
       for (int i = 0; i <= finest_level; i++) {
         if (verbose && amrex::ParallelDescriptor::IOProcessor()) {
           if (dt_min[i] > change_max * dt_level[i]) {
-            amrex::Print() << "CAMR::compute_new_dt : limiting dt at level "
+            amrex::Print() << "PSAMR::compute_new_dt : limiting dt at level "
                            << i << '\n';
             amrex::Print() << " ... new dt computed: " << dt_min[i] << '\n';
             amrex::Print() << " ... but limiting to: "
@@ -768,7 +768,7 @@ CAMR::computeNewDt(
 }
 
 void
-CAMR::computeInitialDt(
+PSAMR::computeInitialDt(
   int finest_level,
   int /*sub_cycle*/,
   amrex::Vector<int>& n_cycle,
@@ -776,7 +776,7 @@ CAMR::computeInitialDt(
   amrex::Vector<amrex::Real>& dt_level,
   amrex::Real stop_time)
 {
-  BL_PROFILE("CAMR::computeInitialDt()");
+  BL_PROFILE("PSAMR::computeInitialDt()");
 
   // Grids have been constructed, compute dt for all levels.
   if (level > 0) {
@@ -809,9 +809,9 @@ CAMR::computeInitialDt(
 }
 
 void
-CAMR::post_timestep(int /*iteration*/)
+PSAMR::post_timestep(int /*iteration*/)
 {
-    BL_PROFILE("CAMR::post_timestep()");
+    BL_PROFILE("PSAMR::post_timestep()");
 
     const int finest_level = parent->finestLevel();
 
@@ -830,7 +830,7 @@ CAMR::post_timestep(int /*iteration*/)
     // and then update quantities like temperature to be consistent.
     amrex::MultiFab& S_new_crse = get_new_data(State_Type);
 #ifdef USE_PS_HYDRO
-    // CAMR.ps_diag_alpha: alpha_1 range right after reflux + avgDown, before
+    // PSAMR.ps_diag_alpha: alpha_1 range right after reflux + avgDown, before
     // clean_state, to attribute a drive toward a pure phase to the reflux.
     // Retire-candidate: see docs/DESIGN_DECISIONS.md §7 O-8.
     {
@@ -850,7 +850,7 @@ CAMR::post_timestep(int /*iteration*/)
     // on the fine data as well as the coarse data since both
     // may have been changed by the reflux call.
     if ( level < finest_level && (redistribution_type != "NoRedist") ) {
-        CAMR& fine_level = getLevel(level + 1);
+        PSAMR& fine_level = getLevel(level + 1);
         amrex::MultiFab& S_new_fine = fine_level.get_new_data(State_Type);
         clean_state(S_new_fine, 0);
     }
@@ -863,14 +863,14 @@ CAMR::post_timestep(int /*iteration*/)
 }
 
 void
-CAMR::post_restart()
+PSAMR::post_restart()
 {
-  BL_PROFILE("CAMR::post_restart()");
+  BL_PROFILE("PSAMR::post_restart()");
 
   // Copy problem parameter structs to device
   amrex::Gpu::copy(
-    amrex::Gpu::hostToDevice, CAMR::h_prob_parm,
-    CAMR::h_prob_parm+ 1, CAMR::d_prob_parm);
+    amrex::Gpu::hostToDevice, PSAMR::h_prob_parm,
+    PSAMR::h_prob_parm+ 1, PSAMR::d_prob_parm);
 
   amrex::Real new_time = parent->cumTime();
   if (time_to_sum_integrated(new_time)) {
@@ -879,16 +879,16 @@ CAMR::post_restart()
 }
 
 void
-CAMR::postCoarseTimeStep(amrex::Real cumtime)
+PSAMR::postCoarseTimeStep(amrex::Real cumtime)
 {
-  BL_PROFILE("CAMR::postCoarseTimeStep()");
+  BL_PROFILE("PSAMR::postCoarseTimeStep()");
   AmrLevel::postCoarseTimeStep(cumtime);
 }
 
 void
-CAMR::post_regrid(int /*lbase*/, int /*new_finest*/)
+PSAMR::post_regrid(int /*lbase*/, int /*new_finest*/)
 {
-  BL_PROFILE("CAMR::post_regrid()");
+  BL_PROFILE("PSAMR::post_regrid()");
   fine_mask.clear();
 
 #ifdef USE_PS_HYDRO
@@ -914,9 +914,9 @@ CAMR::post_regrid(int /*lbase*/, int /*new_finest*/)
 #endif
 }
 
-void CAMR::post_init(amrex::Real /*stop_time*/)
+void PSAMR::post_init(amrex::Real /*stop_time*/)
 {
-  BL_PROFILE("CAMR::post_init()");
+  BL_PROFILE("PSAMR::post_init()");
 
   amrex::Real dtlev = parent->dtLevel(level);
   amrex::Real cumtime = parent->cumTime();
@@ -942,7 +942,7 @@ void CAMR::post_init(amrex::Real /*stop_time*/)
 }
 
 int
-CAMR::okToContinue()
+PSAMR::okToContinue()
 {
   if (level > 0) {
     return 1;
@@ -967,15 +967,15 @@ CAMR::okToContinue()
 }
 
 void
-CAMR::reflux()
+PSAMR::reflux()
 {
-  BL_PROFILE("CAMR::reflux()");
+  BL_PROFILE("PSAMR::reflux()");
 
   AMREX_ASSERT(level < parent->finestLevel());
 
   const amrex::Real strt = amrex::ParallelDescriptor::second();
 
-  CAMR& fine_level = getLevel(level + 1);
+  PSAMR& fine_level = getLevel(level + 1);
   amrex::MultiFab& S_crse = get_new_data(State_Type);
 
 #if defined(USE_PS_HYDRO) && !defined(AMREX_USE_EB)
@@ -1008,13 +1008,13 @@ CAMR::reflux()
       volume.boxArray(), volume.DistributionMap(), 1, volume.nGrow(),
       amrex::MFInfo(), amrex::FArrayBoxFactory());
     dr.setVal(geom.CellSizeArray()[0]);
-    amrex::Abort("CAMR reflux not yet ready for r-z");
+    amrex::Abort("PSAMR reflux not yet ready for r-z");
   }
 #endif
 
 #if defined(USE_PS_HYDRO) && !defined(AMREX_USE_EB)
   // PS coarse-fine correction of the non-conservative slot α₁
-  // (docs/MODEL_AND_ALGORITHM.md §1.5, §4.9); CAMR.ps_bl_reflux (0 = off,
+  // (docs/MODEL_AND_ALGORITHM.md §1.5, §4.9); PSAMR.ps_bl_reflux (0 = off,
   // nonzero = on) is documented in Params/_cpp_parameters.
   // Capacity-form α co-move.  α₁ has no flux; an uncoordinated α reflux
   // shifts ρ₁ = α₁ρ₁/α₁ and spikes P₁, so α₁ is moved with its own
@@ -1073,7 +1073,7 @@ CAMR::reflux()
 #endif
       amrex::ParallelDescriptor::ReduceRealMax(end, IOProc);
 
-      amrex::Print() << "CAMR::reflux() at level " << level
+      amrex::Print() << "PSAMR::reflux() at level " << level
                      << " : time = " << end << std::endl;
 #ifdef AMREX_LAZY
     });
@@ -1082,9 +1082,9 @@ CAMR::reflux()
 } // end reflux
 
 void
-CAMR::avgDown()
+PSAMR::avgDown()
 {
-    BL_PROFILE("CAMR::avgDown()");
+    BL_PROFILE("PSAMR::avgDown()");
 
     if (level == parent->finestLevel()) {
       return;
@@ -1094,7 +1094,7 @@ CAMR::avgDown()
 }
 
 void
-CAMR::normalize_species(amrex::MultiFab& S)
+PSAMR::normalize_species(amrex::MultiFab& S)
 {
 #ifdef AMREX_USE_EB
     auto const& fact = dynamic_cast<amrex::EBFArrayBoxFactory const&>(S.Factory());
@@ -1139,7 +1139,7 @@ CAMR::normalize_species(amrex::MultiFab& S)
 }
 
 void
-CAMR::enforce_consistent_e(amrex::MultiFab& S)
+PSAMR::enforce_consistent_e(amrex::MultiFab& S)
 {
 #ifdef _OPENMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
@@ -1165,7 +1165,7 @@ CAMR::enforce_consistent_e(amrex::MultiFab& S)
 }
 
 void
-CAMR::enforce_min_density(amrex::MultiFab& S_new)
+PSAMR::enforce_min_density(amrex::MultiFab& S_new)
 {
   // This routine resets any zone of S_new whose density is below the density
   // floor. It operates on the valid region only; the ghost cells of S_new are
@@ -1221,7 +1221,7 @@ CAMR::enforce_min_density(amrex::MultiFab& S_new)
         rho_orig(i,j,k) = Sarr(i,j,k,URHO);
     });
 
-    // This corresponds to (density_reset_method == 1) from CAMR
+    // This corresponds to (density_reset_method == 1) from PSAMR
     amrex::ParallelFor(
       bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
       {
@@ -1290,9 +1290,9 @@ CAMR::enforce_min_density(amrex::MultiFab& S_new)
 }
 
 void
-CAMR::avgDown(int state_indx)
+PSAMR::avgDown(int state_indx)
 {
-    BL_PROFILE("CAMR::avgDown(state_indx)");
+    BL_PROFILE("PSAMR::avgDown(state_indx)");
 
     if (level == parent->finestLevel()) {
       return;
@@ -1325,7 +1325,7 @@ CAMR::avgDown(int state_indx)
 }
 
 void
-CAMR::allocOldData()
+PSAMR::allocOldData()
 {
   for (int k = 0; k < num_state_type; k++) {
     state[k].allocOldData();
@@ -1333,13 +1333,13 @@ CAMR::allocOldData()
 }
 
 void
-CAMR::removeOldData()
+PSAMR::removeOldData()
 {
   AmrLevel::removeOldData();
 }
 
 std::unique_ptr<amrex::MultiFab>
-CAMR::derive(const std::string& name, amrex::Real time, int ngrow)
+PSAMR::derive(const std::string& name, amrex::Real time, int ngrow)
 {
 #ifdef AMREX_USE_EB
   if (name == "vfrac" || name == "volfrac") {
@@ -1353,7 +1353,7 @@ CAMR::derive(const std::string& name, amrex::Real time, int ngrow)
 #endif
 #ifdef USE_PS_HYDRO
   // Local flashing rate dm1/dt [kg m^-3 s^-1], + = evaporation, recorded
-  // during advance() into flash_src (CAMR_advance.cpp).  Zeros on the
+  // during advance() into flash_src (PSAMR_advance.cpp).  Zeros on the
   // current grids when not yet populated (plot at t=0, or just after a
   // regrid).
   if (name == "flash_rate") {
@@ -1372,11 +1372,11 @@ CAMR::derive(const std::string& name, amrex::Real time, int ngrow)
 }
 
 void
-CAMR::derive(
+PSAMR::derive(
   const std::string& name, amrex::Real time, amrex::MultiFab& mf_to_fill, int dcomp)
 {
 #ifdef USE_PS_HYDRO
-  //  The registered derive function for flash_rate is CAMR_dernull, which
+  //  The registered derive function for flash_rate is PSAMR_dernull, which
   //  fills nothing; this overload must serve flash_src itself, as the
   //  unique_ptr overload above does: zeros, then flash_src where it matches.
   if (name == "flash_rate") {
@@ -1400,7 +1400,7 @@ CAMR::derive(
 }
 
 void
-CAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
+PSAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
 {
   // Ensure (rho e) isn't too small or negative
 #ifdef _OPENMP
@@ -1432,7 +1432,7 @@ CAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
             bool expected = false;
             if (warned_ps_denergy.compare_exchange_strong(expected, true)) {
                 amrex::Warning(
-                  "CAMR::PS: forcing allow_negative_energy=1, "
+                  "PSAMR::PS: forcing allow_negative_energy=1, "
                   "allow_small_energy=1, dual_energy_update_E_from_e=0, "
                   "dual_energy_eta2=0 for the Pelanti-Shyue integrator.  "
                   "PS tracks per-phase e_1, e_2 directly; the dual-energy "
@@ -1452,7 +1452,7 @@ CAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
         const auto& sarr = S_new.array(mfi);
         amrex::ParallelFor(
           bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-              CAMR_reset_internal_e(i, j, k, sarr, l_allow_small_energy,
+              PSAMR_reset_internal_e(i, j, k, sarr, l_allow_small_energy,
               l_allow_negative_energy,
               l_dual_energy_update_E_from_e,
               l_dual_energy_eta2, l_small_temp,
@@ -1463,7 +1463,7 @@ CAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
 }
 
 void
-CAMR::computeTemp(amrex::MultiFab& S, int ng)
+PSAMR::computeTemp(amrex::MultiFab& S, int ng)
 {
   reset_internal_energy(S, ng);
   const int l_ps_hydro = ps_hydro;              // per-phase T for PS state
@@ -1612,7 +1612,7 @@ CAMR::computeTemp(amrex::MultiFab& S, int ng)
 }
 
 amrex::Real
-CAMR::getCPUTime()
+PSAMR::getCPUTime()
 {
   int numCores = amrex::ParallelDescriptor::NProcs();
 #ifdef _OPENMP
@@ -1627,7 +1627,7 @@ CAMR::getCPUTime()
 }
 
 amrex::MultiFab&
-CAMR::build_fine_mask()
+PSAMR::build_fine_mask()
 {
   // Mask for zeroing covered cells
   AMREX_ASSERT(level > 0);
@@ -1667,9 +1667,9 @@ CAMR::build_fine_mask()
 }
 
 void
-CAMR::expand_state(amrex::MultiFab& S, const amrex::Real time, const int ng)
+PSAMR::expand_state(amrex::MultiFab& S, const amrex::Real time, const int ng)
 {
-    BL_PROFILE("CAMR::expand_state()");
+    BL_PROFILE("PSAMR::expand_state()");
     AMREX_ALWAYS_ASSERT(S.nGrow() >= ng);
 
     AmrLevel::FillPatch(*this,S,ng,time,State_Type,0,S.nComp());
@@ -1681,9 +1681,9 @@ CAMR::expand_state(amrex::MultiFab& S, const amrex::Real time, const int ng)
 }
 
 void
-CAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
+PSAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
 {
-  BL_PROFILE("CAMR::clean_state()");
+  BL_PROFILE("PSAMR::clean_state()");
   AMREX_ALWAYS_ASSERT(S.nGrow() >= ng);
 
   // Enforce a minimum density.
@@ -1763,11 +1763,11 @@ CAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
   // data itself carries state_nghost unfilled ghost cells.
   // computeTemp = reset_internal_energy (state hygiene, always needed) plus
   // the per-cell EOS inversion that fills the UTEMP diagnostic slot.
-  // CAMR.lazy_temp (1): skip the UTEMP part on the intermediate calls of an
+  // PSAMR.lazy_temp (1): skip the UTEMP part on the intermediate calls of an
   // advance, since the conserved evolution never reads it; 0 = refresh on
   // every call.
   static const bool lazy_temp = []() {
-      int v = 1; amrex::ParmParse pp("CAMR");
+      int v = 1; amrex::ParmParse pp("PSAMR");
       pp.query("lazy_temp", v);
       pp.add("lazy_temp", v);   // resolved value -> job_info
       return v != 0;
@@ -1779,9 +1779,9 @@ CAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
   }
 }
 
-#ifdef CAMR_USE_MOVING_EB
+#ifdef PSAMR_USE_MOVING_EB
 void
-CAMR::ZeroingOutForPlotting(amrex::MultiFab& S)
+PSAMR::ZeroingOutForPlotting(amrex::MultiFab& S)
 {
   auto const& fact =
     dynamic_cast<amrex::EBFArrayBoxFactory const&>(S.Factory());
@@ -1822,7 +1822,7 @@ CAMR::ZeroingOutForPlotting(amrex::MultiFab& S)
 #endif
 
 bool
-CAMR::time_to_sum_integrated(amrex::Real time)
+PSAMR::time_to_sum_integrated(amrex::Real time)
 {
   if (level == 0) {
     int nstep = parent->levelSteps(0);

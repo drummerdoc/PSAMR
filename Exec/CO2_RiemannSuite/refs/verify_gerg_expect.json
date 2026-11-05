@@ -9,7 +9,7 @@
   "rho": 0.10046747859167408,
   "u": 0.7903678826586368
  },
- "_camr_commit": "cecbf4b42ed816502a354a3e0eec28039eb8f7b4",
- "_exe": "CAMR1d.llvm.TPROF.PS.GERG.ex",
+ "_psamr_commit": "cecbf4b42ed816502a354a3e0eec28039eb8f7b4",
+ "_exe": "PSAMR1d.llvm.TPROF.PS.GERG.ex",
  "_recorded": "2026-09-28"
 }

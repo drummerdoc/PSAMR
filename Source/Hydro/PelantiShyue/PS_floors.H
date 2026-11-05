@@ -2,7 +2,7 @@
 #define PS_FLOORS_H
 // =====================================================================
 //  PS_floors.H — the identity resyncs and the positivity floor of the
-//  six-equation Pelanti–Shyue model on the CAMR grid:
+//  six-equation Pelanti–Shyue model on the PSAMR grid:
 //  ps_resync_mixture_mass (URHO == m1 + m2), ps_resync_phase_energy
 //  (UE1 + UE2 == UEDEN, with the ps_phase_e_cap credibility test) and
 //  ps_apply_floor (ps_pres_floor / ps_temp_floor, 0 = off).  These are
@@ -21,7 +21,7 @@
 #include "PS_constants.H"  // ps_const:: shared numeric floors
 #include "PS_util.H"       // ps_kinetic_energy, ps_pack_v6 / ps_unpack_v6
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
-#include "PS_dials.H"      // ps_dial_int / ps_dial_real (CAMR.* reads)
+#include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Print.H>
@@ -29,7 +29,7 @@
 #include <cmath>
 #include <algorithm>   // std::max / std::min
 
-// CAMR.ps_pres_floor (0 Pa = off): ps_apply_floor raises each Independent
+// PSAMR.ps_pres_floor (0 Pa = off): ps_apply_floor raises each Independent
 // phase's internal energy so its EOS pressure is at least this — the
 // positivity net for the near-vacuum crater of a strong vent, which would
 // otherwise collapse dt (the 2-D decks set 1e5).  The wp path floors
@@ -40,7 +40,7 @@ inline amrex::Real ps_pres_floor()
     return v;
 }
 
-// CAMR.ps_temp_floor (0 K = off): ps_apply_floor likewise raises e_k so the
+// PSAMR.ps_temp_floor (0 K = off): ps_apply_floor likewise raises e_k so the
 // phase temperature is at least this (the 2-D decks set 216.6 K, the
 // triple point): strong-vent expansion cools CO2 below the triple point,
 // where the branch EOS is extrapolated and T oscillates.
@@ -111,7 +111,7 @@ ps_resync_phase_energy(amrex::MultiFab& S_new, int nghost = 0)
 {
     BL_PROFILE("PS::ps_resync_phase_energy()");
     using amrex::Real;
-    // CAMR.ps_phase_e_cap (1e9 J/kg): credibility bound on |UE_k|/m_k.
+    // PSAMR.ps_phase_e_cap (1e9 J/kg): credibility bound on |UE_k|/m_k.
     // Physical CO2 runs 1e5-1e6 J/kg including kinetic energy, so three
     // orders of headroom; <= 0 disables the test.
     static const Real e_cap = ps_dial_real("ps_phase_e_cap", Real(1.0e9));

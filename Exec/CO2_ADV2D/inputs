@@ -23,36 +23,36 @@ geometry.prob_hi     =   1.0   1.0
 amr.n_cell           =   64    64
 
 # Periodic in x,y -> interior BCs.
-CAMR.lo_bc = Interior Interior
-CAMR.hi_bc = Interior Interior
+PSAMR.lo_bc = Interior Interior
+PSAMR.hi_bc = Interior Interior
 
-CAMR.cfl = 0.4
-CAMR.fixed_dt = 0
-CAMR.allow_negative_energy = 1
+PSAMR.cfl = 0.4
+PSAMR.fixed_dt = 0
+PSAMR.allow_negative_energy = 1
 
-CAMR.do_mol   = 0
-CAMR.ppm_type = 1
+PSAMR.do_mol   = 0
+PSAMR.ppm_type = 1
 
 # PS hydro, HLLC, MUSCL reconstruction (2nd-order base so CTU's cross-
 # term coupling can lift the scheme toward 2nd order), relaxation OFF
 # (pressure is already uniform, so relaxation is a no-op; disable to
 # keep the test a pure hydro advection).
-CAMR.ps_hydro    = 1
+PSAMR.ps_hydro    = 1
 #  SINGLE-PATH (2026-08-26, Marc): pinned to the acceptance flux at its
 #  acceptance order.  hllc is retired (probe #32 + WP-CF-2D: with the
 #  ps_bl_reflux=2 default, wp serves every deck in this family — and a
 #  bare flux switch without ps_wp_order=2 silently runs 1st-order
 #  fluctuations, measured 7.9x worse on smooth alpha).
-CAMR.ps_flux     = wp
-CAMR.ps_wp_order     = 2
-CAMR.ps_do_relax = 0
-CAMR.ps_mt_tau       = 0    # no mass transfer (pre-2026-08-24 default, pinned)
-CAMR.ps_flash_tau    = 0    # no flash source  (pre-2026-08-24 default, pinned)
+PSAMR.ps_flux     = wp
+PSAMR.ps_wp_order     = 2
+PSAMR.ps_do_relax = 0
+PSAMR.ps_mt_tau       = 0    # no mass transfer (pre-2026-08-24 default, pinned)
+PSAMR.ps_flash_tau    = 0    # no flash source  (pre-2026-08-24 default, pinned)
 
-CAMR.v = 0
+PSAMR.v = 0
 amr.v  = 0
-CAMR.sum_interval = -1
-CAMR.redistribution_type = StateRedist
+PSAMR.sum_interval = -1
+PSAMR.redistribution_type = StateRedist
 
 # Single level for the order-of-accuracy sweep.
 amr.max_level       = 0

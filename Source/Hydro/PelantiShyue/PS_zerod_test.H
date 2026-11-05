@@ -6,17 +6,17 @@
 //  mass-transfer kernels on the production EOS callback.  Run from
 //  main() after AMReX/EOS initialisation, without time-stepping; each
 //  returns a failure count that main() turns into the exit code, so a
-//  CI step is `<exe> <inputs> CAMR.ps_ptg_selftest=1 CAMR.ps_relax_sweep=1
+//  CI step is `<exe> <inputs> PSAMR.ps_ptg_selftest=1 PSAMR.ps_relax_sweep=1
 //  max_step=0` (exit 0 = pass).  See docs/VERIFICATION.md.
 //
-//    CAMR.ps_ptg_selftest=1  ps_ptg_zerod_selftest: off-equilibrium
+//    PSAMR.ps_ptg_selftest=1  ps_ptg_zerod_selftest: off-equilibrium
 //        two-phase cells must reach P1 = P2, g1 = g2 with exact mass and
 //        energy conservation under hem::ps_mass_transfer_relax_cell.
-//    CAMR.ps_relax_sweep=1   ps_relax_corner_sweep: every relaxation
+//    PSAMR.ps_relax_sweep=1   ps_relax_corner_sweep: every relaxation
 //        solver, on the corners a demo never exercises, leaves a finite
 //        state that is valid or gracefully refused; never "claims ok but
 //        invalid".
-//    CAMR.ps_x3_test=1       ps_x3_fixedpoint_test: the X3 coupled source
+//    PSAMR.ps_x3_test=1       ps_x3_fixedpoint_test: the X3 coupled source
 //        reaches one fixed point independent of route and basin, equal
 //        to the HEM flash of the cell invariants.
 //
@@ -61,7 +61,7 @@ inline double ps_zt_e_of_rhoT(const hem::PsPhaseAPI& eos, int phase,
 // on-dome and the dm sign are informational.
 inline int ps_ptg_zerod_selftest()
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-0D] EOS API invalid\n"; return 1; }
 
     amrex::Print() << "\n===== PS 0-D mass-transfer-equilibrium self-test =====\n";
@@ -144,7 +144,7 @@ inline int ps_ptg_zerod_selftest()
 
 
 // ---------------------------------------------------------------------
-//  ps_x3_fixedpoint_test (CAMR.ps_x3_test=1): acceptance test of the X3
+//  ps_x3_fixedpoint_test (PSAMR.ps_x3_test=1): acceptance test of the X3
 //  coupled relaxation source on six reference states, three routes each:
 //    A: constant dt = 1e-4 to a fixed point;
 //    B: geometric dt ladder 1e-7 -> 1e-2 (route independence);
@@ -158,7 +158,7 @@ inline int ps_ptg_zerod_selftest()
 // ---------------------------------------------------------------------
 inline int ps_x3_fixedpoint_test()
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-X3] EOS API invalid\n"; return 1; }
 
     amrex::Print() << "\n===== PS X3: coupled-source fixed point vs route (and basin) =====\n";
@@ -283,7 +283,7 @@ inline int ps_x3_fixedpoint_test()
 
 
 // ---------------------------------------------------------------------
-//  ps_relax_corner_sweep (CAMR.ps_relax_sweep=1): robustness map of the
+//  ps_relax_corner_sweep (PSAMR.ps_relax_sweep=1): robustness map of the
 //  relaxation Newton solves in the corners a demo never exercises:
 //  deep-trace alpha, metastable/spinodal per-phase states, cross-critical,
 //  cold near-triple.  For each state every solver runs on a copy and the
@@ -342,7 +342,7 @@ inline int ps_relax_corner_report(const char* label, hem::V6 U0,
 // Driver over the corner table; returns the UNSAFE count (0 = all safe).
 inline int ps_relax_corner_sweep()
 {
-    const hem::PsPhaseAPI eos = ps_make_camr_eos_api();
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     if (!eos.valid()) { amrex::Print() << "[ps-sweep] EOS API invalid\n"; return 1; }
     amrex::Print() << "\n===== PS relaxation CORNER sweep (#41) =====\n";
     amrex::Print() << "  solvers: isoP=iso pressure, isoT=iso thermal, MT(g)=Gibbs mass-xfer, mechP=alpha-adjust pressure\n";

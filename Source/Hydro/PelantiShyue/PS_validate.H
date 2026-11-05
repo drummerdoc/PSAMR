@@ -19,7 +19,7 @@
 //    V8  split amplification (|UE1| + |UE2|) / |UE1 + UE2|: printed, not gated.
 //    V9  extrema of e_1 and e_2 with locations: printed, not gated.
 //
-//  Dial: CAMR.ps_validate (0), documented at ps_validate_mode below.
+//  Dial: PSAMR.ps_validate (0), documented at ps_validate_mode below.
 //  V4/V5 use a 1e-10 relative tolerance (round-off after the resyncs), so
 //  the raw post-hydro drift trips by design; the per-stage labels localise
 //  which operator breaks which invariant.  Host-only (LoopOnCpu).
@@ -29,15 +29,15 @@
 #include "IndexDefines.H"
 #include "EOS.H"
 #include "PS_presence.H"      // ps_phase_quot
-#include "PS_relaxation.H"    // ps_make_camr_eos_api (V7 validity channel)
+#include "PS_relaxation.H"    // ps_make_psamr_eos_api (V7 validity channel)
 #include "PS_util.H"          // ps_kinetic_energy
-#include "PS_dials.H"         // ps_dial_int (CAMR.ps_validate)
+#include "PS_dials.H"         // ps_dial_int (PSAMR.ps_validate)
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <cmath>
 
-// CAMR.ps_validate (0): 0 off; 1 count and one report line per sweep;
+// PSAMR.ps_validate (0): 0 off; 1 count and one report line per sweep;
 // 2 as 1 plus abort on the first bulk-bucket violation.  At the stages
 // before the floor/fold/clean repair (pre_repair: H, A, A2) an alpha_1
 // outside [0, 1] (V2) and a negative partial mass (V3) are counted, not
@@ -67,7 +67,7 @@ ps_validate_state(amrex::MultiFab& S, const char* label, int nghost = 0,
     // V7's EOS access is the PsPhaseAPI validity channel (host-only, so the
     // std::function is legal here).  Built once.
     const PsPres l_pr_v7 = ps_presence_params();
-    static const hem::PsPhaseAPI api_v7 = ps_make_camr_eos_api();
+    static const hem::PsPhaseAPI api_v7 = ps_make_psamr_eos_api();
     // First V7 offender, reported with its (rho, e) so it can be replayed.
     int  v7_i=0, v7_j=0, v7_k=0, v7_ph=0;
     Real v7_a=0.0, v7_r=0.0, v7_e=0.0;
@@ -270,7 +270,7 @@ ps_validate_state(amrex::MultiFab& S, const char* label, int nghost = 0,
                        << ab_i << "," << ab_j << "," << ab_k << ") stage '"
                        << label << "'\n";
         amrex::Abort("ps_validate_state: bulk-bucket invariant violation "
-                     "(CAMR.ps_validate=2)");
+                     "(PSAMR.ps_validate=2)");
     }
 }
 

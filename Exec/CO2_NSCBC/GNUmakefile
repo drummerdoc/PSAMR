@@ -1,11 +1,11 @@
-CAMR_HOME      ?= ../..
+PSAMR_HOME      ?= ../..
 AMREX_HOME     ?= ../../../amrex
 
 USE_PS_HYDRO = TRUE
 
 # AMReX
 # DIM is conditionally-assigned so a `make DIM=1` on the command line
-# builds the 1D variant (produces CAMR1d.*.PS.ex alongside 2D binaries
+# builds the 1D variant (produces PSAMR1d.*.PS.ex alongside 2D binaries
 # in this same directory).  The T-Blowdown case is physically 1D — a
 
 
@@ -30,7 +30,7 @@ USE_SYCL = FALSE
 # Debugging
 DEBUG = FALSE
 
-# CAMR
+# PSAMR
 USE_EB = FALSE
 Eos_Model := PR
 
@@ -38,4 +38,4 @@ Eos_Model := PR
 Bpack := ./Make.package
 Blocs := .
 
-include $(CAMR_HOME)/Exec/Make.CAMR
+include $(PSAMR_HOME)/Exec/Make.PSAMR

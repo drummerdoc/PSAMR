@@ -20,7 +20,7 @@
 //      EOS::PYT2RE_vapor on the R side.
 //    * True cross-init (each phase on its own PR branch, metastable
 //      extrapolation for the trace phase) is not yet used because
-//      CAMR's PS_ctoprim invokes EOS::REY2P (auto-phase-detecting),
+//      PSAMR's PS_ctoprim invokes EOS::REY2P (auto-phase-detecting),
 //      which would map metastable trace-phase states to a different
 //      PR root and drive relaxation off in an unphysical direction.
 //      A follow-up (Phase 4g/h) will thread branch-locked per-phase
@@ -38,8 +38,8 @@
 //  ambient P per case (params.P_amb), populated from
 //  ProbParmDevice::p_amb in BCfill.cpp.  We keep a fallback `p_amb`
 //  field on ProbParmDevice (defaults to p_R) so the case can still
-//  run under CAMR.ps_bc_use_nscbc = 1, but during transient
-//  Riemann-fan validation you'll want CAMR.ps_bc_use_nscbc = 0 to
+//  run under PSAMR.ps_bc_use_nscbc = 1, but during transient
+//  Riemann-fan validation you'll want PSAMR.ps_bc_use_nscbc = 0 to
 //  activate the sgn-aware bcnormal below (which uses p_amb_lo on
 //  the low x-face and p_amb_hi on the high x-face).  When the
 //  NSCBC dispatch is enhanced to carry per-face ambient targets,
@@ -52,13 +52,13 @@
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
-#include "CAMR_params.H"
+#include "PSAMR_params.H"
 #include "EOS.H"
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-CAMR_initdata( int i, int j, int k,
+PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
                amrex::GeometryData const& geomdata,
                ProbParmDevice const& prob_parm)
@@ -90,7 +90,7 @@ CAMR_initdata( int i, int j, int k,
     // ---------------------------------------------------------------
     //  TRUE CROSS-INIT (task #194) — matches the standalone
     //  ppm_1d_ps_wp driver's --cross-init pattern, now enabled in
-    //  CAMR because task #185 threaded branch-locked per-phase EOS
+    //  PSAMR because task #185 threaded branch-locked per-phase EOS
     //  through PS_ctoprim + relaxation.
     //
     //  Pattern:
@@ -124,16 +124,16 @@ CAMR_initdata( int i, int j, int k,
     //  crossing the fold threshold on ordinary dynamics.
     //
     //  Recommended runtime pairing for production:
-    //      CAMR.ps_alpha_vanish = 0         (fold OFF)
-    //      CAMR.ps_do_relax     = 1         (Pelanti P-relax ON)
+    //      PSAMR.ps_alpha_vanish = 0         (fold OFF)
+    //      PSAMR.ps_do_relax     = 1         (Pelanti P-relax ON)
     //  This matches the standalone's finalized recommended config
     //  (task #31: MUSCL + NCA + no-relax, α_trace=1e-6), with the
-    //  addition that CAMR's Pelanti relax is now bit-exact-equivalent
+    //  addition that PSAMR's Pelanti relax is now bit-exact-equivalent
     //  to the standalone's (task #185 branch-locked EOS pipeline).
     //
     //  If you want to reproduce the standalone's "Option A" trace-
     //  narrow config (α=1e-8, fold armed), edit this literal to
-    //  1e-8 and set CAMR.ps_alpha_vanish=1e-8.  Expect dt → 0 at
+    //  1e-8 and set PSAMR.ps_alpha_vanish=1e-8.  Expect dt → 0 at
     //  step ~76-100 unless MUSCL is off and relax is off.
     // ---------------------------------------------------------------
     const amrex::Real alpha_1_trace = amrex::Real(1.0e-6);
@@ -213,9 +213,9 @@ CAMR_initdata( int i, int j, int k,
 //     sgn = -1  →  high x face → p_amb_hi
 //  This is only the bcnormal path; the more-accurate PS-NSCBC path
 //  in PS_nscbc.H currently reads a single params.P_amb — for B4
-//  running under CAMR.ps_bc_use_nscbc = 1 you'll get p_amb_hi on
+//  running under PSAMR.ps_bc_use_nscbc = 1 you'll get p_amb_hi on
 //  both faces, which is wrong on the lo face.  Set
-//  CAMR.ps_bc_use_nscbc = 0 for B4 until PS_NSCBC learns per-face
+//  PSAMR.ps_bc_use_nscbc = 0 for B4 until PS_NSCBC learns per-face
 //  ambient (open follow-up).
 // ---------------------------------------------------------------------
 AMREX_GPU_DEVICE
@@ -253,8 +253,8 @@ bcnormal(
     //
     // Default for PS-hydro runs: interior-copy.  Opt back into the
     // legacy linear-acoustic Riemann branch with
-    // CAMR.ps_bc_copy_interior=0 (ParmParse since 2026-08-24, B15 —
-    // formerly the un-provenanced env var CAMR_BC_COPY_INTERIOR).  For
+    // PSAMR.ps_bc_copy_interior=0 (ParmParse since 2026-08-24, B15 —
+    // formerly the un-provenanced env var PSAMR_BC_COPY_INTERIOR).  For
     // non-PS builds the default is 0 and the linear-acoustic path runs
     // as before, matching pre-#206 behaviour for T-Blowdown and
     // single-fluid Riemann cases.
@@ -266,13 +266,13 @@ bcnormal(
     {
 #ifdef USE_PS_HYDRO
         //  AUDIT 2026-08-24 B15: promoted from the env var
-        //  CAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
-        //  to CAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
+        //  PSAMR_BC_COPY_INTERIOR — the last un-provenanced physics knob —
+        //  to PSAMR.ps_bc_copy_interior.  PS default 1 = interior-copy
         //  (task #206); the resolved value is force-added so every
         //  plotfile's job_info records it (gerg_ext_c idiom).
         static const bool s_bc_copy_interior = []() {
             int v = 1;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;
@@ -281,7 +281,7 @@ bcnormal(
         //  Non-PS default 0 = legacy linear-acoustic Riemann (pre-#206).
         static const bool s_bc_copy_interior = []() {
             int v = 0;
-            amrex::ParmParse pp("CAMR");
+            amrex::ParmParse pp("PSAMR");
             pp.query("ps_bc_copy_interior", v);
             pp.add("ps_bc_copy_interior", v);   // ensure it reaches job_info
             return v != 0;

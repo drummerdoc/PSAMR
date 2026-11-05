@@ -54,7 +54,7 @@ get_weight(const int im, const int ip)
   return diff == 0 ? 0.0 : (diff == 1 ? 1.0 : 0.5);
 }
 
-void CAMR_dernull(
+void PSAMR_dernull(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -65,7 +65,7 @@ void CAMR_dernull(
   const int* bcrec,
   const int level);
 
-void CAMR_dervelx(
+void PSAMR_dervelx(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -76,7 +76,7 @@ void CAMR_dervelx(
   const int* bcrec,
   const int level);
 
-void CAMR_dervely(
+void PSAMR_dervely(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -87,7 +87,7 @@ void CAMR_dervely(
   const int* bcrec,
   const int level);
 
-void CAMR_dervelz(
+void PSAMR_dervelz(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -98,7 +98,7 @@ void CAMR_dervelz(
   const int* bcrec,
   const int level);
 
-void CAMR_dermagvel(
+void PSAMR_dermagvel(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -109,7 +109,7 @@ void CAMR_dermagvel(
   const int* bcrec,
   const int level);
 
-void CAMR_dermagmom(
+void PSAMR_dermagmom(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -120,7 +120,7 @@ void CAMR_dermagmom(
   const int* bcrec,
   const int level);
 
-void CAMR_derkineng(
+void PSAMR_derkineng(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -131,7 +131,7 @@ void CAMR_derkineng(
   const int* bcrec,
   const int level);
 
-void CAMR_dereint1(
+void PSAMR_dereint1(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -142,7 +142,7 @@ void CAMR_dereint1(
   const int* bcrec,
   const int level);
 
-void CAMR_dereint2(
+void PSAMR_dereint2(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -153,7 +153,7 @@ void CAMR_dereint2(
   const int* bcrec,
   const int level);
 
-void CAMR_derlogden(
+void PSAMR_derlogden(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -164,7 +164,7 @@ void CAMR_derlogden(
   const int* bcrec,
   const int level);
 
-void CAMR_derspec(
+void PSAMR_derspec(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -179,7 +179,7 @@ void CAMR_derspec(
 // Pelanti-Shyue phase-1 volume fraction alpha_1 as a derive (with the
 // standard ghost FillPatch) so AMR can refine on the phase/flash front.
 // Not the EB fluid volume fraction "vfrac"; datfab component 0 = UALPHA1.
-void CAMR_der_ps_alpha1(
+void PSAMR_der_ps_alpha1(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -191,7 +191,7 @@ void CAMR_der_ps_alpha1(
   const int level);
 #endif
 
-void CAMR_dermagvort(
+void PSAMR_dermagvort(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -202,7 +202,7 @@ void CAMR_dermagvort(
   const int* bcrec,
   const int level);
 
-void CAMR_derdivu(
+void PSAMR_derdivu(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -213,7 +213,7 @@ void CAMR_derdivu(
   const int* bcrec,
   const int level);
 
-void CAMR_derenstrophy(
+void PSAMR_derenstrophy(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -224,7 +224,7 @@ void CAMR_derenstrophy(
   const int* bcrec,
   const int level);
 
-void CAMR_dersoundspeed(
+void PSAMR_dersoundspeed(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -235,7 +235,7 @@ void CAMR_dersoundspeed(
   const int* bcrec,
   const int level);
 
-void CAMR_dermachnumber(
+void PSAMR_dermachnumber(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -246,7 +246,7 @@ void CAMR_dermachnumber(
   const int* bcrec,
   const int level);
 
-void CAMR_derpres(
+void PSAMR_derpres(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -258,7 +258,7 @@ void CAMR_derpres(
   const int level);
 
 
-void CAMR_dertemp(
+void PSAMR_dertemp(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,
@@ -271,17 +271,17 @@ void CAMR_dertemp(
 
 #ifdef USE_PS_HYDRO
 // Per-phase temperatures (liquid / vapor); vanished phase -> mixture T.
-void CAMR_dertemp1(
+void PSAMR_dertemp1(
   const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
   const amrex::FArrayBox& datfab, const amrex::Geometry& geomdata,
   amrex::Real time, const int* bcrec, const int level);
-void CAMR_dertemp2(
+void PSAMR_dertemp2(
   const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
   const amrex::FArrayBox& datfab, const amrex::Geometry& geomdata,
   amrex::Real time, const int* bcrec, const int level);
 #endif
 
-void CAMR_dercp(
+void PSAMR_dercp(
   const amrex::Box& bx,
   amrex::FArrayBox& derfab,
   int dcomp,

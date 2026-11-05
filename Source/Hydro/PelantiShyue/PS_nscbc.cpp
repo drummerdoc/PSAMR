@@ -1,6 +1,6 @@
 // =====================================================================
 //  PS_nscbc.cpp — the characteristic outflow posed on the relaxed
-//  state (CAMR::ps_bc_relaxed), a post-processor on the boundary cell's
+//  state (PSAMR::ps_bc_relaxed), a post-processor on the boundary cell's
 //  predicted increment.  docs/MODEL_AND_ALGORITHM.md §6.
 //
 //  Algorithm: at a domain face with NSCBC enabled, the fan between the
@@ -27,7 +27,7 @@
 //  chain is a std::function EOS path): a GPU build with an NSCBC face
 //  aborts.  Dials: PS_nscbc.H.
 // =====================================================================
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "IndexDefines.H"
 
 #ifdef USE_PS_HYDRO
@@ -118,9 +118,9 @@ void cell_P_uout(const Real U[NVAR], int idir, Real n_sgn, const PsPres& pr,
 }  // namespace
 
 //  The reaction chain on a trial MultiFab: the operator order of
-//  apply_ps_reaction in CAMR_advance.cpp without its diagnostics.
+//  apply_ps_reaction in PSAMR_advance.cpp without its diagnostics.
 void
-CAMR::ps_reaction_trial(MultiFab& T, Real dt_r, long& relaxed, long& flashed)
+PSAMR::ps_reaction_trial(MultiFab& T, Real dt_r, long& relaxed, long& flashed)
 {
     clean_state(T, 0, false);
     ps_resync_mixture_mass(T, 0);
@@ -158,9 +158,9 @@ CAMR::ps_reaction_trial(MultiFab& T, Real dt_r, long& relaxed, long& flashed)
 }
 
 void
-CAMR::ps_bc_relaxed(const MultiFab& S, MultiFab& hyd_src, Real dt)
+PSAMR::ps_bc_relaxed(const MultiFab& S, MultiFab& hyd_src, Real dt)
 {
-    BL_PROFILE("CAMR::ps_bc_relaxed()");
+    BL_PROFILE("PSAMR::ps_bc_relaxed()");
 #if defined(AMREX_USE_GPU)
     amrex::Abort("the relaxed boundary (NSCBC faces) is host-only: it runs the reaction chain on trial states; build without GPU");
 #endif

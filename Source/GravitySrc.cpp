@@ -1,7 +1,7 @@
-#include "CAMR.H"
+#include "PSAMR.H"
 
 void
-CAMR::construct_old_grav_source (const amrex::MultiFab& S,
+PSAMR::construct_old_grav_source (const amrex::MultiFab& S,
                                  amrex::Real /*time*/, amrex::Real /*dt*/,
                                  int ng)
 {
@@ -23,7 +23,7 @@ CAMR::construct_old_grav_source (const amrex::MultiFab& S,
 }
 
 void
-CAMR::construct_new_grav_source (amrex::Real /*time*/, amrex::Real /*dt*/)
+PSAMR::construct_new_grav_source (amrex::Real /*time*/, amrex::Real /*dt*/)
 {
   new_sources[grav_src]->setVal(0.0);
 
@@ -39,7 +39,7 @@ CAMR::construct_new_grav_source (amrex::Real /*time*/, amrex::Real /*dt*/)
 }
 
 void
-CAMR::fill_grav_source (const amrex::MultiFab& S,
+PSAMR::fill_grav_source (const amrex::MultiFab& S,
                         amrex::MultiFab& grav_src,
                         int ng)
 {
@@ -87,7 +87,7 @@ CAMR::fill_grav_source (const amrex::MultiFab& S,
 }
 
 void
-CAMR::fill_gravcorr_source(
+PSAMR::fill_gravcorr_source(
   const amrex::MultiFab& S_old,
   const amrex::MultiFab& S_new,
   amrex::MultiFab& grav_src, int ng)

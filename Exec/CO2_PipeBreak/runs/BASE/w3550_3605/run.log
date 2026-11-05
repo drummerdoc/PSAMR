@@ -6,13 +6,13 @@ AMReX (26.06-5-g65db2e4e678a) initialized
 Starting run at 15:08:20 CEST on 2026-09-10.
 Successfully read inputs file ... 
 
-CAMR git hash: pre-cleanup-2026-09-04-62-g96431e8
+PSAMR git hash: pre-cleanup-2026-09-04-62-g96431e8
 AMReX git hash: 26.06-5-g65db2e4e6
 
-CAMR: hydro solver = Pelanti-Shyue wave-propagation (USE_PS_HYDRO on, ps_hydro=1)
+PSAMR: hydro solver = Pelanti-Shyue wave-propagation (USE_PS_HYDRO on, ps_hydro=1)
 3 Species: 
 F  A  P  
-restarting calculation from file: /Users/marcusd/src/CAMR/Exec/CO2_PipeBreak/demo2_final/chk_sj2_03550
+restarting calculation from file: /Users/marcusd/src/PSAMR/Exec/CO2_PipeBreak/demo2_final/chk_sj2_03550
 Starting to call amrex_probinit ... 
   CO2_PipeBreak: saturated two-phase reservoir @ T_res=280 K, alpha1_liq=0.05  rhoL=851.6387139 rhoV=122.6251543 eL=-90779.58992 eV=88039.19965
   CO2_PipeBreak: reservoir Psat=41.94851467 bar  c_liq=416.0816313 c_vap=213.2221069  c_frozen(mix)=191.8785336 m/s  -> characteristic inlet capped at u=191.8785336 m/s (M=1)
@@ -21,25 +21,25 @@ Successfully read inputs file ...
 read CPU time: 885606.4839
 Restart time = 0.045072709 seconds.
 ...estimated hydro-limited timestep at level 0: 2.863570245e-06 -> 2.863570245e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.863570245e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.863570245e-06
 ...estimated hydro-limited timestep at level 1: 1.174728086e-06 -> 2.349456171e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.174728086e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.174728086e-06
 ...estimated hydro-limited timestep at level 2: 5.380651391e-07 -> 2.152260556e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.380651391e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.380651391e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.863570245e-06
  ... but limiting to: 2.341387866e-06 = 1.1 * 2.128534424e-06
-CAMR::compute_new_dt : limiting dt at level 1
+PSAMR::compute_new_dt : limiting dt at level 1
  ... new dt computed: 1.174728086e-06
  ... but limiting to: 1.170693933e-06 = 1.1 * 1.064267212e-06
 Now regridding at level lbase = 0
-  CAMR bcfill: outflow (Inflow-flagged) BC per face (1 = PS-NSCBC characteristic-invariant, 0 = bcnormal linearised Riemann invariant): xlo=0 xhi=0 ylo=0 yhi=0,  σ = 0.25,  R+ order = 2
+  PSAMR bcfill: outflow (Inflow-flagged) BC per face (1 = PS-NSCBC characteristic-invariant, 0 = bcnormal linearised Riemann invariant): xlo=0 xhi=0 ylo=0 yhi=0,  σ = 0.25,  R+ order = 2
 grid_places() time: 0.125794334 new finest: 2
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
 STEP = 3550 TIME = 0.01535829673 : REGRID  with lbase = 0
   Level 1   13 grids  29696 cells  22.65625 % of domain
             smallest grid: 32 x 32  biggest grid: 64 x 64
@@ -48,21 +48,21 @@ STEP = 3550 TIME = 0.01535829673 : REGRID  with lbase = 0
 
 [Level 0 step 3551] ADVANCE at time 0.01535829673 with dt = 2.152260556e-06
 Doing PS Advance (flux=wp)
-CAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1, allow_small_energy=1, dual_energy_update_E_from_e=0, dual_energy_eta2=0 for the Pelanti-Shyue integrator.  PS tracks per-phase e_1, e_2 directly; the dual-energy reset would corrupt UEINT/UEDEN book-keeping.  Also, physical liquid CO2 has e ≈ -130 kJ/kg.  See task #210.!
 ... Computing PS unsplit hydro advance (flux=wp)
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
-CAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
+PSAMR::PS: forcing allow_negative_energy=1 and dual_energy_eta1=0 inside hydro_ctoprim for the Pelanti-Shyue integrator.  PS uses (UEDEN − ke)/ρ unconditionally as the mixture specific internal energy; the dual-energy fallback to UEINT would amplify FP noise between UEINT and UEDEN.  Also, physical liquid CO2 has e ≈ -130 kJ/kg — the positive-e assert must be disabled.  See task #210.!
   PS_umeth: Berger-LeVeque WP (fluctuation) flux — BL-2 limited correction fluxes (2nd order, the acceptance order)
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
-CAMR::PS: overriding CAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
+PSAMR::PS: overriding PSAMR.difmag to 0 for the Pelanti-Shyue 6-eq integrator.  Artificial viscosity corrupts the WP-α and WP phase-energy invariants; PS has its own stabilization. See task #209.!
 [PS-VALIDATE] H post-hydro (pre-floor): nonfinite=0 alpha_oob=18 m_neg=29 massid=2017 (worst 0.0002431280279) energyid=641 (worst 8.76246456e-08) rho_domain bulk=0 trace=2013 reachable bulk=0 trace=1 splitamp=3.517814333 e1_min=-308110.558 e2_max=319546.7867
 [PS-VALIDATE]   phase-e extrema:  e1_min -308110.558 at (140,92,0) alpha=4.450854527e-05 rho=2252.89598 |  e2_max 319546.7867 at (63,52,0) alpha=0.9999930815 rho=42.95860651
 [PS-VALIDATE]   worst phase-energy split: (135,80,0)  alpha_1=0.02139417953  UE1=-2736164.695  UE2=4921945.973  sum=2185781.278  |parts|/|whole|=3.517814333
@@ -210,7 +210,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14201 D post sources (flash): drift = 2.218418529e-16 (n>1e-3 0)  max(m1+m2) = 170.9047659  max|E1| = 4027119.919  max|E2| = 383908.8343
 [PS-GUARD] L2 step 14201 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14202] Advanced 36096 cells
-CAMR::reflux() at level 1 : time = 0.03232
+PSAMR::reflux() at level 1 : time = 0.03232
 [Level 1 step 7102] ADVANCE at time 0.01535937286 with dt = 1.076130278e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -323,8 +323,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14203 D post sources (flash): drift = 2.219303913e-16 (n>1e-3 0)  max(m1+m2) = 173.4023875  max|E1| = 9212316.51  max|E2| = 377554.8298
 [PS-GUARD] L2 step 14203 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14204] Advanced 36096 cells
-CAMR::reflux() at level 1 : time = 0.032336
-CAMR::reflux() at level 0 : time = 0.016022
+PSAMR::reflux() at level 1 : time = 0.032336
+PSAMR::reflux() at level 0 : time = 0.016022
 
 [STEP 3551] Coarse TimeStep time: 45.58049121
 [STEP 3551] FAB kilobyte spread across MPI nodes: [21568 ... 24886]
@@ -332,15 +332,15 @@ CAMR::reflux() at level 0 : time = 0.016022
 STEP = 3551 TIME = 0.01536044899 DT = 2.152260556e-06
 
 ...estimated hydro-limited timestep at level 0: 2.912023526e-06 -> 2.912023526e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.912023526e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.912023526e-06
 ...estimated hydro-limited timestep at level 1: 1.219056915e-06 -> 2.438113829e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.219056915e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.219056915e-06
 ...estimated hydro-limited timestep at level 2: 5.354647469e-07 -> 2.141858988e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.354647469e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.354647469e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.912023526e-06
  ... but limiting to: 2.367486612e-06 = 1.1 * 2.152260556e-06
-CAMR::compute_new_dt : limiting dt at level 1
+PSAMR::compute_new_dt : limiting dt at level 1
  ... new dt computed: 1.219056915e-06
  ... but limiting to: 1.183743306e-06 = 1.1 * 1.076130278e-06
 Now regridding at level lbase = 1
@@ -499,7 +499,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14205 D post sources (flash): drift = 2.219838355e-16 (n>1e-3 0)  max(m1+m2) = 173.2528565  max|E1| = 4000572.972  max|E2| = 374165.8187
 [PS-GUARD] L2 step 14205 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14206] Advanced 36608 cells
-CAMR::reflux() at level 1 : time = 0.033886
+PSAMR::reflux() at level 1 : time = 0.033886
 [Level 1 step 7104] ADVANCE at time 0.01536151992 with dt = 1.070929494e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -610,8 +610,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14207 D post sources (flash): drift = 2.220152983e-16 (n>1e-3 0)  max(m1+m2) = 173.1835787  max|E1| = 3987636.235  max|E2| = 370047.6894
 [PS-GUARD] L2 step 14207 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14208] Advanced 36608 cells
-CAMR::reflux() at level 1 : time = 0.034126
-CAMR::reflux() at level 0 : time = 0.016175
+PSAMR::reflux() at level 1 : time = 0.034126
+PSAMR::reflux() at level 0 : time = 0.016175
 
 [STEP 3552] Coarse TimeStep time: 49.35739233
 [STEP 3552] FAB kilobyte spread across MPI nodes: [22473 ... 26164]
@@ -619,15 +619,15 @@ CAMR::reflux() at level 0 : time = 0.016175
 STEP = 3552 TIME = 0.01536259085 DT = 2.141858988e-06
 
 ...estimated hydro-limited timestep at level 0: 2.975555107e-06 -> 2.975555107e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.975555107e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.975555107e-06
 ...estimated hydro-limited timestep at level 1: 1.247562055e-06 -> 2.49512411e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.247562055e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.247562055e-06
 ...estimated hydro-limited timestep at level 2: 5.724484606e-07 -> 2.289793842e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.724484606e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.724484606e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.975555107e-06
  ... but limiting to: 2.356044886e-06 = 1.1 * 2.141858988e-06
-CAMR::compute_new_dt : limiting dt at level 1
+PSAMR::compute_new_dt : limiting dt at level 1
  ... new dt computed: 1.247562055e-06
  ... but limiting to: 1.178022443e-06 = 1.1 * 1.070929494e-06
 Now regridding at level lbase = 0
@@ -786,7 +786,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14209 D post sources (flash): drift = 2.220019227e-16 (n>1e-3 0)  max(m1+m2) = 175.1851783  max|E1| = 3740007.346  max|E2| = 371636.7882
 [PS-GUARD] L2 step 14209 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14210] Advanced 38656 cells
-CAMR::reflux() at level 1 : time = 0.045508
+PSAMR::reflux() at level 1 : time = 0.045508
 [Level 1 step 7106] ADVANCE at time 0.01536373575 with dt = 1.144896921e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -897,8 +897,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14211 D post sources (flash): drift = 2.219837623e-16 (n>1e-3 0)  max(m1+m2) = 176.1948911  max|E1| = 4828667.311  max|E2| = 370216.7671
 [PS-GUARD] L2 step 14211 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14212] Advanced 38656 cells
-CAMR::reflux() at level 1 : time = 0.044991
-CAMR::reflux() at level 0 : time = 0.011749
+PSAMR::reflux() at level 1 : time = 0.044991
+PSAMR::reflux() at level 0 : time = 0.011749
 
 [STEP 3553] Coarse TimeStep time: 55.28800883
 [STEP 3553] FAB kilobyte spread across MPI nodes: [22733 ... 27117]
@@ -906,15 +906,15 @@ CAMR::reflux() at level 0 : time = 0.011749
 STEP = 3553 TIME = 0.01536488064 DT = 2.289793842e-06
 
 ...estimated hydro-limited timestep at level 0: 2.949345766e-06 -> 2.949345766e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.949345766e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.949345766e-06
 ...estimated hydro-limited timestep at level 1: 1.295938522e-06 -> 2.591877043e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.295938522e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.295938522e-06
 ...estimated hydro-limited timestep at level 2: 5.972532973e-07 -> 2.389013189e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.972532973e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 5.972532973e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.949345766e-06
  ... but limiting to: 2.518773227e-06 = 1.1 * 2.289793842e-06
-CAMR::compute_new_dt : limiting dt at level 1
+PSAMR::compute_new_dt : limiting dt at level 1
  ... new dt computed: 1.295938522e-06
  ... but limiting to: 1.259386613e-06 = 1.1 * 1.144896921e-06
 Now regridding at level lbase = 1
@@ -1071,7 +1071,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14213 D post sources (flash): drift = 2.219398623e-16 (n>1e-3 0)  max(m1+m2) = 180.2770684  max|E1| = 6456778.116  max|E2| = 366050.9435
 [PS-GUARD] L2 step 14213 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14214] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.066744
+PSAMR::reflux() at level 1 : time = 0.066744
 [Level 1 step 7108] ADVANCE at time 0.01536607515 with dt = 1.194506595e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -1182,8 +1182,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14215 D post sources (flash): drift = 2.218569873e-16 (n>1e-3 0)  max(m1+m2) = 181.8696707  max|E1| = 8741188.05  max|E2| = 364506.0783
 [PS-GUARD] L2 step 14215 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14216] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.067027
-CAMR::reflux() at level 0 : time = 0.011876
+PSAMR::reflux() at level 1 : time = 0.067027
+PSAMR::reflux() at level 0 : time = 0.011876
 
 [STEP 3554] Coarse TimeStep time: 55.07677483
 [STEP 3554] FAB kilobyte spread across MPI nodes: [23692 ... 27392]
@@ -1191,15 +1191,15 @@ CAMR::reflux() at level 0 : time = 0.011876
 STEP = 3554 TIME = 0.01536726966 DT = 2.389013189e-06
 
 ...estimated hydro-limited timestep at level 0: 2.942500576e-06 -> 2.942500576e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.942500576e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.942500576e-06
 ...estimated hydro-limited timestep at level 1: 1.327440253e-06 -> 2.654880506e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.327440253e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.327440253e-06
 ...estimated hydro-limited timestep at level 2: 6.191969704e-07 -> 2.476787882e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.191969704e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.191969704e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.942500576e-06
  ... but limiting to: 2.627914508e-06 = 1.1 * 2.389013189e-06
-CAMR::compute_new_dt : limiting dt at level 1
+PSAMR::compute_new_dt : limiting dt at level 1
  ... new dt computed: 1.327440253e-06
  ... but limiting to: 1.313957254e-06 = 1.1 * 1.194506595e-06
 Now regridding at level lbase = 0
@@ -1358,7 +1358,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14217 D post sources (flash): drift = 2.219283037e-16 (n>1e-3 0)  max(m1+m2) = 186.272556  max|E1| = 12118117.96  max|E2| = 363476.4705
 [PS-GUARD] L2 step 14217 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14218] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.055316
+PSAMR::reflux() at level 1 : time = 0.055316
 [Level 1 step 7110] ADVANCE at time 0.01536850805 with dt = 1.238393941e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -1469,8 +1469,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14219 D post sources (flash): drift = 2.219763072e-16 (n>1e-3 0)  max(m1+m2) = 191.2416581  max|E1| = 16991102.1  max|E2| = 361765.9211
 [PS-GUARD] L2 step 14219 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14220] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.054841
-CAMR::reflux() at level 0 : time = 0.018538
+PSAMR::reflux() at level 1 : time = 0.054841
+PSAMR::reflux() at level 0 : time = 0.018538
 
 [STEP 3555] Coarse TimeStep time: 54.83726142
 [STEP 3555] FAB kilobyte spread across MPI nodes: [23692 ... 27392]
@@ -1481,12 +1481,12 @@ PLOTFILE: file = plt_sj2_03555
 Write plotfile time = 0.261503583  seconds
 
 ...estimated hydro-limited timestep at level 0: 2.956007309e-06 -> 2.956007309e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.956007309e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.956007309e-06
 ...estimated hydro-limited timestep at level 1: 1.344372247e-06 -> 2.688744494e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.344372247e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.344372247e-06
 ...estimated hydro-limited timestep at level 2: 6.432936111e-07 -> 2.573174445e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.432936111e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.432936111e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.956007309e-06
  ... but limiting to: 2.72446667e-06 = 1.1 * 2.476787882e-06
 Now regridding at level lbase = 1
@@ -1643,7 +1643,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14221 D post sources (flash): drift = 2.220350324e-16 (n>1e-3 0)  max(m1+m2) = 196.8394423  max|E1| = 3112371.743  max|E2| = 362297.2279
 [PS-GUARD] L2 step 14221 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14222] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.058747
+PSAMR::reflux() at level 1 : time = 0.058747
 [Level 1 step 7112] ADVANCE at time 0.01537103303 with dt = 1.286587222e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -1754,8 +1754,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14223 D post sources (flash): drift = 2.220125913e-16 (n>1e-3 0)  max(m1+m2) = 200.3831132  max|E1| = 3112555.219  max|E2| = 359156.622
 [PS-GUARD] L2 step 14223 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14224] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.059192
-CAMR::reflux() at level 0 : time = 0.018652
+PSAMR::reflux() at level 1 : time = 0.059192
+PSAMR::reflux() at level 0 : time = 0.018652
 
 [STEP 3556] Coarse TimeStep time: 54.46560625
 [STEP 3556] FAB kilobyte spread across MPI nodes: [24016 ... 27432]
@@ -1763,12 +1763,12 @@ CAMR::reflux() at level 0 : time = 0.018652
 STEP = 3556 TIME = 0.01537231962 DT = 2.573174445e-06
 
 ...estimated hydro-limited timestep at level 0: 2.96635907e-06 -> 2.96635907e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.96635907e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.96635907e-06
 ...estimated hydro-limited timestep at level 1: 1.361997091e-06 -> 2.723994182e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.361997091e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.361997091e-06
 ...estimated hydro-limited timestep at level 2: 6.620687702e-07 -> 2.648275081e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.620687702e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.620687702e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.96635907e-06
  ... but limiting to: 2.830491889e-06 = 1.1 * 2.573174445e-06
 Now regridding at level lbase = 0
@@ -1927,7 +1927,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14225 D post sources (flash): drift = 2.219822957e-16 (n>1e-3 0)  max(m1+m2) = 204.5794604  max|E1| = 7958768.777  max|E2| = 357043.3059
 [PS-GUARD] L2 step 14225 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14226] Advanced 39680 cells
-CAMR::reflux() at level 1 : time = 0.03346
+PSAMR::reflux() at level 1 : time = 0.03346
 [Level 1 step 7114] ADVANCE at time 0.01537364376 with dt = 1.32413754e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -2038,8 +2038,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14227 D post sources (flash): drift = 2.220105297e-16 (n>1e-3 0)  max(m1+m2) = 207.9831505  max|E1| = 3089632.097  max|E2| = 355991.0698
 [PS-GUARD] L2 step 14227 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14228] Advanced 39680 cells
-CAMR::reflux() at level 1 : time = 0.03285
-CAMR::reflux() at level 0 : time = 0.018818
+PSAMR::reflux() at level 1 : time = 0.03285
+PSAMR::reflux() at level 0 : time = 0.018818
 
 [STEP 3557] Coarse TimeStep time: 54.53752304
 [STEP 3557] FAB kilobyte spread across MPI nodes: [24016 ... 27432]
@@ -2047,12 +2047,12 @@ CAMR::reflux() at level 0 : time = 0.018818
 STEP = 3557 TIME = 0.01537496789 DT = 2.648275081e-06
 
 ...estimated hydro-limited timestep at level 0: 2.991206672e-06 -> 2.991206672e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.991206672e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 2.991206672e-06
 ...estimated hydro-limited timestep at level 1: 1.425954161e-06 -> 2.851908322e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.425954161e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.425954161e-06
 ...estimated hydro-limited timestep at level 2: 6.890243414e-07 -> 2.756097366e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.890243414e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 6.890243414e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 2.991206672e-06
  ... but limiting to: 2.913102589e-06 = 1.1 * 2.648275081e-06
 Now regridding at level lbase = 1
@@ -2209,7 +2209,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14229 D post sources (flash): drift = 2.219966909e-16 (n>1e-3 0)  max(m1+m2) = 211.1210084  max|E1| = 8864309.296  max|E2| = 354939.4297
 [PS-GUARD] L2 step 14229 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14230] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.058357
+PSAMR::reflux() at level 1 : time = 0.058357
 [Level 1 step 7116] ADVANCE at time 0.01537634594 with dt = 1.378048683e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -2320,8 +2320,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14231 D post sources (flash): drift = 2.219818507e-16 (n>1e-3 0)  max(m1+m2) = 213.2273255  max|E1| = 3057675.348  max|E2| = 351732.8697
 [PS-GUARD] L2 step 14231 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14232] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.058974
-CAMR::reflux() at level 0 : time = 0.018848
+PSAMR::reflux() at level 1 : time = 0.058974
+PSAMR::reflux() at level 0 : time = 0.018848
 
 [STEP 3558] Coarse TimeStep time: 55.01422796
 [STEP 3558] FAB kilobyte spread across MPI nodes: [24016 ... 27690]
@@ -2329,12 +2329,12 @@ CAMR::reflux() at level 0 : time = 0.018848
 STEP = 3558 TIME = 0.01537772399 DT = 2.756097366e-06
 
 ...estimated hydro-limited timestep at level 0: 3.038466806e-06 -> 3.038466806e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.038466806e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.038466806e-06
 ...estimated hydro-limited timestep at level 1: 1.398138003e-06 -> 2.796276006e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.398138003e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.398138003e-06
 ...estimated hydro-limited timestep at level 2: 7.119274414e-07 -> 2.847709766e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.119274414e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.119274414e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 3.038466806e-06
  ... but limiting to: 3.031707102e-06 = 1.1 * 2.756097366e-06
 Now regridding at level lbase = 0
@@ -2493,7 +2493,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14233 D post sources (flash): drift = 2.219025075e-16 (n>1e-3 0)  max(m1+m2) = 214.9888058  max|E1| = 3038628.529  max|E2| = 348807.0491
 [PS-GUARD] L2 step 14233 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14234] Advanced 38912 cells
-CAMR::reflux() at level 1 : time = 0.042424
+PSAMR::reflux() at level 1 : time = 0.042424
 [Level 1 step 7118] ADVANCE at time 0.01537912213 with dt = 1.398138003e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -2604,8 +2604,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14235 D post sources (flash): drift = 2.218479519e-16 (n>1e-3 0)  max(m1+m2) = 216.0462187  max|E1| = 2719371.084  max|E2| = 346923.5362
 [PS-GUARD] L2 step 14235 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14236] Advanced 38912 cells
-CAMR::reflux() at level 1 : time = 0.042178
-CAMR::reflux() at level 0 : time = 0.019016
+PSAMR::reflux() at level 1 : time = 0.042178
+PSAMR::reflux() at level 0 : time = 0.019016
 
 [STEP 3559] Coarse TimeStep time: 56.54545042
 [STEP 3559] FAB kilobyte spread across MPI nodes: [24016 ... 27690]
@@ -2613,12 +2613,12 @@ CAMR::reflux() at level 0 : time = 0.019016
 STEP = 3559 TIME = 0.01538052027 DT = 2.796276006e-06
 
 ...estimated hydro-limited timestep at level 0: 3.096016755e-06 -> 3.096016755e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.096016755e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.096016755e-06
 ...estimated hydro-limited timestep at level 1: 1.462280384e-06 -> 2.924560769e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.462280384e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.462280384e-06
 ...estimated hydro-limited timestep at level 2: 7.228759322e-07 -> 2.891503729e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.228759322e-07
-CAMR::compute_new_dt : limiting dt at level 0
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.228759322e-07
+PSAMR::compute_new_dt : limiting dt at level 0
  ... new dt computed: 3.096016755e-06
  ... but limiting to: 3.075903606e-06 = 1.1 * 2.796276006e-06
 Now regridding at level lbase = 1
@@ -2779,7 +2779,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14237 D post sources (flash): drift = 2.220444898e-16 (n>1e-3 0)  max(m1+m2) = 216.8375362  max|E1| = 3290051.336  max|E2| = 346034.7069
 [PS-GUARD] L2 step 14237 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14238] Advanced 38912 cells
-CAMR::reflux() at level 1 : time = 0.054418
+PSAMR::reflux() at level 1 : time = 0.054418
 [Level 1 step 7120] ADVANCE at time 0.01538196602 with dt = 1.445751864e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -2888,8 +2888,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14239 D post sources (flash): drift = 2.219378243e-16 (n>1e-3 0)  max(m1+m2) = 217.3361851  max|E1| = 3906183.654  max|E2| = 344717.1909
 [PS-GUARD] L2 step 14239 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14240] Advanced 38912 cells
-CAMR::reflux() at level 1 : time = 0.054859
-CAMR::reflux() at level 0 : time = 0.019159
+PSAMR::reflux() at level 1 : time = 0.054859
+PSAMR::reflux() at level 0 : time = 0.019159
 
 [STEP 3560] Coarse TimeStep time: 54.71850817
 [STEP 3560] FAB kilobyte spread across MPI nodes: [24016 ... 27690]
@@ -2900,11 +2900,11 @@ PLOTFILE: file = plt_sj2_03560
 Write plotfile time = 0.189276208  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.090728211e-06 -> 3.090728211e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.090728211e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.090728211e-06
 ...estimated hydro-limited timestep at level 1: 1.503247988e-06 -> 3.006495976e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.503247988e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.503247988e-06
 ...estimated hydro-limited timestep at level 2: 7.46334585e-07 -> 2.98533834e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.46334585e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.46334585e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.126116916 new finest: 2
 STEP = 3560 TIME = 0.01538341177 : REGRID  with lbase = 0
@@ -3049,7 +3049,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14241 D post sources (flash): drift = 2.217669743e-16 (n>1e-3 0)  max(m1+m2) = 217.9005482  max|E1| = 4454740.255  max|E2| = 342944.3495
 [PS-GUARD] L2 step 14241 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14242] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.068076
+PSAMR::reflux() at level 1 : time = 0.068076
 [Level 1 step 7122] ADVANCE at time 0.01538490444 with dt = 1.49266917e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -3148,8 +3148,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14243 D post sources (flash): drift = 2.219610857e-16 (n>1e-3 0)  max(m1+m2) = 220.8356556  max|E1| = 4877443.654  max|E2| = 340767.6286
 [PS-GUARD] L2 step 14243 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14244] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.069147
-CAMR::reflux() at level 0 : time = 0.019178
+PSAMR::reflux() at level 1 : time = 0.069147
+PSAMR::reflux() at level 0 : time = 0.019178
 
 [STEP 3561] Coarse TimeStep time: 56.92584692
 [STEP 3561] FAB kilobyte spread across MPI nodes: [24016 ... 27690]
@@ -3157,11 +3157,11 @@ CAMR::reflux() at level 0 : time = 0.019178
 STEP = 3561 TIME = 0.01538639711 DT = 2.98533834e-06
 
 ...estimated hydro-limited timestep at level 0: 3.109584149e-06 -> 3.109584149e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.109584149e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.109584149e-06
 ...estimated hydro-limited timestep at level 1: 1.559177831e-06 -> 3.118355663e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.559177831e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.559177831e-06
 ...estimated hydro-limited timestep at level 2: 7.526117617e-07 -> 3.010447047e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.526117617e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.526117617e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.057086167 new finest: 2
 TIME = 0.01538639711 : REGRID  with lbase = 1
@@ -3304,7 +3304,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14245 D post sources (flash): drift = 2.220305574e-16 (n>1e-3 0)  max(m1+m2) = 223.0514872  max|E1| = 5143309.392  max|E2| = 338963.8409
 [PS-GUARD] L2 step 14245 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14246] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.050469
+PSAMR::reflux() at level 1 : time = 0.050469
 [Level 1 step 7124] ADVANCE at time 0.01538790233 with dt = 1.505223523e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -3403,8 +3403,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14247 D post sources (flash): drift = 2.2199584e-16 (n>1e-3 0)  max(m1+m2) = 224.6290033  max|E1| = 5235389.822  max|E2| = 337391.981
 [PS-GUARD] L2 step 14247 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14248] Advanced 39424 cells
-CAMR::reflux() at level 1 : time = 0.051646
-CAMR::reflux() at level 0 : time = 0.01945
+PSAMR::reflux() at level 1 : time = 0.051646
+PSAMR::reflux() at level 0 : time = 0.01945
 
 [STEP 3562] Coarse TimeStep time: 57.96148142
 [STEP 3562] FAB kilobyte spread across MPI nodes: [24296 ... 28051]
@@ -3412,11 +3412,11 @@ CAMR::reflux() at level 0 : time = 0.01945
 STEP = 3562 TIME = 0.01538940756 DT = 3.010447047e-06
 
 ...estimated hydro-limited timestep at level 0: 3.154863797e-06 -> 3.154863797e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.154863797e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.154863797e-06
 ...estimated hydro-limited timestep at level 1: 1.515534747e-06 -> 3.031069494e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.515534747e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.515534747e-06
 ...estimated hydro-limited timestep at level 2: 7.568592918e-07 -> 3.027437167e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.568592918e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.568592918e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.129328583 new finest: 2
 STEP = 3562 TIME = 0.01538940756 : REGRID  with lbase = 0
@@ -3561,7 +3561,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14249 D post sources (flash): drift = 2.219585551e-16 (n>1e-3 0)  max(m1+m2) = 225.8391073  max|E1| = 5165704.315  max|E2| = 335379.937
 [PS-GUARD] L2 step 14249 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14250] Advanced 39936 cells
-CAMR::reflux() at level 1 : time = 0.045293
+PSAMR::reflux() at level 1 : time = 0.045293
 [Level 1 step 7126] ADVANCE at time 0.01539092127 with dt = 1.513718584e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -3660,8 +3660,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14251 D post sources (flash): drift = 2.217485143e-16 (n>1e-3 0)  max(m1+m2) = 226.9725932  max|E1| = 4966713.997  max|E2| = 333354.2989
 [PS-GUARD] L2 step 14251 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14252] Advanced 39936 cells
-CAMR::reflux() at level 1 : time = 0.04567
-CAMR::reflux() at level 0 : time = 0.019765
+PSAMR::reflux() at level 1 : time = 0.04567
+PSAMR::reflux() at level 0 : time = 0.019765
 
 [STEP 3563] Coarse TimeStep time: 57.80867067
 [STEP 3563] FAB kilobyte spread across MPI nodes: [24296 ... 28051]
@@ -3669,11 +3669,11 @@ CAMR::reflux() at level 0 : time = 0.019765
 STEP = 3563 TIME = 0.01539243499 DT = 3.027437167e-06
 
 ...estimated hydro-limited timestep at level 0: 3.200238938e-06 -> 3.200238938e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.200238938e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.200238938e-06
 ...estimated hydro-limited timestep at level 1: 1.559756086e-06 -> 3.119512173e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.559756086e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.559756086e-06
 ...estimated hydro-limited timestep at level 2: 7.750919226e-07 -> 3.10036769e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.750919226e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.750919226e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.057116833 new finest: 2
 TIME = 0.01539243499 : REGRID  with lbase = 1
@@ -3816,7 +3816,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14253 D post sources (flash): drift = 2.215104999e-16 (n>1e-3 0)  max(m1+m2) = 227.7312849  max|E1| = 4673931.355  max|E2| = 333545.0805
 [PS-GUARD] L2 step 14253 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14254] Advanced 39936 cells
-CAMR::reflux() at level 1 : time = 0.073707
+PSAMR::reflux() at level 1 : time = 0.073707
 [Level 1 step 7128] ADVANCE at time 0.01539398518 with dt = 1.550183845e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -3915,8 +3915,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14255 D post sources (flash): drift = 2.219729784e-16 (n>1e-3 0)  max(m1+m2) = 228.5834375  max|E1| = 4333284.06  max|E2| = 333656.7324
 [PS-GUARD] L2 step 14255 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14256] Advanced 39936 cells
-CAMR::reflux() at level 1 : time = 0.074149
-CAMR::reflux() at level 0 : time = 0.020381
+PSAMR::reflux() at level 1 : time = 0.074149
+PSAMR::reflux() at level 0 : time = 0.020381
 
 [STEP 3564] Coarse TimeStep time: 60.06810133
 [STEP 3564] FAB kilobyte spread across MPI nodes: [24303 ... 28716]
@@ -3924,11 +3924,11 @@ CAMR::reflux() at level 0 : time = 0.020381
 STEP = 3564 TIME = 0.01539553536 DT = 3.10036769e-06
 
 ...estimated hydro-limited timestep at level 0: 3.352467841e-06 -> 3.352467841e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.352467841e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.352467841e-06
 ...estimated hydro-limited timestep at level 1: 1.594090116e-06 -> 3.188180231e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.594090116e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.594090116e-06
 ...estimated hydro-limited timestep at level 2: 7.757672046e-07 -> 3.103068818e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.757672046e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.757672046e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.1291855 new finest: 2
 STEP = 3564 TIME = 0.01539553536 : REGRID  with lbase = 0
@@ -4077,7 +4077,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14257 D post sources (flash): drift = 2.219699534e-16 (n>1e-3 0)  max(m1+m2) = 229.6175122  max|E1| = 4042873.836  max|E2| = 333671.7824
 [PS-GUARD] L2 step 14257 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14258] Advanced 41472 cells
-CAMR::reflux() at level 1 : time = 0.031502
+PSAMR::reflux() at level 1 : time = 0.031502
 [Level 1 step 7130] ADVANCE at time 0.01539708689 with dt = 1.551534409e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -4176,8 +4176,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14259 D post sources (flash): drift = 2.220261587e-16 (n>1e-3 0)  max(m1+m2) = 230.5769214  max|E1| = 3820725.199  max|E2| = 333603.1488
 [PS-GUARD] L2 step 14259 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14260] Advanced 41472 cells
-CAMR::reflux() at level 1 : time = 0.031743
-CAMR::reflux() at level 0 : time = 0.017706
+PSAMR::reflux() at level 1 : time = 0.031743
+PSAMR::reflux() at level 0 : time = 0.017706
 
 [STEP 3565] Coarse TimeStep time: 59.81180088
 [STEP 3565] FAB kilobyte spread across MPI nodes: [24303 ... 28716]
@@ -4188,11 +4188,11 @@ PLOTFILE: file = plt_sj2_03565
 Write plotfile time = 0.261970959  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.293011172e-06 -> 3.293011172e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.293011172e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.293011172e-06
 ...estimated hydro-limited timestep at level 1: 1.628966389e-06 -> 3.257932779e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.628966389e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.628966389e-06
 ...estimated hydro-limited timestep at level 2: 7.931226898e-07 -> 3.172490759e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.931226898e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.931226898e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.059286833 new finest: 2
 TIME = 0.01539863843 : REGRID  with lbase = 1
@@ -4335,7 +4335,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14261 D post sources (flash): drift = 2.218045724e-16 (n>1e-3 0)  max(m1+m2) = 231.3802262  max|E1| = 3640646.803  max|E2| = 333447.0345
 [PS-GUARD] L2 step 14261 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14262] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.059586
+PSAMR::reflux() at level 1 : time = 0.059586
 [Level 1 step 7132] ADVANCE at time 0.01540022467 with dt = 1.58624538e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -4434,8 +4434,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14263 D post sources (flash): drift = 2.220273696e-16 (n>1e-3 0)  max(m1+m2) = 231.96376  max|E1| = 3442851.753  max|E2| = 333205.9744
 [PS-GUARD] L2 step 14263 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14264] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.059536
-CAMR::reflux() at level 0 : time = 0.018787
+PSAMR::reflux() at level 1 : time = 0.059536
+PSAMR::reflux() at level 0 : time = 0.018787
 
 [STEP 3566] Coarse TimeStep time: 60.10284629
 [STEP 3566] FAB kilobyte spread across MPI nodes: [24371 ... 28716]
@@ -4443,11 +4443,11 @@ CAMR::reflux() at level 0 : time = 0.018787
 STEP = 3566 TIME = 0.01540181092 DT = 3.172490759e-06
 
 ...estimated hydro-limited timestep at level 0: 3.322119876e-06 -> 3.322119876e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.322119876e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.322119876e-06
 ...estimated hydro-limited timestep at level 1: 1.610009822e-06 -> 3.220019644e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.610009822e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.610009822e-06
 ...estimated hydro-limited timestep at level 2: 7.916084284e-07 -> 3.166433714e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.916084284e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 7.916084284e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.132159375 new finest: 2
 STEP = 3566 TIME = 0.01540181092 : REGRID  with lbase = 0
@@ -4596,7 +4596,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14265 D post sources (flash): drift = 2.220066035e-16 (n>1e-3 0)  max(m1+m2) = 232.3500145  max|E1| = 3283774.614  max|E2| = 332928.8262
 [PS-GUARD] L2 step 14265 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14266] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.047364
+PSAMR::reflux() at level 1 : time = 0.047364
 [Level 1 step 7134] ADVANCE at time 0.01540339414 with dt = 1.583216857e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -4695,8 +4695,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14267 D post sources (flash): drift = 2.220409568e-16 (n>1e-3 0)  max(m1+m2) = 232.5660297  max|E1| = 3151923.392  max|E2| = 332624.9151
 [PS-GUARD] L2 step 14267 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14268] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.0474
-CAMR::reflux() at level 0 : time = 0.017958
+PSAMR::reflux() at level 1 : time = 0.0474
+PSAMR::reflux() at level 0 : time = 0.017958
 
 [STEP 3567] Coarse TimeStep time: 58.32382067
 [STEP 3567] FAB kilobyte spread across MPI nodes: [24371 ... 28716]
@@ -4704,11 +4704,11 @@ CAMR::reflux() at level 0 : time = 0.017958
 STEP = 3567 TIME = 0.01540497735 DT = 3.166433714e-06
 
 ...estimated hydro-limited timestep at level 0: 3.321156676e-06 -> 3.321156676e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.321156676e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.321156676e-06
 ...estimated hydro-limited timestep at level 1: 1.619372048e-06 -> 3.238744097e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.619372048e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.619372048e-06
 ...estimated hydro-limited timestep at level 2: 8.065412682e-07 -> 3.226165073e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.065412682e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.065412682e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.059182417 new finest: 2
 TIME = 0.01540497735 : REGRID  with lbase = 1
@@ -4855,7 +4855,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14269 D post sources (flash): drift = 2.218518125e-16 (n>1e-3 0)  max(m1+m2) = 232.6853089  max|E1| = 3038097.898  max|E2| = 332265.829
 [PS-GUARD] L2 step 14269 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14270] Advanced 41216 cells
-CAMR::reflux() at level 1 : time = 0.059846
+PSAMR::reflux() at level 1 : time = 0.059846
 [Level 1 step 7136] ADVANCE at time 0.01540659044 with dt = 1.613082536e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -4954,8 +4954,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14271 D post sources (flash): drift = 2.218871211e-16 (n>1e-3 0)  max(m1+m2) = 232.7226005  max|E1| = 2939888.173  max|E2| = 331891.6953
 [PS-GUARD] L2 step 14271 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14272] Advanced 41216 cells
-CAMR::reflux() at level 1 : time = 0.060449
-CAMR::reflux() at level 0 : time = 0.018039
+PSAMR::reflux() at level 1 : time = 0.060449
+PSAMR::reflux() at level 0 : time = 0.018039
 
 [STEP 3568] Coarse TimeStep time: 60.33507079
 [STEP 3568] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -4963,11 +4963,11 @@ CAMR::reflux() at level 0 : time = 0.018039
 STEP = 3568 TIME = 0.01540820352 DT = 3.226165073e-06
 
 ...estimated hydro-limited timestep at level 0: 3.367894093e-06 -> 3.367894093e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.367894093e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.367894093e-06
 ...estimated hydro-limited timestep at level 1: 1.646109134e-06 -> 3.292218268e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.646109134e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.646109134e-06
 ...estimated hydro-limited timestep at level 2: 8.068176234e-07 -> 3.227270494e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.068176234e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.068176234e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.131011542 new finest: 2
 STEP = 3568 TIME = 0.01540820352 : REGRID  with lbase = 0
@@ -5112,7 +5112,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14273 D post sources (flash): drift = 2.217362724e-16 (n>1e-3 0)  max(m1+m2) = 232.6440616  max|E1| = 2853666.757  max|E2| = 331468.8379
 [PS-GUARD] L2 step 14273 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14274] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.044459
+PSAMR::reflux() at level 1 : time = 0.044459
 [Level 1 step 7138] ADVANCE at time 0.01540981715 with dt = 1.613635247e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -5211,8 +5211,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14275 D post sources (flash): drift = 2.220286871e-16 (n>1e-3 0)  max(m1+m2) = 232.5083782  max|E1| = 2776887.017  max|E2| = 331018.039
 [PS-GUARD] L2 step 14275 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14276] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.044454
-CAMR::reflux() at level 0 : time = 0.019584
+PSAMR::reflux() at level 1 : time = 0.044454
+PSAMR::reflux() at level 0 : time = 0.019584
 
 [STEP 3569] Coarse TimeStep time: 54.05321937
 [STEP 3569] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -5220,11 +5220,11 @@ CAMR::reflux() at level 0 : time = 0.019584
 STEP = 3569 TIME = 0.01541143079 DT = 3.227270494e-06
 
 ...estimated hydro-limited timestep at level 0: 3.406229426e-06 -> 3.406229426e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.406229426e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.406229426e-06
 ...estimated hydro-limited timestep at level 1: 1.681632736e-06 -> 3.363265472e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.681632736e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.681632736e-06
 ...estimated hydro-limited timestep at level 2: 8.183204697e-07 -> 3.273281879e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.183204697e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.183204697e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053954959 new finest: 2
 TIME = 0.01541143079 : REGRID  with lbase = 1
@@ -5367,7 +5367,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14277 D post sources (flash): drift = 2.219570484e-16 (n>1e-3 0)  max(m1+m2) = 232.3831198  max|E1| = 2722812.858  max|E2| = 330608.632
 [PS-GUARD] L2 step 14277 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14278] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.068364
+PSAMR::reflux() at level 1 : time = 0.068364
 [Level 1 step 7140] ADVANCE at time 0.01541306743 with dt = 1.636640939e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -5466,8 +5466,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14279 D post sources (flash): drift = 2.218127e-16 (n>1e-3 0)  max(m1+m2) = 232.4533804  max|E1| = 2692377.687  max|E2| = 330090.6576
 [PS-GUARD] L2 step 14279 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14280] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.068023
-CAMR::reflux() at level 0 : time = 0.019847
+PSAMR::reflux() at level 1 : time = 0.068023
+PSAMR::reflux() at level 0 : time = 0.019847
 
 [STEP 3570] Coarse TimeStep time: 51.72438212
 [STEP 3570] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -5478,11 +5478,11 @@ PLOTFILE: file = plt_sj2_03570
 Write plotfile time = 0.197221208  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.46470918e-06 -> 3.46470918e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.46470918e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.46470918e-06
 ...estimated hydro-limited timestep at level 1: 1.711343912e-06 -> 3.422687823e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.711343912e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.711343912e-06
 ...estimated hydro-limited timestep at level 2: 8.218550313e-07 -> 3.287420125e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.218550313e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.218550313e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.125529167 new finest: 2
 STEP = 3570 TIME = 0.01541470407 : REGRID  with lbase = 0
@@ -5627,7 +5627,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14281 D post sources (flash): drift = 2.218469021e-16 (n>1e-3 0)  max(m1+m2) = 232.6447326  max|E1| = 2662037.864  max|E2| = 328967.0436
 [PS-GUARD] L2 step 14281 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14282] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.05124
+PSAMR::reflux() at level 1 : time = 0.05124
 [Level 1 step 7142] ADVANCE at time 0.01541634778 with dt = 1.643710063e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -5730,8 +5730,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14283 D post sources (flash): drift = 2.219643165e-16 (n>1e-3 0)  max(m1+m2) = 232.8002511  max|E1| = 2632063.305  max|E2| = 327968.4052
 [PS-GUARD] L2 step 14283 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14284] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.051029
-CAMR::reflux() at level 0 : time = 0.020046
+PSAMR::reflux() at level 1 : time = 0.051029
+PSAMR::reflux() at level 0 : time = 0.020046
 
 [STEP 3571] Coarse TimeStep time: 54.96288133
 [STEP 3571] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -5739,11 +5739,11 @@ CAMR::reflux() at level 0 : time = 0.020046
 STEP = 3571 TIME = 0.01541799149 DT = 3.287420125e-06
 
 ...estimated hydro-limited timestep at level 0: 3.580502199e-06 -> 3.580502199e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.580502199e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.580502199e-06
 ...estimated hydro-limited timestep at level 1: 1.665825328e-06 -> 3.331650656e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.665825328e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.665825328e-06
 ...estimated hydro-limited timestep at level 2: 8.305607161e-07 -> 3.322242865e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.305607161e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.305607161e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053892667 new finest: 2
 TIME = 0.01541799149 : REGRID  with lbase = 1
@@ -5890,7 +5890,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14285 D post sources (flash): drift = 2.218796178e-16 (n>1e-3 0)  max(m1+m2) = 232.9076213  max|E1| = 2602254.255  max|E2| = 326984.104
 [PS-GUARD] L2 step 14285 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14286] Advanced 41216 cells
-CAMR::reflux() at level 1 : time = 0.07402
+PSAMR::reflux() at level 1 : time = 0.07402
 [Level 1 step 7144] ADVANCE at time 0.01541965261 with dt = 1.661121432e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -5989,8 +5989,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14287 D post sources (flash): drift = 2.220009551e-16 (n>1e-3 0)  max(m1+m2) = 232.9737736  max|E1| = 2572970.42  max|E2| = 326258.5642
 [PS-GUARD] L2 step 14287 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14288] Advanced 41216 cells
-CAMR::reflux() at level 1 : time = 0.074191
-CAMR::reflux() at level 0 : time = 0.02075
+PSAMR::reflux() at level 1 : time = 0.074191
+PSAMR::reflux() at level 0 : time = 0.02075
 
 [STEP 3572] Coarse TimeStep time: 55.73494896
 [STEP 3572] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -5998,11 +5998,11 @@ CAMR::reflux() at level 0 : time = 0.02075
 STEP = 3572 TIME = 0.01542131373 DT = 3.322242865e-06
 
 ...estimated hydro-limited timestep at level 0: 3.555518735e-06 -> 3.555518735e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.555518735e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.555518735e-06
 ...estimated hydro-limited timestep at level 1: 1.696307466e-06 -> 3.392614933e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.696307466e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.696307466e-06
 ...estimated hydro-limited timestep at level 2: 8.524994671e-07 -> 3.409997868e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.524994671e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.524994671e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.125483417 new finest: 2
 STEP = 3572 TIME = 0.01542131373 : REGRID  with lbase = 0
@@ -6147,7 +6147,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14289 D post sources (flash): drift = 2.220418835e-16 (n>1e-3 0)  max(m1+m2) = 233.0772686  max|E1| = 2543663.184  max|E2| = 325432.4478
 [PS-GUARD] L2 step 14289 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14290] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.044968
+PSAMR::reflux() at level 1 : time = 0.044968
 [Level 1 step 7146] ADVANCE at time 0.01542301004 with dt = 1.696307466e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -6246,8 +6246,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14291 D post sources (flash): drift = 2.218738919e-16 (n>1e-3 0)  max(m1+m2) = 233.2743757  max|E1| = 2514940.224  max|E2| = 324479.2802
 [PS-GUARD] L2 step 14291 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14292] Advanced 40960 cells
-CAMR::reflux() at level 1 : time = 0.045686
-CAMR::reflux() at level 0 : time = 0.018446
+PSAMR::reflux() at level 1 : time = 0.045686
+PSAMR::reflux() at level 0 : time = 0.018446
 
 [STEP 3573] Coarse TimeStep time: 63.30614854
 [STEP 3573] FAB kilobyte spread across MPI nodes: [24517 ... 28716]
@@ -6255,11 +6255,11 @@ CAMR::reflux() at level 0 : time = 0.018446
 STEP = 3573 TIME = 0.01542470635 DT = 3.392614933e-06
 
 ...estimated hydro-limited timestep at level 0: 3.586348434e-06 -> 3.586348434e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.586348434e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.586348434e-06
 ...estimated hydro-limited timestep at level 1: 1.73172894e-06 -> 3.463457881e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.73172894e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.73172894e-06
 ...estimated hydro-limited timestep at level 2: 8.43101672e-07 -> 3.372406688e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.43101672e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.43101672e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053878792 new finest: 2
 TIME = 0.01542470635 : REGRID  with lbase = 1
@@ -6412,7 +6412,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14293 D post sources (flash): drift = 2.218657027e-16 (n>1e-3 0)  max(m1+m2) = 233.4307555  max|E1| = 2486968.054  max|E2| = 323977.8509
 [PS-GUARD] L2 step 14293 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14294] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.049158
+PSAMR::reflux() at level 1 : time = 0.049158
 [Level 1 step 7148] ADVANCE at time 0.01542639255 with dt = 1.686203344e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -6523,8 +6523,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14295 D post sources (flash): drift = 2.219662157e-16 (n>1e-3 0)  max(m1+m2) = 233.5350193  max|E1| = 2459578.363  max|E2| = 323723.3406
 [PS-GUARD] L2 step 14295 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14296] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.049983
-CAMR::reflux() at level 0 : time = 0.018651
+PSAMR::reflux() at level 1 : time = 0.049983
+PSAMR::reflux() at level 0 : time = 0.018651
 
 [STEP 3574] Coarse TimeStep time: 54.730073
 [STEP 3574] FAB kilobyte spread across MPI nodes: [24634 ... 28716]
@@ -6532,11 +6532,11 @@ CAMR::reflux() at level 0 : time = 0.018651
 STEP = 3574 TIME = 0.01542807876 DT = 3.372406688e-06
 
 ...estimated hydro-limited timestep at level 0: 3.551142079e-06 -> 3.551142079e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.551142079e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.551142079e-06
 ...estimated hydro-limited timestep at level 1: 1.754987703e-06 -> 3.509975405e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.754987703e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.754987703e-06
 ...estimated hydro-limited timestep at level 2: 8.64879386e-07 -> 3.459517544e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.64879386e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.64879386e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.126989875 new finest: 2
 STEP = 3574 TIME = 0.01542807876 : REGRID  with lbase = 0
@@ -6681,7 +6681,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14297 D post sources (flash): drift = 2.220426242e-16 (n>1e-3 0)  max(m1+m2) = 233.6039328  max|E1| = 2621502.57  max|E2| = 323345.7396
 [PS-GUARD] L2 step 14297 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14298] Advanced 43264 cells
-CAMR::reflux() at level 1 : time = 0.059568
+PSAMR::reflux() at level 1 : time = 0.059568
 [Level 1 step 7150] ADVANCE at time 0.01542980851 with dt = 1.729758772e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -6792,8 +6792,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14299 D post sources (flash): drift = 2.220212565e-16 (n>1e-3 0)  max(m1+m2) = 233.794493  max|E1| = 7099452.347  max|E2| = 322887.9289
 [PS-GUARD] L2 step 14299 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14300] Advanced 43264 cells
-CAMR::reflux() at level 1 : time = 0.060713
-CAMR::reflux() at level 0 : time = 0.018985
+PSAMR::reflux() at level 1 : time = 0.060713
+PSAMR::reflux() at level 0 : time = 0.018985
 
 [STEP 3575] Coarse TimeStep time: 62.47090925
 [STEP 3575] FAB kilobyte spread across MPI nodes: [24634 ... 28716]
@@ -6804,11 +6804,11 @@ PLOTFILE: file = plt_sj2_03575
 Write plotfile time = 0.257767583  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.609335399e-06 -> 3.609335399e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.609335399e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.609335399e-06
 ...estimated hydro-limited timestep at level 1: 1.790987333e-06 -> 3.581974665e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.790987333e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.790987333e-06
 ...estimated hydro-limited timestep at level 2: 8.616877809e-07 -> 3.446751124e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.616877809e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.616877809e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.05397425 new finest: 2
 TIME = 0.01543153827 : REGRID  with lbase = 1
@@ -6967,7 +6967,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14301 D post sources (flash): drift = 2.220290642e-16 (n>1e-3 0)  max(m1+m2) = 233.8872024  max|E1| = 2373319.429  max|E2| = 322359.9329
 [PS-GUARD] L2 step 14301 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14302] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.057343
+PSAMR::reflux() at level 1 : time = 0.057343
 [Level 1 step 7152] ADVANCE at time 0.01543326165 with dt = 1.723375562e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -7078,8 +7078,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14303 D post sources (flash): drift = 2.220182708e-16 (n>1e-3 0)  max(m1+m2) = 233.8702751  max|E1| = 2344061.804  max|E2| = 321809.5831
 [PS-GUARD] L2 step 14303 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14304] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.0569
-CAMR::reflux() at level 0 : time = 0.019126
+PSAMR::reflux() at level 1 : time = 0.0569
+PSAMR::reflux() at level 0 : time = 0.019126
 
 [STEP 3576] Coarse TimeStep time: 55.93148283
 [STEP 3576] FAB kilobyte spread across MPI nodes: [24773 ... 29096]
@@ -7087,11 +7087,11 @@ CAMR::reflux() at level 0 : time = 0.019126
 STEP = 3576 TIME = 0.01543498502 DT = 3.446751124e-06
 
 ...estimated hydro-limited timestep at level 0: 3.755681767e-06 -> 3.755681767e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.755681767e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.755681767e-06
 ...estimated hydro-limited timestep at level 1: 1.752869304e-06 -> 3.505738608e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.752869304e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.752869304e-06
 ...estimated hydro-limited timestep at level 2: 8.767739433e-07 -> 3.507095773e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.767739433e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.767739433e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.125025125 new finest: 2
 STEP = 3576 TIME = 0.01543498502 : REGRID  with lbase = 0
@@ -7252,7 +7252,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14305 D post sources (flash): drift = 2.218457879e-16 (n>1e-3 0)  max(m1+m2) = 233.791196  max|E1| = 2314150.773  max|E2| = 321436.629
 [PS-GUARD] L2 step 14305 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14306] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.067347
+PSAMR::reflux() at level 1 : time = 0.067347
 [Level 1 step 7154] ADVANCE at time 0.01543673789 with dt = 1.752869304e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -7363,8 +7363,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14307 D post sources (flash): drift = 2.220125922e-16 (n>1e-3 0)  max(m1+m2) = 233.8160669  max|E1| = 2284111.158  max|E2| = 320971.3919
 [PS-GUARD] L2 step 14307 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14308] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.068661
-CAMR::reflux() at level 0 : time = 0.016138
+PSAMR::reflux() at level 1 : time = 0.068661
+PSAMR::reflux() at level 0 : time = 0.016138
 
 [STEP 3577] Coarse TimeStep time: 59.17304192
 [STEP 3577] FAB kilobyte spread across MPI nodes: [24773 ... 29096]
@@ -7372,11 +7372,11 @@ CAMR::reflux() at level 0 : time = 0.016138
 STEP = 3577 TIME = 0.01543849076 DT = 3.505738608e-06
 
 ...estimated hydro-limited timestep at level 0: 3.698778576e-06 -> 3.698778576e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.698778576e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.698778576e-06
 ...estimated hydro-limited timestep at level 1: 1.78251501e-06 -> 3.56503002e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.78251501e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.78251501e-06
 ...estimated hydro-limited timestep at level 2: 8.882908978e-07 -> 3.553163591e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.882908978e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.882908978e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052434458 new finest: 2
 TIME = 0.01543849076 : REGRID  with lbase = 1
@@ -7531,7 +7531,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14309 D post sources (flash): drift = 2.220215654e-16 (n>1e-3 0)  max(m1+m2) = 233.7368408  max|E1| = 2253562.401  max|E2| = 320396.8855
 [PS-GUARD] L2 step 14309 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14310] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.055961
+PSAMR::reflux() at level 1 : time = 0.055961
 [Level 1 step 7156] ADVANCE at time 0.01544026734 with dt = 1.776581796e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -7646,8 +7646,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14311 D post sources (flash): drift = 2.219145996e-16 (n>1e-3 0)  max(m1+m2) = 233.7980103  max|E1| = 2222915.183  max|E2| = 319708.1888
 [PS-GUARD] L2 step 14311 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14312] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.056084
-CAMR::reflux() at level 0 : time = 0.016442
+PSAMR::reflux() at level 1 : time = 0.056084
+PSAMR::reflux() at level 0 : time = 0.016442
 
 [STEP 3578] Coarse TimeStep time: 61.43848858
 [STEP 3578] FAB kilobyte spread across MPI nodes: [24858 ... 29096]
@@ -7655,11 +7655,11 @@ CAMR::reflux() at level 0 : time = 0.016442
 STEP = 3578 TIME = 0.01544204393 DT = 3.553163591e-06
 
 ...estimated hydro-limited timestep at level 0: 3.704899399e-06 -> 3.704899399e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.704899399e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.704899399e-06
 ...estimated hydro-limited timestep at level 1: 1.80285476e-06 -> 3.605709519e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.80285476e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.80285476e-06
 ...estimated hydro-limited timestep at level 2: 8.892600875e-07 -> 3.55704035e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.892600875e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 8.892600875e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123609042 new finest: 2
 STEP = 3578 TIME = 0.01544204393 : REGRID  with lbase = 0
@@ -7816,7 +7816,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14313 D post sources (flash): drift = 2.220328018e-16 (n>1e-3 0)  max(m1+m2) = 234.0029517  max|E1| = 2192141.07  max|E2| = 318904.79
 [PS-GUARD] L2 step 14313 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14314] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.040966
+PSAMR::reflux() at level 1 : time = 0.040966
 [Level 1 step 7158] ADVANCE at time 0.01544382245 with dt = 1.778520175e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -7927,8 +7927,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14315 D post sources (flash): drift = 2.218555776e-16 (n>1e-3 0)  max(m1+m2) = 234.1165694  max|E1| = 2161272.648  max|E2| = 317995.3797
 [PS-GUARD] L2 step 14315 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14316] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.041232
-CAMR::reflux() at level 0 : time = 0.01917
+PSAMR::reflux() at level 1 : time = 0.041232
+PSAMR::reflux() at level 0 : time = 0.01917
 
 [STEP 3579] Coarse TimeStep time: 61.12706221
 [STEP 3579] FAB kilobyte spread across MPI nodes: [24858 ... 29096]
@@ -7936,11 +7936,11 @@ CAMR::reflux() at level 0 : time = 0.01917
 STEP = 3579 TIME = 0.01544560097 DT = 3.55704035e-06
 
 ...estimated hydro-limited timestep at level 0: 3.71907628e-06 -> 3.71907628e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.71907628e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.71907628e-06
 ...estimated hydro-limited timestep at level 1: 1.836147486e-06 -> 3.672294972e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.836147486e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.836147486e-06
 ...estimated hydro-limited timestep at level 2: 9.081299666e-07 -> 3.632519866e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.081299666e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.081299666e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.055182833 new finest: 2
 TIME = 0.01544560097 : REGRID  with lbase = 1
@@ -8095,7 +8095,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14317 D post sources (flash): drift = 2.21897108e-16 (n>1e-3 0)  max(m1+m2) = 234.1441893  max|E1| = 2129733.437  max|E2| = 316967.2739
 [PS-GUARD] L2 step 14317 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14318] Advanced 44288 cells
-CAMR::reflux() at level 1 : time = 0.036887
+PSAMR::reflux() at level 1 : time = 0.036887
 [Level 1 step 7160] ADVANCE at time 0.01544741723 with dt = 1.816259933e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -8206,8 +8206,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14319 D post sources (flash): drift = 2.21981316e-16 (n>1e-3 0)  max(m1+m2) = 234.0775582  max|E1| = 2098136.721  max|E2| = 315862.0733
 [PS-GUARD] L2 step 14319 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14320] Advanced 44288 cells
-CAMR::reflux() at level 1 : time = 0.037025
-CAMR::reflux() at level 0 : time = 0.019403
+PSAMR::reflux() at level 1 : time = 0.037025
+PSAMR::reflux() at level 0 : time = 0.019403
 
 [STEP 3580] Coarse TimeStep time: 62.41889146
 [STEP 3580] FAB kilobyte spread across MPI nodes: [25008 ... 29096]
@@ -8218,11 +8218,11 @@ PLOTFILE: file = plt_sj2_03580
 Write plotfile time = 0.187235666  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.816953897e-06 -> 3.816953897e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.816953897e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.816953897e-06
 ...estimated hydro-limited timestep at level 1: 1.847532517e-06 -> 3.695065034e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.847532517e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.847532517e-06
 ...estimated hydro-limited timestep at level 2: 9.170321606e-07 -> 3.668128642e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.170321606e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.170321606e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.126190083 new finest: 2
 STEP = 3580 TIME = 0.01544923349 : REGRID  with lbase = 0
@@ -8379,7 +8379,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14321 D post sources (flash): drift = 2.219782402e-16 (n>1e-3 0)  max(m1+m2) = 233.9578484  max|E1| = 2066110.237  max|E2| = 314822.6752
 [PS-GUARD] L2 step 14321 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14322] Advanced 45824 cells
-CAMR::reflux() at level 1 : time = 0.050119
+PSAMR::reflux() at level 1 : time = 0.050119
 [Level 1 step 7162] ADVANCE at time 0.01545106755 with dt = 1.834064321e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -8490,8 +8490,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14323 D post sources (flash): drift = 2.22011437e-16 (n>1e-3 0)  max(m1+m2) = 233.8922616  max|E1| = 2033911.771  max|E2| = 314036.0991
 [PS-GUARD] L2 step 14323 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14324] Advanced 45824 cells
-CAMR::reflux() at level 1 : time = 0.050278
-CAMR::reflux() at level 0 : time = 0.006971
+PSAMR::reflux() at level 1 : time = 0.050278
+PSAMR::reflux() at level 0 : time = 0.006971
 
 [STEP 3581] Coarse TimeStep time: 60.27206096
 [STEP 3581] FAB kilobyte spread across MPI nodes: [25310 ... 29096]
@@ -8499,11 +8499,11 @@ CAMR::reflux() at level 0 : time = 0.006971
 STEP = 3581 TIME = 0.01545290162 DT = 3.668128642e-06
 
 ...estimated hydro-limited timestep at level 0: 3.746220542e-06 -> 3.746220542e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.746220542e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.746220542e-06
 ...estimated hydro-limited timestep at level 1: 1.845149185e-06 -> 3.69029837e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.845149185e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.845149185e-06
 ...estimated hydro-limited timestep at level 2: 9.195986561e-07 -> 3.678394624e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.195986561e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.195986561e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052413167 new finest: 2
 TIME = 0.01545290162 : REGRID  with lbase = 1
@@ -8662,7 +8662,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14325 D post sources (flash): drift = 2.21907712e-16 (n>1e-3 0)  max(m1+m2) = 234.0026902  max|E1| = 2021088.376  max|E2| = 313151.7927
 [PS-GUARD] L2 step 14325 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14326] Advanced 47616 cells
-CAMR::reflux() at level 1 : time = 0.05096
+PSAMR::reflux() at level 1 : time = 0.05096
 [Level 1 step 7164] ADVANCE at time 0.01545474081 with dt = 1.839197312e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -8773,8 +8773,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14327 D post sources (flash): drift = 2.219665452e-16 (n>1e-3 0)  max(m1+m2) = 234.056135  max|E1| = 2009234.167  max|E2| = 312154.917
 [PS-GUARD] L2 step 14327 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14328] Advanced 47616 cells
-CAMR::reflux() at level 1 : time = 0.050942
-CAMR::reflux() at level 0 : time = 0.006716
+PSAMR::reflux() at level 1 : time = 0.050942
+PSAMR::reflux() at level 0 : time = 0.006716
 
 [STEP 3582] Coarse TimeStep time: 65.22274558
 [STEP 3582] FAB kilobyte spread across MPI nodes: [25549 ... 29865]
@@ -8782,11 +8782,11 @@ CAMR::reflux() at level 0 : time = 0.006716
 STEP = 3582 TIME = 0.01545658001 DT = 3.678394624e-06
 
 ...estimated hydro-limited timestep at level 0: 3.803384071e-06 -> 3.803384071e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.803384071e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.803384071e-06
 ...estimated hydro-limited timestep at level 1: 1.873475224e-06 -> 3.746950448e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.873475224e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.873475224e-06
 ...estimated hydro-limited timestep at level 2: 9.272487142e-07 -> 3.708994857e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.272487142e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.272487142e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123425375 new finest: 2
 STEP = 3582 TIME = 0.01545658001 : REGRID  with lbase = 0
@@ -8943,7 +8943,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14329 D post sources (flash): drift = 2.220357093e-16 (n>1e-3 0)  max(m1+m2) = 234.0885724  max|E1| = 1996420.289  max|E2| = 311049.8336
 [PS-GUARD] L2 step 14329 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14330] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.05625
+PSAMR::reflux() at level 1 : time = 0.05625
 [Level 1 step 7166] ADVANCE at time 0.01545843451 with dt = 1.854497428e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -9054,8 +9054,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14331 D post sources (flash): drift = 2.22043979e-16 (n>1e-3 0)  max(m1+m2) = 234.176906  max|E1| = 1982883.06  max|E2| = 309860.6356
 [PS-GUARD] L2 step 14331 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14332] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.056197
-CAMR::reflux() at level 0 : time = 0.006881
+PSAMR::reflux() at level 1 : time = 0.056197
+PSAMR::reflux() at level 0 : time = 0.006881
 
 [STEP 3583] Coarse TimeStep time: 57.66263
 [STEP 3583] FAB kilobyte spread across MPI nodes: [25549 ... 29865]
@@ -9063,11 +9063,11 @@ CAMR::reflux() at level 0 : time = 0.006881
 STEP = 3583 TIME = 0.015460289 DT = 3.708994857e-06
 
 ...estimated hydro-limited timestep at level 0: 3.771122719e-06 -> 3.771122719e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.771122719e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.771122719e-06
 ...estimated hydro-limited timestep at level 1: 1.8809648e-06 -> 3.7619296e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.8809648e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.8809648e-06
 ...estimated hydro-limited timestep at level 2: 9.314408651e-07 -> 3.72576346e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.314408651e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.314408651e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052360417 new finest: 2
 TIME = 0.015460289 : REGRID  with lbase = 1
@@ -9222,7 +9222,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14333 D post sources (flash): drift = 2.219130766e-16 (n>1e-3 0)  max(m1+m2) = 234.2316017  max|E1| = 1968785.625  max|E2| = 308909.2665
 [PS-GUARD] L2 step 14333 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14334] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.098855
+PSAMR::reflux() at level 1 : time = 0.098855
 [Level 1 step 7168] ADVANCE at time 0.01546215189 with dt = 1.86288173e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -9333,8 +9333,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14335 D post sources (flash): drift = 2.219903134e-16 (n>1e-3 0)  max(m1+m2) = 234.3663991  max|E1| = 1954173.513  max|E2| = 308347.2653
 [PS-GUARD] L2 step 14335 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14336] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.100313
-CAMR::reflux() at level 0 : time = 0.006958
+PSAMR::reflux() at level 1 : time = 0.100313
+PSAMR::reflux() at level 0 : time = 0.006958
 
 [STEP 3584] Coarse TimeStep time: 62.49935913
 [STEP 3584] FAB kilobyte spread across MPI nodes: [25963 ... 29865]
@@ -9342,11 +9342,11 @@ CAMR::reflux() at level 0 : time = 0.006958
 STEP = 3584 TIME = 0.01546401477 DT = 3.72576346e-06
 
 ...estimated hydro-limited timestep at level 0: 3.774471361e-06 -> 3.774471361e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.774471361e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.774471361e-06
 ...estimated hydro-limited timestep at level 1: 1.884548072e-06 -> 3.769096145e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.884548072e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.884548072e-06
 ...estimated hydro-limited timestep at level 2: 9.404172968e-07 -> 3.761669187e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.404172968e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.404172968e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.12303275 new finest: 2
 STEP = 3584 TIME = 0.01546401477 : REGRID  with lbase = 0
@@ -9503,7 +9503,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14337 D post sources (flash): drift = 2.219971016e-16 (n>1e-3 0)  max(m1+m2) = 234.4264078  max|E1| = 1938895.051  max|E2| = 307850.4797
 [PS-GUARD] L2 step 14337 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14338] Advanced 46848 cells
-CAMR::reflux() at level 1 : time = 0.049622
+PSAMR::reflux() at level 1 : time = 0.049622
 [Level 1 step 7170] ADVANCE at time 0.0154658956 with dt = 1.880834594e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -9614,8 +9614,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14339 D post sources (flash): drift = 2.219672763e-16 (n>1e-3 0)  max(m1+m2) = 234.501495  max|E1| = 1923075.597  max|E2| = 307233.6001
 [PS-GUARD] L2 step 14339 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14340] Advanced 46848 cells
-CAMR::reflux() at level 1 : time = 0.049925
-CAMR::reflux() at level 0 : time = 0.006885
+PSAMR::reflux() at level 1 : time = 0.049925
+PSAMR::reflux() at level 0 : time = 0.006885
 
 [STEP 3585] Coarse TimeStep time: 58.59588087
 [STEP 3585] FAB kilobyte spread across MPI nodes: [25963 ... 29865]
@@ -9626,11 +9626,11 @@ PLOTFILE: file = plt_sj2_03585
 Write plotfile time = 0.25684075  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.763806051e-06 -> 3.763806051e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.763806051e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.763806051e-06
 ...estimated hydro-limited timestep at level 1: 1.878293096e-06 -> 3.756586193e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.878293096e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.878293096e-06
 ...estimated hydro-limited timestep at level 2: 9.371692169e-07 -> 3.748676868e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.371692169e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.371692169e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052335166 new finest: 2
 TIME = 0.01546777644 : REGRID  with lbase = 1
@@ -9788,7 +9788,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14341 D post sources (flash): drift = 2.219081875e-16 (n>1e-3 0)  max(m1+m2) = 234.5493951  max|E1| = 1906764.368  max|E2| = 306504.3221
 [PS-GUARD] L2 step 14341 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14342] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.092617
+PSAMR::reflux() at level 1 : time = 0.092617
 [Level 1 step 7172] ADVANCE at time 0.01546965078 with dt = 1.874338434e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -9899,8 +9899,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14343 D post sources (flash): drift = 2.219901215e-16 (n>1e-3 0)  max(m1+m2) = 234.6624569  max|E1| = 1889906.213  max|E2| = 305662.248
 [PS-GUARD] L2 step 14343 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14344] Advanced 47104 cells
-CAMR::reflux() at level 1 : time = 0.091557
-CAMR::reflux() at level 0 : time = 0.006685
+PSAMR::reflux() at level 1 : time = 0.091557
+PSAMR::reflux() at level 0 : time = 0.006685
 
 [STEP 3586] Coarse TimeStep time: 60.50357354
 [STEP 3586] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -9908,11 +9908,11 @@ CAMR::reflux() at level 0 : time = 0.006685
 STEP = 3586 TIME = 0.01547152511 DT = 3.748676868e-06
 
 ...estimated hydro-limited timestep at level 0: 3.757736771e-06 -> 3.757736771e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.757736771e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.757736771e-06
 ...estimated hydro-limited timestep at level 1: 1.872345522e-06 -> 3.744691045e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.872345522e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.872345522e-06
 ...estimated hydro-limited timestep at level 2: 9.346272043e-07 -> 3.738508817e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.346272043e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.346272043e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.12316675 new finest: 2
 STEP = 3586 TIME = 0.01547152511 : REGRID  with lbase = 0
@@ -10069,7 +10069,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14345 D post sources (flash): drift = 2.220342686e-16 (n>1e-3 0)  max(m1+m2) = 234.5774217  max|E1| = 1872548.196  max|E2| = 305198.7407
 [PS-GUARD] L2 step 14345 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14346] Advanced 45824 cells
-CAMR::reflux() at level 1 : time = 0.054866
+PSAMR::reflux() at level 1 : time = 0.054866
 [Level 1 step 7174] ADVANCE at time 0.01547339437 with dt = 1.869254409e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -10180,8 +10180,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14347 D post sources (flash): drift = 2.220202175e-16 (n>1e-3 0)  max(m1+m2) = 234.4192044  max|E1| = 1854647.964  max|E2| = 305101.4623
 [PS-GUARD] L2 step 14347 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14348] Advanced 45824 cells
-CAMR::reflux() at level 1 : time = 0.057144
-CAMR::reflux() at level 0 : time = 0.006815
+PSAMR::reflux() at level 1 : time = 0.057144
+PSAMR::reflux() at level 0 : time = 0.006815
 
 [STEP 3587] Coarse TimeStep time: 57.03776108
 [STEP 3587] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -10189,11 +10189,11 @@ CAMR::reflux() at level 0 : time = 0.006815
 STEP = 3587 TIME = 0.01547526362 DT = 3.738508817e-06
 
 ...estimated hydro-limited timestep at level 0: 3.757049198e-06 -> 3.757049198e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.757049198e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.757049198e-06
 ...estimated hydro-limited timestep at level 1: 1.868229229e-06 -> 3.736458459e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.868229229e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.868229229e-06
 ...estimated hydro-limited timestep at level 2: 9.4088878e-07 -> 3.76355512e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.4088878e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.4088878e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052310667 new finest: 2
 TIME = 0.01547526362 : REGRID  with lbase = 1
@@ -10348,7 +10348,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14349 D post sources (flash): drift = 2.220402577e-16 (n>1e-3 0)  max(m1+m2) = 234.3572907  max|E1| = 1836218.683  max|E2| = 304866.4651
 [PS-GUARD] L2 step 14349 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14350] Advanced 44544 cells
-CAMR::reflux() at level 1 : time = 0.060953
+PSAMR::reflux() at level 1 : time = 0.060953
 [Level 1 step 7176] ADVANCE at time 0.01547713185 with dt = 1.868229229e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -10459,8 +10459,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14351 D post sources (flash): drift = 2.219331765e-16 (n>1e-3 0)  max(m1+m2) = 234.3589048  max|E1| = 1817254.844  max|E2| = 304751.74
 [PS-GUARD] L2 step 14351 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14352] Advanced 44544 cells
-CAMR::reflux() at level 1 : time = 0.061224
-CAMR::reflux() at level 0 : time = 0.006957
+PSAMR::reflux() at level 1 : time = 0.061224
+PSAMR::reflux() at level 0 : time = 0.006957
 
 [STEP 3588] Coarse TimeStep time: 56.61701267
 [STEP 3588] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -10468,11 +10468,11 @@ CAMR::reflux() at level 0 : time = 0.006957
 STEP = 3588 TIME = 0.01547900008 DT = 3.736458459e-06
 
 ...estimated hydro-limited timestep at level 0: 3.753454502e-06 -> 3.753454502e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.753454502e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.753454502e-06
 ...estimated hydro-limited timestep at level 1: 1.86754326e-06 -> 3.735086519e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.86754326e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.86754326e-06
 ...estimated hydro-limited timestep at level 2: 9.385096188e-07 -> 3.754038475e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.385096188e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.385096188e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.122965583 new finest: 2
 STEP = 3588 TIME = 0.01547900008 : REGRID  with lbase = 0
@@ -10629,7 +10629,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14353 D post sources (flash): drift = 2.220083648e-16 (n>1e-3 0)  max(m1+m2) = 234.4859947  max|E1| = 1797768.465  max|E2| = 304302.481
 [PS-GUARD] L2 step 14353 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14354] Advanced 44544 cells
-CAMR::reflux() at level 1 : time = 0.065198
+PSAMR::reflux() at level 1 : time = 0.065198
 [Level 1 step 7178] ADVANCE at time 0.01548086762 with dt = 1.86754326e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -10740,8 +10740,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14355 D post sources (flash): drift = 2.219992426e-16 (n>1e-3 0)  max(m1+m2) = 234.6081195  max|E1| = 1777758.235  max|E2| = 304424.002
 [PS-GUARD] L2 step 14355 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14356] Advanced 44544 cells
-CAMR::reflux() at level 1 : time = 0.064961
-CAMR::reflux() at level 0 : time = 0.006895
+PSAMR::reflux() at level 1 : time = 0.064961
+PSAMR::reflux() at level 0 : time = 0.006895
 
 [STEP 3589] Coarse TimeStep time: 55.07600662
 [STEP 3589] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -10749,11 +10749,11 @@ CAMR::reflux() at level 0 : time = 0.006895
 STEP = 3589 TIME = 0.01548273517 DT = 3.735086519e-06
 
 ...estimated hydro-limited timestep at level 0: 3.739762868e-06 -> 3.739762868e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.739762868e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.739762868e-06
 ...estimated hydro-limited timestep at level 1: 1.863551882e-06 -> 3.727103764e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.863551882e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.863551882e-06
 ...estimated hydro-limited timestep at level 2: 9.3666913e-07 -> 3.74667652e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.3666913e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.3666913e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052356541 new finest: 2
 TIME = 0.01548273517 : REGRID  with lbase = 1
@@ -10912,7 +10912,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14357 D post sources (flash): drift = 2.216766956e-16 (n>1e-3 0)  max(m1+m2) = 234.703759  max|E1| = 1757274.381  max|E2| = 303852.1967
 [PS-GUARD] L2 step 14357 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14358] Advanced 45312 cells
-CAMR::reflux() at level 1 : time = 0.072827
+PSAMR::reflux() at level 1 : time = 0.072827
 [Level 1 step 7180] ADVANCE at time 0.01548459872 with dt = 1.863551882e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -11023,8 +11023,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14359 D post sources (flash): drift = 2.220051344e-16 (n>1e-3 0)  max(m1+m2) = 234.8328738  max|E1| = 1736281.329  max|E2| = 303754.8282
 [PS-GUARD] L2 step 14359 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14360] Advanced 45312 cells
-CAMR::reflux() at level 1 : time = 0.073023
-CAMR::reflux() at level 0 : time = 0.006763
+PSAMR::reflux() at level 1 : time = 0.073023
+PSAMR::reflux() at level 0 : time = 0.006763
 
 [STEP 3590] Coarse TimeStep time: 59.23295733
 [STEP 3590] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -11035,11 +11035,11 @@ PLOTFILE: file = plt_sj2_03590
 Write plotfile time = 0.20016325  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.729850119e-06 -> 3.729850119e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.729850119e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.729850119e-06
 ...estimated hydro-limited timestep at level 1: 1.861784225e-06 -> 3.723568451e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.861784225e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.861784225e-06
 ...estimated hydro-limited timestep at level 2: 9.623503033e-07 -> 3.849401213e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.623503033e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.623503033e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.122920333 new finest: 2
 STEP = 3590 TIME = 0.01548646227 : REGRID  with lbase = 0
@@ -11200,7 +11200,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14361 D post sources (flash): drift = 2.219864269e-16 (n>1e-3 0)  max(m1+m2) = 234.9679432  max|E1| = 1714806.185  max|E2| = 303305.5723
 [PS-GUARD] L2 step 14361 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14362] Advanced 44800 cells
-CAMR::reflux() at level 1 : time = 0.050756
+PSAMR::reflux() at level 1 : time = 0.050756
 [Level 1 step 7182] ADVANCE at time 0.01548832406 with dt = 1.861784225e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -11311,8 +11311,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14363 D post sources (flash): drift = 2.220050879e-16 (n>1e-3 0)  max(m1+m2) = 235.064203  max|E1| = 1692892.805  max|E2| = 302813.8919
 [PS-GUARD] L2 step 14363 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14364] Advanced 44800 cells
-CAMR::reflux() at level 1 : time = 0.051924
-CAMR::reflux() at level 0 : time = 0.006829
+PSAMR::reflux() at level 1 : time = 0.051924
+PSAMR::reflux() at level 0 : time = 0.006829
 
 [STEP 3591] Coarse TimeStep time: 60.15110333
 [STEP 3591] FAB kilobyte spread across MPI nodes: [26008 ... 29865]
@@ -11320,11 +11320,11 @@ CAMR::reflux() at level 0 : time = 0.006829
 STEP = 3591 TIME = 0.01549018584 DT = 3.723568451e-06
 
 ...estimated hydro-limited timestep at level 0: 3.725092536e-06 -> 3.725092536e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.725092536e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.725092536e-06
 ...estimated hydro-limited timestep at level 1: 1.858291543e-06 -> 3.716583086e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.858291543e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.858291543e-06
 ...estimated hydro-limited timestep at level 2: 9.615068927e-07 -> 3.846027571e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.615068927e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.615068927e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052314334 new finest: 2
 TIME = 0.01549018584 : REGRID  with lbase = 1
@@ -11479,7 +11479,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14365 D post sources (flash): drift = 2.220441616e-16 (n>1e-3 0)  max(m1+m2) = 235.1106405  max|E1| = 1685854.203  max|E2| = 301871.4427
 [PS-GUARD] L2 step 14365 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14366] Advanced 46336 cells
-CAMR::reflux() at level 1 : time = 0.061915
+PSAMR::reflux() at level 1 : time = 0.061915
 [Level 1 step 7184] ADVANCE at time 0.01549204413 with dt = 1.858291543e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -11596,8 +11596,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14367 D post sources (flash): drift = 2.220370702e-16 (n>1e-3 0)  max(m1+m2) = 235.1090205  max|E1| = 1678189.05  max|E2| = 300385.3264
 [PS-GUARD] L2 step 14367 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14368] Advanced 46336 cells
-CAMR::reflux() at level 1 : time = 0.061789
-CAMR::reflux() at level 0 : time = 0.006834
+PSAMR::reflux() at level 1 : time = 0.061789
+PSAMR::reflux() at level 0 : time = 0.006834
 
 [STEP 3592] Coarse TimeStep time: 56.27105588
 [STEP 3592] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -11605,11 +11605,11 @@ CAMR::reflux() at level 0 : time = 0.006834
 STEP = 3592 TIME = 0.01549390242 DT = 3.716583086e-06
 
 ...estimated hydro-limited timestep at level 0: 3.725937858e-06 -> 3.725937858e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.725937858e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.725937858e-06
 ...estimated hydro-limited timestep at level 1: 1.854346232e-06 -> 3.708692464e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.854346232e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.854346232e-06
 ...estimated hydro-limited timestep at level 2: 9.615125451e-07 -> 3.84605018e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.615125451e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.615125451e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.122665 new finest: 2
 STEP = 3592 TIME = 0.01549390242 : REGRID  with lbase = 0
@@ -11766,7 +11766,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14369 D post sources (flash): drift = 2.217702469e-16 (n>1e-3 0)  max(m1+m2) = 235.0640736  max|E1| = 1670076.249  max|E2| = 300031.619
 [PS-GUARD] L2 step 14369 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14370] Advanced 44800 cells
-CAMR::reflux() at level 1 : time = 0.083517
+PSAMR::reflux() at level 1 : time = 0.083517
 [Level 1 step 7186] ADVANCE at time 0.01549575677 with dt = 1.854346232e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -11877,8 +11877,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14371 D post sources (flash): drift = 2.220292988e-16 (n>1e-3 0)  max(m1+m2) = 235.3251645  max|E1| = 1661489.785  max|E2| = 299782.4233
 [PS-GUARD] L2 step 14371 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14372] Advanced 44800 cells
-CAMR::reflux() at level 1 : time = 0.083876
-CAMR::reflux() at level 0 : time = 0.011802
+PSAMR::reflux() at level 1 : time = 0.083876
+PSAMR::reflux() at level 0 : time = 0.011802
 
 [STEP 3593] Coarse TimeStep time: 61.37248292
 [STEP 3593] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -11886,11 +11886,11 @@ CAMR::reflux() at level 0 : time = 0.011802
 STEP = 3593 TIME = 0.01549761112 DT = 3.708692464e-06
 
 ...estimated hydro-limited timestep at level 0: 3.732334303e-06 -> 3.732334303e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.732334303e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.732334303e-06
 ...estimated hydro-limited timestep at level 1: 1.853219129e-06 -> 3.706438258e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.853219129e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.853219129e-06
 ...estimated hydro-limited timestep at level 2: 9.653745596e-07 -> 3.861498238e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.653745596e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.653745596e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053804375 new finest: 2
 TIME = 0.01549761112 : REGRID  with lbase = 1
@@ -12045,7 +12045,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14373 D post sources (flash): drift = 2.219746237e-16 (n>1e-3 0)  max(m1+m2) = 235.6735449  max|E1| = 1652427.206  max|E2| = 299483.3519
 [PS-GUARD] L2 step 14373 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14374] Advanced 45568 cells
-CAMR::reflux() at level 1 : time = 0.048108
+PSAMR::reflux() at level 1 : time = 0.048108
 [Level 1 step 7188] ADVANCE at time 0.01549946434 with dt = 1.853219129e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -12156,8 +12156,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14375 D post sources (flash): drift = 2.220243722e-16 (n>1e-3 0)  max(m1+m2) = 235.8668921  max|E1| = 1642875.72  max|E2| = 299119.3631
 [PS-GUARD] L2 step 14375 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14376] Advanced 45568 cells
-CAMR::reflux() at level 1 : time = 0.048346
-CAMR::reflux() at level 0 : time = 0.012102
+PSAMR::reflux() at level 1 : time = 0.048346
+PSAMR::reflux() at level 0 : time = 0.012102
 
 [STEP 3594] Coarse TimeStep time: 59.54167333
 [STEP 3594] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -12165,11 +12165,11 @@ CAMR::reflux() at level 0 : time = 0.012102
 STEP = 3594 TIME = 0.01550131755 DT = 3.706438258e-06
 
 ...estimated hydro-limited timestep at level 0: 3.763306364e-06 -> 3.763306364e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.763306364e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.763306364e-06
 ...estimated hydro-limited timestep at level 1: 1.866366543e-06 -> 3.732733086e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.866366543e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.866366543e-06
 ...estimated hydro-limited timestep at level 2: 9.700919612e-07 -> 3.880367845e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.700919612e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.700919612e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123982208 new finest: 2
 STEP = 3594 TIME = 0.01550131755 : REGRID  with lbase = 0
@@ -12326,7 +12326,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14377 D post sources (flash): drift = 2.220200192e-16 (n>1e-3 0)  max(m1+m2) = 236.1743784  max|E1| = 1632755.434  max|E2| = 298630.829
 [PS-GUARD] L2 step 14377 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14378] Advanced 44032 cells
-CAMR::reflux() at level 1 : time = 0.074183
+PSAMR::reflux() at level 1 : time = 0.074183
 [Level 1 step 7190] ADVANCE at time 0.01550318392 with dt = 1.866366543e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -12437,8 +12437,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14379 D post sources (flash): drift = 2.220416305e-16 (n>1e-3 0)  max(m1+m2) = 236.3183416  max|E1| = 1622124.529  max|E2| = 298031.1685
 [PS-GUARD] L2 step 14379 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14380] Advanced 44032 cells
-CAMR::reflux() at level 1 : time = 0.074245
-CAMR::reflux() at level 0 : time = 0.012409
+PSAMR::reflux() at level 1 : time = 0.074245
+PSAMR::reflux() at level 0 : time = 0.012409
 
 [STEP 3595] Coarse TimeStep time: 61.32429775
 [STEP 3595] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -12449,11 +12449,11 @@ PLOTFILE: file = plt_sj2_03595
 Write plotfile time = 0.260517542  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.755666716e-06 -> 3.755666716e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.755666716e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.755666716e-06
 ...estimated hydro-limited timestep at level 1: 1.880735378e-06 -> 3.761470756e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.880735378e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.880735378e-06
 ...estimated hydro-limited timestep at level 2: 9.759290439e-07 -> 3.903716176e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.759290439e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.759290439e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053799167 new finest: 2
 TIME = 0.01550505029 : REGRID  with lbase = 1
@@ -12608,7 +12608,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14381 D post sources (flash): drift = 2.214425271e-16 (n>1e-3 0)  max(m1+m2) = 236.5079661  max|E1| = 1610910.447  max|E2| = 297295.9661
 [PS-GUARD] L2 step 14381 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14382] Advanced 43520 cells
-CAMR::reflux() at level 1 : time = 0.078878
+PSAMR::reflux() at level 1 : time = 0.078878
 [Level 1 step 7192] ADVANCE at time 0.01550692812 with dt = 1.877833358e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -12719,8 +12719,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14383 D post sources (flash): drift = 2.21982704e-16 (n>1e-3 0)  max(m1+m2) = 236.6065088  max|E1| = 1599173.329  max|E2| = 296646.5764
 [PS-GUARD] L2 step 14383 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14384] Advanced 43520 cells
-CAMR::reflux() at level 1 : time = 0.078561
-CAMR::reflux() at level 0 : time = 0.012524
+PSAMR::reflux() at level 1 : time = 0.078561
+PSAMR::reflux() at level 0 : time = 0.012524
 
 [STEP 3596] Coarse TimeStep time: 58.79478913
 [STEP 3596] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -12728,11 +12728,11 @@ CAMR::reflux() at level 0 : time = 0.012524
 STEP = 3596 TIME = 0.01550880595 DT = 3.755666716e-06
 
 ...estimated hydro-limited timestep at level 0: 3.910734258e-06 -> 3.910734258e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.910734258e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.910734258e-06
 ...estimated hydro-limited timestep at level 1: 1.889160745e-06 -> 3.778321489e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.889160745e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.889160745e-06
 ...estimated hydro-limited timestep at level 2: 9.802702457e-07 -> 3.921080983e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.802702457e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.802702457e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123803125 new finest: 2
 STEP = 3596 TIME = 0.01550880595 : REGRID  with lbase = 0
@@ -12889,7 +12889,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14385 D post sources (flash): drift = 2.215917563e-16 (n>1e-3 0)  max(m1+m2) = 236.8075557  max|E1| = 1586837.579  max|E2| = 296016.7682
 [PS-GUARD] L2 step 14385 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14386] Advanced 42496 cells
-CAMR::reflux() at level 1 : time = 0.052457
+PSAMR::reflux() at level 1 : time = 0.052457
 [Level 1 step 7194] ADVANCE at time 0.01551069511 with dt = 1.889160745e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -13000,8 +13000,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14387 D post sources (flash): drift = 2.219990989e-16 (n>1e-3 0)  max(m1+m2) = 236.6731148  max|E1| = 1573971.07  max|E2| = 295583.747
 [PS-GUARD] L2 step 14387 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14388] Advanced 42496 cells
-CAMR::reflux() at level 1 : time = 0.052439
-CAMR::reflux() at level 0 : time = 0.012754
+PSAMR::reflux() at level 1 : time = 0.052439
+PSAMR::reflux() at level 0 : time = 0.012754
 
 [STEP 3597] Coarse TimeStep time: 56.83573292
 [STEP 3597] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -13009,11 +13009,11 @@ CAMR::reflux() at level 0 : time = 0.012754
 STEP = 3597 TIME = 0.01551258428 DT = 3.778321489e-06
 
 ...estimated hydro-limited timestep at level 0: 3.897172676e-06 -> 3.897172676e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.897172676e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.897172676e-06
 ...estimated hydro-limited timestep at level 1: 1.909880648e-06 -> 3.819761296e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.909880648e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.909880648e-06
 ...estimated hydro-limited timestep at level 2: 9.84442933e-07 -> 3.937771732e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.84442933e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.84442933e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053883541 new finest: 2
 TIME = 0.01551258428 : REGRID  with lbase = 1
@@ -13168,7 +13168,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14389 D post sources (flash): drift = 2.219262604e-16 (n>1e-3 0)  max(m1+m2) = 236.7458674  max|E1| = 1560425.836  max|E2| = 295176.2483
 [PS-GUARD] L2 step 14389 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14390] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.062258
+PSAMR::reflux() at level 1 : time = 0.062258
 [Level 1 step 7196] ADVANCE at time 0.01551449416 with dt = 1.909880648e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -13279,8 +13279,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14391 D post sources (flash): drift = 2.220143048e-16 (n>1e-3 0)  max(m1+m2) = 236.7770812  max|E1| = 1546339.509  max|E2| = 295143.2372
 [PS-GUARD] L2 step 14391 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14392] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.061483
-CAMR::reflux() at level 0 : time = 0.01283
+PSAMR::reflux() at level 1 : time = 0.061483
+PSAMR::reflux() at level 0 : time = 0.01283
 
 [STEP 3598] Coarse TimeStep time: 55.54715704
 [STEP 3598] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -13288,11 +13288,11 @@ CAMR::reflux() at level 0 : time = 0.01283
 STEP = 3598 TIME = 0.01551640404 DT = 3.819761296e-06
 
 ...estimated hydro-limited timestep at level 0: 3.884754807e-06 -> 3.884754807e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.884754807e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.884754807e-06
 ...estimated hydro-limited timestep at level 1: 1.905273698e-06 -> 3.810547395e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.905273698e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.905273698e-06
 ...estimated hydro-limited timestep at level 2: 9.859908247e-07 -> 3.943963299e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.859908247e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.859908247e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123719875 new finest: 2
 STEP = 3598 TIME = 0.01551640404 : REGRID  with lbase = 0
@@ -13461,7 +13461,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14393 D post sources (flash): drift = 2.220433395e-16 (n>1e-3 0)  max(m1+m2) = 236.7237832  max|E1| = 1531749.689  max|E2| = 295105.614
 [PS-GUARD] L2 step 14393 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14394] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.047655
+PSAMR::reflux() at level 1 : time = 0.047655
 [Level 1 step 7198] ADVANCE at time 0.01551830931 with dt = 1.905273698e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -13584,8 +13584,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14395 D post sources (flash): drift = 2.220288076e-16 (n>1e-3 0)  max(m1+m2) = 237.1192426  max|E1| = 1516625.851  max|E2| = 295095.3084
 [PS-GUARD] L2 step 14395 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14396] Advanced 40704 cells
-CAMR::reflux() at level 1 : time = 0.048017
-CAMR::reflux() at level 0 : time = 0.012952
+PSAMR::reflux() at level 1 : time = 0.048017
+PSAMR::reflux() at level 0 : time = 0.012952
 
 [STEP 3599] Coarse TimeStep time: 54.70022375
 [STEP 3599] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -13593,11 +13593,11 @@ CAMR::reflux() at level 0 : time = 0.012952
 STEP = 3599 TIME = 0.01552021458 DT = 3.810547395e-06
 
 ...estimated hydro-limited timestep at level 0: 3.874093984e-06 -> 3.874093984e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.874093984e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.874093984e-06
 ...estimated hydro-limited timestep at level 1: 1.926651412e-06 -> 3.853302823e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.926651412e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.926651412e-06
 ...estimated hydro-limited timestep at level 2: 9.861612784e-07 -> 3.944645114e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.861612784e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.861612784e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.053728167 new finest: 2
 TIME = 0.01552021458 : REGRID  with lbase = 1
@@ -13768,7 +13768,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14397 D post sources (flash): drift = 2.219781882e-16 (n>1e-3 0)  max(m1+m2) = 237.6115876  max|E1| = 1500793.133  max|E2| = 295094.9945
 [PS-GUARD] L2 step 14397 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14398] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.065888
+PSAMR::reflux() at level 1 : time = 0.065888
 [Level 1 step 7200] ADVANCE at time 0.01552214124 with dt = 1.926651412e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -13891,8 +13891,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14399 D post sources (flash): drift = 2.21773971e-16 (n>1e-3 0)  max(m1+m2) = 238.2602902  max|E1| = 1484421.375  max|E2| = 295082.1407
 [PS-GUARD] L2 step 14399 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14400] Advanced 40448 cells
-CAMR::reflux() at level 1 : time = 0.066496
-CAMR::reflux() at level 0 : time = 0.013
+PSAMR::reflux() at level 1 : time = 0.066496
+PSAMR::reflux() at level 0 : time = 0.013
 
 [STEP 3600] Coarse TimeStep time: 52.60061121
 [STEP 3600] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -13903,11 +13903,11 @@ PLOTFILE: file = plt_sj2_03600
 Write plotfile time = 0.187556125  seconds
 
 ...estimated hydro-limited timestep at level 0: 3.866658795e-06 -> 3.866658795e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.866658795e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 3.866658795e-06
 ...estimated hydro-limited timestep at level 1: 1.953281487e-06 -> 3.906562974e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.953281487e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.953281487e-06
 ...estimated hydro-limited timestep at level 2: 9.8493274e-07 -> 3.93973096e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.8493274e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.8493274e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.123625208 new finest: 2
 STEP = 3600 TIME = 0.01552406789 : REGRID  with lbase = 0
@@ -14068,7 +14068,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14401 D post sources (flash): drift = 2.220410936e-16 (n>1e-3 0)  max(m1+m2) = 238.7375895  max|E1| = 1467456.162  max|E2| = 295056.3369
 [PS-GUARD] L2 step 14401 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14402] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.058943
+PSAMR::reflux() at level 1 : time = 0.058943
 [Level 1 step 7202] ADVANCE at time 0.01552600122 with dt = 1.933329398e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -14179,8 +14179,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14403 D post sources (flash): drift = 2.220064506e-16 (n>1e-3 0)  max(m1+m2) = 239.0391826  max|E1| = 1456306.03  max|E2| = 295062.9428
 [PS-GUARD] L2 step 14403 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14404] Advanced 43008 cells
-CAMR::reflux() at level 1 : time = 0.058042
-CAMR::reflux() at level 0 : time = 0.022732
+PSAMR::reflux() at level 1 : time = 0.058042
+PSAMR::reflux() at level 0 : time = 0.022732
 
 [STEP 3601] Coarse TimeStep time: 50.63594525
 [STEP 3601] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -14188,11 +14188,11 @@ CAMR::reflux() at level 0 : time = 0.022732
 STEP = 3601 TIME = 0.01552793455 DT = 3.866658795e-06
 
 ...estimated hydro-limited timestep at level 0: 4.032229753e-06 -> 4.032229753e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.032229753e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.032229753e-06
 ...estimated hydro-limited timestep at level 1: 1.949188701e-06 -> 3.898377401e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.949188701e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.949188701e-06
 ...estimated hydro-limited timestep at level 2: 9.730336393e-07 -> 3.892134557e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.730336393e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.730336393e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.054842833 new finest: 2
 TIME = 0.01552793455 : REGRID  with lbase = 1
@@ -14347,7 +14347,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14405 D post sources (flash): drift = 2.219664308e-16 (n>1e-3 0)  max(m1+m2) = 239.1986338  max|E1| = 1450561.282  max|E2| = 295058.271
 [PS-GUARD] L2 step 14405 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14406] Advanced 43520 cells
-CAMR::reflux() at level 1 : time = 0.106459
+PSAMR::reflux() at level 1 : time = 0.106459
 [Level 1 step 7204] ADVANCE at time 0.01552988061 with dt = 1.946067279e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -14458,8 +14458,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14407 D post sources (flash): drift = 2.219411351e-16 (n>1e-3 0)  max(m1+m2) = 239.272334  max|E1| = 1444401.316  max|E2| = 295041.1883
 [PS-GUARD] L2 step 14407 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14408] Advanced 43520 cells
-CAMR::reflux() at level 1 : time = 0.107539
-CAMR::reflux() at level 0 : time = 0.022875
+PSAMR::reflux() at level 1 : time = 0.107539
+PSAMR::reflux() at level 0 : time = 0.022875
 
 [STEP 3602] Coarse TimeStep time: 58.53491442
 [STEP 3602] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -14467,11 +14467,11 @@ CAMR::reflux() at level 0 : time = 0.022875
 STEP = 3602 TIME = 0.01553182668 DT = 3.892134557e-06
 
 ...estimated hydro-limited timestep at level 0: 4.038774672e-06 -> 4.038774672e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.038774672e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.038774672e-06
 ...estimated hydro-limited timestep at level 1: 1.946804834e-06 -> 3.893609668e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.946804834e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.946804834e-06
 ...estimated hydro-limited timestep at level 2: 9.724007957e-07 -> 3.889603183e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.724007957e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.724007957e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.1247705 new finest: 2
 STEP = 3602 TIME = 0.01553182668 : REGRID  with lbase = 0
@@ -14644,7 +14644,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14409 D post sources (flash): drift = 2.219865986e-16 (n>1e-3 0)  max(m1+m2) = 239.302305  max|E1| = 1437818.42  max|E2| = 295016.7273
 [PS-GUARD] L2 step 14409 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14410] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.055679
+PSAMR::reflux() at level 1 : time = 0.055679
 [Level 1 step 7206] ADVANCE at time 0.01553377148 with dt = 1.944801591e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -14767,8 +14767,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14411 D post sources (flash): drift = 2.219178376e-16 (n>1e-3 0)  max(m1+m2) = 239.3258206  max|E1| = 1430797.886  max|E2| = 294992.8843
 [PS-GUARD] L2 step 14411 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14412] Advanced 42752 cells
-CAMR::reflux() at level 1 : time = 0.056447
-CAMR::reflux() at level 0 : time = 0.011903
+PSAMR::reflux() at level 1 : time = 0.056447
+PSAMR::reflux() at level 0 : time = 0.011903
 
 [STEP 3603] Coarse TimeStep time: 59.34429458
 [STEP 3603] FAB kilobyte spread across MPI nodes: [26284 ... 29865]
@@ -14776,11 +14776,11 @@ CAMR::reflux() at level 0 : time = 0.011903
 STEP = 3603 TIME = 0.01553571628 DT = 3.889603183e-06
 
 ...estimated hydro-limited timestep at level 0: 4.032912479e-06 -> 4.032912479e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.032912479e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.032912479e-06
 ...estimated hydro-limited timestep at level 1: 1.956321642e-06 -> 3.912643285e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.956321642e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.956321642e-06
 ...estimated hydro-limited timestep at level 2: 9.731085176e-07 -> 3.89243407e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.731085176e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.731085176e-07
 Now regridding at level lbase = 1
 grid_places() time: 0.052405792 new finest: 2
 TIME = 0.01553571628 : REGRID  with lbase = 1
@@ -14951,7 +14951,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14413 D post sources (flash): drift = 2.219924162e-16 (n>1e-3 0)  max(m1+m2) = 239.3941238  max|E1| = 1423322.587  max|E2| = 294977.3835
 [PS-GUARD] L2 step 14413 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14414] Advanced 45056 cells
-CAMR::reflux() at level 1 : time = 0.062479
+PSAMR::reflux() at level 1 : time = 0.062479
 [Level 1 step 7208] ADVANCE at time 0.0155376625 with dt = 1.946217035e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -15074,8 +15074,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14415 D post sources (flash): drift = 2.218485519e-16 (n>1e-3 0)  max(m1+m2) = 239.5918105  max|E1| = 1415388.209  max|E2| = 294971.1402
 [PS-GUARD] L2 step 14415 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14416] Advanced 45056 cells
-CAMR::reflux() at level 1 : time = 0.063004
-CAMR::reflux() at level 0 : time = 0.01222
+PSAMR::reflux() at level 1 : time = 0.063004
+PSAMR::reflux() at level 0 : time = 0.01222
 
 [STEP 3604] Coarse TimeStep time: 63.44436725
 [STEP 3604] FAB kilobyte spread across MPI nodes: [26284 ... 30256]
@@ -15083,11 +15083,11 @@ CAMR::reflux() at level 0 : time = 0.01222
 STEP = 3604 TIME = 0.01553960872 DT = 3.89243407e-06
 
 ...estimated hydro-limited timestep at level 0: 4.020113409e-06 -> 4.020113409e-06
-CAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.020113409e-06
+PSAMR::estTimeStep (hydro-limited) at level 0:  estdt = 4.020113409e-06
 ...estimated hydro-limited timestep at level 1: 1.964516405e-06 -> 3.929032809e-06
-CAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.964516405e-06
+PSAMR::estTimeStep (hydro-limited) at level 1:  estdt = 1.964516405e-06
 ...estimated hydro-limited timestep at level 2: 9.628620379e-07 -> 3.851448152e-06
-CAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.628620379e-07
+PSAMR::estTimeStep (hydro-limited) at level 2:  estdt = 9.628620379e-07
 Now regridding at level lbase = 0
 grid_places() time: 0.122026875 new finest: 2
 STEP = 3604 TIME = 0.01553960872 : REGRID  with lbase = 0
@@ -15256,7 +15256,7 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14417 D post sources (flash): drift = 2.219719691e-16 (n>1e-3 0)  max(m1+m2) = 239.9651586  max|E1| = 1407077.245  max|E2| = 294963.5607
 [PS-GUARD] L2 step 14417 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14418] Advanced 47616 cells
-CAMR::reflux() at level 1 : time = 0.099208
+PSAMR::reflux() at level 1 : time = 0.099208
 [Level 1 step 7210] ADVANCE at time 0.01554153444 with dt = 1.925724076e-06
 Doing PS Advance (flux=wp)
 ... Computing PS unsplit hydro advance (flux=wp)
@@ -15379,8 +15379,8 @@ Doing PS Advance (flux=wp)
 [PS-MASS] L2 step 14419 D post sources (flash): drift = 2.219401636e-16 (n>1e-3 0)  max(m1+m2) = 240.25376  max|E1| = 1398305.725  max|E2| = 294947.3177
 [PS-GUARD] L2 step 14419 D post sources (flash): phase-P seen = 0  rej_low = 0 | rho_clamp_lo = 0 | ctop_seen = 0  ctop_sub = 0  ctop_host_floor = 0 | flux_sanit = 0  reflux_cap = 0  reflux_clamp = 0 | nscbc_zg(c=0,sup=0,slots=0,pack=0) nscbc_flash=0 pmix_fail=0
 [Level 2 step 14420] Advanced 47616 cells
-CAMR::reflux() at level 1 : time = 0.099189
-CAMR::reflux() at level 0 : time = 0.012192
+PSAMR::reflux() at level 1 : time = 0.099189
+PSAMR::reflux() at level 0 : time = 0.012192
 
 [STEP 3605] Coarse TimeStep time: 64.10920683
 [STEP 3605] FAB kilobyte spread across MPI nodes: [26284 ... 30657]

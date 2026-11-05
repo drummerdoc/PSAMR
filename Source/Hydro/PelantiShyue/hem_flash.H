@@ -21,9 +21,9 @@ namespace hem {
 //  hyperbolic step creates no trace phase.  ps_flash_source_cell seeds
 //  the minority phase toward alpha_birth and declines everywhere else;
 //  the relaxation kernels then own the cell.  Enabled by
-//  CAMR.ps_flash_tau (read in PS_sources.H; default 1e-7 s, <= 0 off).
+//  PSAMR.ps_flash_tau (read in PS_sources.H; default 1e-7 s, <= 0 off).
 //  P_sat(T) comes from PsPhaseAPI::Psat_of_T (the fluid's own EOS;
-//  EOS::Psat under CAMR).  docs/MODEL_AND_ALGORITHM.md §5.5.
+//  EOS::Psat under PSAMR).  docs/MODEL_AND_ALGORITHM.md §5.5.
 // =====================================================================
 
 // -----------------------------------------------------------------
@@ -117,7 +117,7 @@ inline long& ps_triple_point_count() { return ps_counters().triple_point_count; 
 // True when (T, P) lies below the CO2 sublimation line, where the EOS
 // extrapolates analytically past the solid region.  The triple point
 // comes from the EOS metadata the api carries.  The response is
-// selected by CAMR.ps_triple_point_action (read in PS_sources.H).
+// selected by PSAMR.ps_triple_point_action (read in PS_sources.H).
 inline bool ps_below_triple_point(double T, double P_Pa, const PsPhaseAPI& eos) {
     const double T_triple = eos.t_triple();   // K
     const double P_triple = eos.p_triple();   // Pa
@@ -201,19 +201,19 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     double alpha_1 = U[0];
     if (!std::isfinite(alpha_1)) PS_FLASH_REFUSE(PS_FLR_A_NAN);
 
-    // CAMR.ps_flash_alpha_thr (0.10): dominance threshold; the flash
+    // PSAMR.ps_flash_alpha_thr (0.10): dominance threshold; the flash
     // acts only for alpha_dom > 1 - thr, mid-range cells belong to
     // mass transfer.
     static const double flash_alpha_thr =
         ps_dial_real("ps_flash_alpha_thr", 0.10);
-    // CAMR.ps_flash_hrm (0): PROBE (docs/PLAN_pipe_depress.md §7), not a
+    // PSAMR.ps_flash_hrm (0): PROBE (docs/PLAN_pipe_depress.md §7), not a
     // design.  1 = the kernel is the reference's HRM source instead of the
     // nucleator: liquid -> vapour only, eligible wherever the liquid is below
     // its saturation pressure (no window, no cap), dm = rho (x_sat - x_g)
     // (1 - exp(-dt/theta)) with theta = ps_flash_tau and x_sat the equilibrium
     // quality at the cell's (rho, e), which the transfer leaves unchanged.
     static const int flash_hrm = ps_dial_int("ps_flash_hrm", 0);
-    if (flash_hrm != 0 && flash_hrm != 1) amrex::Abort("CAMR.ps_flash_hrm must be 0 or 1");
+    if (flash_hrm != 0 && flash_hrm != 1) amrex::Abort("PSAMR.ps_flash_hrm must be 0 or 1");
     if (flash_hrm == 1 && !eos.xsat_of_rho_e) PS_FLASH_REFUSE(PS_FLR_EOS);
     const bool liq_dominant = (alpha_1 > 1.0 - flash_alpha_thr);
     const bool vap_dominant = (flash_hrm == 0) && (alpha_1 < flash_alpha_thr);
@@ -269,7 +269,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     // (b) Metastability window: a liquid-dominant cell boils as P falls
     //     below (1 - margin) P_sat, a vapour-dominant cell condenses as P
     //     rises above (1 + margin) P_sat, each a smooth ramp.
-    // CAMR.ps_flash_metastable_margin (0.10) is the CAP on the margin: the
+    // PSAMR.ps_flash_metastable_margin (0.10) is the CAP on the margin: the
     // heterogeneous (wall) floor.  For a liquid the margin itself is the
     // classical-nucleation-theory onset at the liquid's temperature,
     // ps_flash_margin_cnt, which is below the cap near the critical point

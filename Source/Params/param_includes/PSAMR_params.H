@@ -1,5 +1,5 @@
 
-// This file is automatically created by parse_CAMR_params.py.  To update
+// This file is automatically created by parse_PSAMR_params.py.  To update
 // or add runtime parameters, please edit _cpp_parameters and then run
 // mk_params.sh
 

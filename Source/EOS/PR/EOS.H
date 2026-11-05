@@ -1,7 +1,7 @@
 #ifndef EOS_H
 #define EOS_H
 // =====================================================================
-//  PR EOS backend for CAMR: pure-CO2 Peng-Robinson behind CAMR's
+//  PR EOS backend for PSAMR: pure-CO2 Peng-Robinson behind PSAMR's
 //  namespace EOS { ... } free-function contract.
 //  Algorithm: untranslated Peng-Robinson with a NASA-7 ideal-gas c_p,
 //  device-inline state machinery in hem_pr_state.H (the (rho,e)->T

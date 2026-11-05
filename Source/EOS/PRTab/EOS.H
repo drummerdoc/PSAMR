@@ -1,7 +1,7 @@
 #ifndef EOS_H
 #define EOS_H
 // =====================================================================
-//  PRTab EOS backend for CAMR: the PR backend with the (rho,e) -> T
+//  PRTab EOS backend for PSAMR: the PR backend with the (rho,e) -> T
 //  inversion replaced by a bicubic Catmull-Rom table lookup
 //  (docs/MODEL_AND_ALGORITHM.md §7.3-7.4; PRTab/README.md).
 //  Algorithm: T (and s) are read from tables of T(log10 rho, e) on three
@@ -20,10 +20,10 @@
 //  Layout: this file owns the table gates, the table-vs-PR census and
 //  the two table solves; the fluid is EOS/PR/pr_base.H and the whole
 //  contract surface is EOS/PR/pr_contract.H, which routes its ring
-//  caches to the table solves under USE_PRTAB_EOS (set by Make.CAMR for
+//  caches to the table solves under USE_PRTAB_EOS (set by Make.PSAMR for
 //  Eos_Model := PRTab), exactly as GERGTab does relative to GERG.
-//  Dials (accessors below): CAMR.eos_table (1), CAMR.eos_table_auto (1),
-//  CAMR.eos_table_branch (1), CAMR.eos_diag (0).  Units: SI.
+//  Dials (accessors below): PSAMR.eos_table (1), PSAMR.eos_table_auto (1),
+//  PSAMR.eos_table_branch (1), PSAMR.eos_diag (0).  Units: SI.
 // =====================================================================
 
 #include <AMReX.H>
@@ -55,38 +55,38 @@ namespace EOS {
   // with PR (the table generator uses the same parameters).
 #include "EOS/PR/pr_base.H"
 
-  // CAMR.eos_table (1): use the table for the forward solve; 0 = the
+  // PSAMR.eos_table (1): use the table for the forward solve; 0 = the
   // exact PR solve, so one PRTab build reproduces its analytic parent.
   // Host runtime only; the device path is always the table.
 #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__) && !defined(__SYCL_DEVICE_ONLY__)
   inline bool prtab_enabled()
   {
       static const bool e = []() {
-          int v = 1; amrex::ParmParse pp("CAMR");
+          int v = 1; amrex::ParmParse pp("PSAMR");
           pp.query("eos_table", v); return v != 0;
       }();
       return e;
   }
 
-  // CAMR.eos_table_branch (1): branch-locked calls read the metastable
+  // PSAMR.eos_table_branch (1): branch-locked calls read the metastable
   // liquid/vapour tables, which two-phase states need; 0 = the auto table
   // (single-phase cases only).  All three tables are always built.
   inline bool prtab_table_branch()
   {
       static const bool b = []() {
-          int v = 1; amrex::ParmParse pp("CAMR");
+          int v = 1; amrex::ParmParse pp("PSAMR");
           pp.query("eos_table_branch", v); return v != 0;
       }();
       return b;
   }
 
-  // CAMR.eos_table_auto (1): table on the auto-detect (mixture) path too;
+  // PSAMR.eos_table_auto (1): table on the auto-detect (mixture) path too;
   // 0 = exact PR there while the branch-locked path keeps the table, the
   // causal test that separates auto-path from branch-table error.
   inline bool prtab_auto_enabled()
   {
       static const bool a = []() {
-          int v = 1; amrex::ParmParse pp("CAMR");
+          int v = 1; amrex::ParmParse pp("PSAMR");
           pp.query("eos_table_auto", v); return v != 0;
       }();
       return a;
@@ -95,7 +95,7 @@ namespace EOS {
 
 #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__) && !defined(__SYCL_DEVICE_ONLY__)
   // =================================================================
-  //  Table-vs-PR error census (CAMR.eos_diag, see prtab_diag_enabled).
+  //  Table-vs-PR error census (PSAMR.eos_diag, see prtab_diag_enabled).
   //  At every call through the (rho,e[,phase]) caches the exact PR solve
   //  is also run at the identical input and |dP|/P, |dT|/T, |dc|/c are
   //  accumulated by call site x table path (auto/branchL/branchV) x PR
@@ -245,12 +245,12 @@ namespace EOS {
     }
   } // namespace prtab_diag
 
-  // CAMR.eos_diag (0): 1 enables the census above; off by default
+  // PSAMR.eos_diag (0): 1 enables the census above; off by default
   // because it doubles the EOS cost.
   inline bool prtab_diag_enabled()
   {
       static const bool d = []() {
-          int v = 0; amrex::ParmParse pp("CAMR");
+          int v = 0; amrex::ParmParse pp("PSAMR");
           pp.query("eos_diag", v);
           if (v != 0) {
               prtab_diag::tbl();               // construct BEFORE atexit

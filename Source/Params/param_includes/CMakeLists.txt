@@ -1,8 +1,8 @@
-target_sources(${CAMR_exe_name}
+target_sources(${PSAMR_exe_name}
    PRIVATE
-     CAMR_defaults.H
-     CAMR_params.H
-     CAMR_queries.H
+     PSAMR_defaults.H
+     PSAMR_params.H
+     PSAMR_queries.H
    )
 
-target_include_directories(${CAMR_exe_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PSAMR_exe_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -3,7 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include "IndexDefines.H"
-#include "CAMR_Constants.H"
+#include "PSAMR_Constants.H"
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
@@ -22,7 +22,7 @@
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 amrex::Real
-CAMR_estdt_hydro(
+PSAMR_estdt_hydro(
   const amrex::Box& bx,
   const amrex::Array4<const amrex::Real>& u,
 #ifdef AMREX_USE_EB
@@ -89,23 +89,23 @@ CAMR_estdt_hydro(
   return dt;
 }
 
-#ifdef CAMR_PS_DIAG
+#ifdef PSAMR_PS_DIAG
 // --------------------------------------------------------------------
-//  Diagnostic (CAMR.ps_dt_diag, default 0 = off): report which cell and
+//  Diagnostic (PSAMR.ps_dt_diag, default 0 = off): report which cell and
 //  which state sets the hydro dt.  Host-side, serial, reads only.
 //  Why it exists: dt = dx/(c+|u|) uses c from a single-fluid EOS call on
 //  the mixture state, which is not a characteristic speed of the
 //  six-equation system; this reporter shows which cell that choice binds.
 //  See docs/MODEL_AND_ALGORITHM.md §8.6.
 // --------------------------------------------------------------------
-struct CAMR_dt_diag_t {
+struct PSAMR_dt_diag_t {
   amrex::Real dt, rho, eint, pres, gam, c, ux, a1, m1, m2;
   int i;
 };
 
 AMREX_FORCE_INLINE
-CAMR_dt_diag_t
-CAMR_estdt_hydro_diag(
+PSAMR_dt_diag_t
+PSAMR_estdt_hydro_diag(
   const amrex::Box& bx,
   const amrex::Array4<const amrex::Real>& u,
 #ifdef USE_PS_HYDRO
@@ -114,7 +114,7 @@ CAMR_estdt_hydro_diag(
 #endif
   const amrex::Real dxl) noexcept
 {
-  CAMR_dt_diag_t best;
+  PSAMR_dt_diag_t best;
   best.dt = std::numeric_limits<amrex::Real>::max();
   best.i = -1;
   best.rho = best.eint = best.pres = best.gam = best.c = best.ux = 0.0;
@@ -163,5 +163,5 @@ CAMR_estdt_hydro_diag(
   });
   return best;
 }
-#endif  // CAMR_PS_DIAG
+#endif  // PSAMR_PS_DIAG
 #endif

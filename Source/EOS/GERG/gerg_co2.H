@@ -6,7 +6,7 @@
 //  Coefficients verbatim from thermopack src/gergdatadb.f90 (CO2 entry);
 //  alpha0 form from src/gerg.f90 alpha0Derivs_GERG.
 //
-//  Design constraints (CAMR GPU-safety):
+//  Design constraints (PSAMR GPU-safety):
 //   - branch-free fixed-op evaluation, no iteration, no data-dependent
 //     loops; header-only, no AMReX dependency (GERG_HD macro adapts).
 //   - (T,rho) -> state only.  Inversions ((rho,e)->T etc.), saturation,

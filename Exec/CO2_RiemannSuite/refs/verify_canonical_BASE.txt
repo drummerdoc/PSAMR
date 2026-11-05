@@ -1,5 +1,5 @@
 == 0. build freshness ==
-  [PASS] executable newer than every *.H/*.cpp under Source/  (exe=CAMR1d.gnu.PS.PR.ex)
+  [PASS] executable newer than every *.H/*.cpp under Source/  (exe=PSAMR1d.gnu.PS.PR.ex)
 == 1. frozen A/C battery ==
   -- alpha_trace=1e-6 --
   [PASS] A1-Sod-strong (alpha_trace=1e-6)  (got 0.012,0.013,0.015 expect (0.012, 0.012, 0.015))

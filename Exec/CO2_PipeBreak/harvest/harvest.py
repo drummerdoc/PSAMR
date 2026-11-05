@@ -3,7 +3,7 @@
 
 For every interior coarse cell of the given plotfile levels (level 0, and level 1 where level 2
 exists) the AMReX cell_cons_interp fill (MC slopes per component, 3x3 max/min bound; the
-operator CAMR registers) is applied to the conserved state to produce the four children.  Each
+operator PSAMR registers) is applied to the conserved state to produce the four children.  Each
 phase state (rho_k, e_k) of the centre parent, the eight neighbours and the four children is
 classified: regime (Absent/Corridor/Independent), branch-locked reachability (the solver's
 ps_regime_reach test, via ./eos_valid) with the failure reason, and a physical flag (reachable but

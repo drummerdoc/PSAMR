@@ -37,7 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 P0 = 2.0e6
 
 def exe(dim):
-    g = sorted(glob.glob(os.path.join(HERE, f'CAMR{dim}d.*.ex')), key=os.path.getmtime)
+    g = sorted(glob.glob(os.path.join(HERE, f'PSAMR{dim}d.*.ex')), key=os.path.getmtime)
     if not g: sys.exit(f'no {dim}-D executable in {HERE}: make DIM={dim} USE_MPI=FALSE COMP=gnu Eos_Model=PR')
     return g[-1]
 
@@ -117,7 +117,7 @@ def test_N1(two_phase=False):
     for (n, sig, amp, order, imp) in variants:
         name = f"{'N1b' if two_phase else 'N1'}_n{n}_s{sig}_a{amp:g}_o{order}" + ('_wood' if imp == 1 else '_zg' if imp == -1 else '')
         args = [f'amr.n_cell={n}', f'prob.amp={amp}', 'prob.ic=1']
-        if imp == -1: args.append('CAMR.ps_bc_use_nscbc=0')
+        if imp == -1: args.append('PSAMR.ps_bc_use_nscbc=0')
         if two_phase: args += ['prob.two_phase=1', 'prob.a1_0=0.05']
         rc, fs, zg = run(name, 1, args, stop, 5.0e-4)
         if rc == -99: continue
@@ -150,7 +150,7 @@ def test_N3():
             name = f'N3_{label}_s{sig}'
             args = ['amr.n_cell=256', f'prob.ic={ic}', f'prob.amp={amp}',
                     'prob.u0=50', 'prob.xc=0.7', f'prob.two_phase={tp}',
-                    'CAMR.ps_bc_nscbc_xlo=0']   # the inflow face is a plain copy: the NSCBC far field is at rest (no u_amb)
+                    'PSAMR.ps_bc_nscbc_xlo=0']   # the inflow face is a plain copy: the NSCBC far field is at rest (no u_amb)
             stop = 12.0e-3  # 0.3 m at 50 m/s = 6 ms to the face, +6 ms
             rc, fs, zg = run(name, 1, args, stop, 1.0e-3)
             if rc == -99: continue

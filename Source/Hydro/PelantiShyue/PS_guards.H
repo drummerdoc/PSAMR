@@ -95,7 +95,7 @@ amrex::Real sanitize_stock_pressure(amrex::Real P_stock) noexcept
 
 // ---------------------------------------------------------------------
 #if !defined(AMREX_USE_GPU)
-//  clean_state repairs (CAMR.cpp): a negative or non-finite partial mass
+//  clean_state repairs (PSAMR.cpp): a negative or non-finite partial mass
 //  is set to zero, which makes that phase Absent (a representable state)
 //  rather than a fictitious sliver; a finite alpha is clamped to [0,1], a
 //  non-finite alpha is not repaired, it aborts.  mass_neg_kg bounds as
@@ -113,7 +113,7 @@ inline void  count_mass_nonfinite() { ++ps_counters().mass_nonfinite; }
 //                   a hit means the arithmetic itself produced inf*0 or
 //                   the like, a class the input guards cannot see.
 //    reflux_cap   : the reflux alpha_1 co-move rate limit |d alpha_1| <= 0.05
-//                   engaged at a coarse-fine cell (CAMR::reflux).
+//                   engaged at a coarse-fine cell (PSAMR::reflux).
 //    reflux_clamp : the co-moved alpha_1 hit the [amin, 1-amin] clamp.
 //  The reflux counters accumulate in post_timestep and appear on the
 //  following step's [PS-GUARD] line.

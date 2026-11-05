@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./parse_CAMR_params.py ./_cpp_parameters
+./parse_PSAMR_params.py ./_cpp_parameters

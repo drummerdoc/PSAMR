@@ -2,17 +2,17 @@
 #include <AMReX_buildInfo.H>
 #include <memory>
 
-#include "CAMR.H"
+#include "PSAMR.H"
 #include "Derive.H"
 #include "IndexDefines.H"
 #include "prob.H"
 
-ProbParmDevice* CAMR::d_prob_parm= nullptr;
-ProbParmDevice* CAMR::h_prob_parm= nullptr;
-ProbParmHost* CAMR::prob_parm_host = nullptr;
-TaggingParm* CAMR::tagging_parm = nullptr;
-PassMap* CAMR::d_pass_map = nullptr;
-PassMap* CAMR::h_pass_map = nullptr;
+ProbParmDevice* PSAMR::d_prob_parm= nullptr;
+ProbParmDevice* PSAMR::h_prob_parm= nullptr;
+ProbParmHost* PSAMR::prob_parm_host = nullptr;
+TaggingParm* PSAMR::tagging_parm = nullptr;
+PassMap* PSAMR::d_pass_map = nullptr;
+PassMap* PSAMR::h_pass_map = nullptr;
 
 // Components are:
 //                          Interior,               Inflow,                 Outflow,                 Symmetry,                    SlipWall,                    NoSlipWall
@@ -78,9 +78,9 @@ set_z_vel_bc(amrex::BCRec& bc, const amrex::BCRec& phys_bc)
 #endif
 
 void
-CAMR::variableSetUp()
+PSAMR::variableSetUp()
 {
-  // CAMR::variableSetUp is called in the constructor of Amr.cpp, so
+  // PSAMR::variableSetUp is called in the constructor of Amr.cpp, so
   // it should get called every time we start or restart a job
 
   // initialize the start time for our CPU-time tracker
@@ -89,21 +89,21 @@ CAMR::variableSetUp()
   // Output the git commit hashes used to build the executable.
 
   if (amrex::ParallelDescriptor::IOProcessor()) {
-    const char* CAMR_hash = amrex::buildInfoGetGitHash(1);
+    const char* PSAMR_hash = amrex::buildInfoGetGitHash(1);
     const char* amrex_hash = amrex::buildInfoGetGitHash(2);
-    const char* CAMRphysics_hash = amrex::buildInfoGetGitHash(3);
+    const char* PSAMRphysics_hash = amrex::buildInfoGetGitHash(3);
     const char* buildgithash = amrex::buildInfoGetBuildGitHash();
     const char* buildgitname = amrex::buildInfoGetBuildGitName();
 
-    if (strlen(CAMR_hash) > 0) {
+    if (strlen(PSAMR_hash) > 0) {
       amrex::Print() << "\n"
-                     << "CAMR git hash: " << CAMR_hash << "\n";
+                     << "PSAMR git hash: " << PSAMR_hash << "\n";
     }
     if (strlen(amrex_hash) > 0) {
       amrex::Print() << "AMReX git hash: " << amrex_hash << "\n";
     }
-    if (strlen(CAMRphysics_hash) > 0) {
-      amrex::Print() << "CAMRPhysics git hash: " << CAMRphysics_hash << "\n";
+    if (strlen(PSAMRphysics_hash) > 0) {
+      amrex::Print() << "PSAMRPhysics git hash: " << PSAMRphysics_hash << "\n";
     }
     if (strlen(buildgithash) > 0) {
       amrex::Print() << buildgitname << " git hash: " << buildgithash << "\n";
@@ -132,7 +132,7 @@ CAMR::variableSetUp()
         amrex::Gpu::hostToDevice, h_pass_map, h_pass_map + 1, d_pass_map);
 
     amrex::Vector<amrex::Real> center(AMREX_SPACEDIM, 0.0);
-    amrex::ParmParse ppc("CAMR");
+    amrex::ParmParse ppc("PSAMR");
     ppc.queryarr("center", center, 0, AMREX_SPACEDIM);
 
     amrex::Interpolater* interp;
@@ -211,14 +211,14 @@ CAMR::variableSetUp()
   set_scalar_bc(bc, phys_bc); bcs[UE2    ] = bc; name[UE2    ] = "alpha2_rho2_E2";
 #endif
 
-    amrex::StateDescriptor::BndryFunc bndryfunc1(CAMR_bcfill_hyp);
+    amrex::StateDescriptor::BndryFunc bndryfunc1(PSAMR_bcfill_hyp);
     bndryfunc1.setRunOnGPU(true);
 
     desc_lst.setComponent(State_Type, URHO, name, bcs, bndryfunc1);
 
   // Work estimate: one cell-centred component, no ghost cells, piecewise-
-  // constant interpolation, not checkpointed (CAMR::set_state_in_checkpoint
-  // and CAMR::restart handle the absence).  Written by CAMR::advance.
+  // constant interpolation, not checkpointed (PSAMR::set_state_in_checkpoint
+  // and PSAMR::restart handle the absence).  Written by PSAMR::advance.
   {
     desc_lst.addDescriptor(
       Work_Estimate_Type, amrex::IndexType::TheCellType(),
@@ -227,7 +227,7 @@ CAMR::variableSetUp()
     amrex::BCRec bcw;
     set_scalar_bc(bcw, phys_bc);
     desc_lst.setComponent(Work_Estimate_Type, 0, "work_estimate", bcw,
-                          amrex::StateDescriptor::BndryFunc(CAMR_nullfill));
+                          amrex::StateDescriptor::BndryFunc(PSAMR_nullfill));
   }
 
   num_state_type = desc_lst.size();
@@ -236,16 +236,16 @@ CAMR::variableSetUp()
 
   // Pressure
   derive_lst.add(
-    "pressure", amrex::IndexType::TheCellType(), 1, CAMR_derpres, the_same_box);
+    "pressure", amrex::IndexType::TheCellType(), 1, PSAMR_derpres, the_same_box);
   derive_lst.addComponent("pressure", desc_lst, State_Type, URHO, NVAR);
 
 #ifdef USE_PS_HYDRO
   // Local flashing rate [kg m^-3 s^-1], + = evaporation (liquid->vapor):
   // the mass transferred per unit time in the reaction substep, recorded
-  // in CAMR::flash_src and served by the CAMR::derive() override.
-  // CAMR_dernull is a placeholder, as for the EB "vfrac" registration.
+  // in PSAMR::flash_src and served by the PSAMR::derive() override.
+  // PSAMR_dernull is a placeholder, as for the EB "vfrac" registration.
   derive_lst.add(
-    "flash_rate", amrex::IndexType::TheCellType(), 1, CAMR_dernull, the_same_box);
+    "flash_rate", amrex::IndexType::TheCellType(), 1, PSAMR_dernull, the_same_box);
   derive_lst.addComponent("flash_rate", desc_lst, State_Type, URHO, 1);
 
   // Per-phase temperatures [K]: temp_1 (liquid), temp_2 (vapor); T1 != T2
@@ -253,60 +253,60 @@ CAMR::variableSetUp()
   // mixture temperature (ps_phase_temp_from_cons) so the field stays
   // physical.
   derive_lst.add(
-    "temp_1", amrex::IndexType::TheCellType(), 1, CAMR_dertemp1, the_same_box);
+    "temp_1", amrex::IndexType::TheCellType(), 1, PSAMR_dertemp1, the_same_box);
   derive_lst.addComponent("temp_1", desc_lst, State_Type, URHO, NVAR);
   derive_lst.add(
-    "temp_2", amrex::IndexType::TheCellType(), 1, CAMR_dertemp2, the_same_box);
+    "temp_2", amrex::IndexType::TheCellType(), 1, PSAMR_dertemp2, the_same_box);
   derive_lst.addComponent("temp_2", desc_lst, State_Type, URHO, NVAR);
 #endif
 
   // Kinetic energy
   derive_lst.add(
-    "kineng", amrex::IndexType::TheCellType(), 1, CAMR_derkineng, the_same_box);
+    "kineng", amrex::IndexType::TheCellType(), 1, PSAMR_derkineng, the_same_box);
   derive_lst.addComponent("kineng", desc_lst, State_Type, URHO, NVAR);
 
   // Enstrophy
   derive_lst.add(
-    "enstrophy", amrex::IndexType::TheCellType(), 1, CAMR_derenstrophy,
+    "enstrophy", amrex::IndexType::TheCellType(), 1, PSAMR_derenstrophy,
     grow_box_by_one);
   derive_lst.addComponent("enstrophy", desc_lst, State_Type, URHO, NVAR);
 
   // Sound speed (c)
   derive_lst.add(
-    "soundspeed", amrex::IndexType::TheCellType(), 1, CAMR_dersoundspeed,
+    "soundspeed", amrex::IndexType::TheCellType(), 1, PSAMR_dersoundspeed,
     the_same_box);
   derive_lst.addComponent("soundspeed", desc_lst, State_Type, URHO, NVAR);
 
   // Mach number(M)
   derive_lst.add(
-    "MachNumber", amrex::IndexType::TheCellType(), 1, CAMR_dermachnumber,
+    "MachNumber", amrex::IndexType::TheCellType(), 1, PSAMR_dermachnumber,
     the_same_box);
   derive_lst.addComponent("MachNumber", desc_lst, State_Type, URHO, NVAR);
 
   // Vorticity
   derive_lst.add(
-    "magvort", amrex::IndexType::TheCellType(), 1, CAMR_dermagvort,
+    "magvort", amrex::IndexType::TheCellType(), 1, PSAMR_dermagvort,
     grow_box_by_one);
   derive_lst.addComponent("magvort", desc_lst, State_Type, URHO, NVAR);
 
   // Div(u)
   derive_lst.add(
-    "divu", amrex::IndexType::TheCellType(), 1, CAMR_derdivu, grow_box_by_one);
+    "divu", amrex::IndexType::TheCellType(), 1, PSAMR_derdivu, grow_box_by_one);
   derive_lst.addComponent("divu", desc_lst, State_Type, URHO, NVAR);
 
   // Internal energy as derived from rho*E, part of the state
   derive_lst.add(
-    "eint_E", amrex::IndexType::TheCellType(), 1, CAMR_dereint1, the_same_box);
+    "eint_E", amrex::IndexType::TheCellType(), 1, PSAMR_dereint1, the_same_box);
   derive_lst.addComponent("eint_E", desc_lst, State_Type, URHO, NVAR);
 
   // Internal energy as derived from rho*e, part of the state
   derive_lst.add(
-    "eint_e", amrex::IndexType::TheCellType(), 1, CAMR_dereint2, the_same_box);
+    "eint_e", amrex::IndexType::TheCellType(), 1, PSAMR_dereint2, the_same_box);
   derive_lst.addComponent("eint_e", desc_lst, State_Type, URHO, NVAR);
 
   // Log(density)
   derive_lst.add(
-    "logden", amrex::IndexType::TheCellType(), 1, CAMR_derlogden, the_same_box);
+    "logden", amrex::IndexType::TheCellType(), 1, PSAMR_derlogden, the_same_box);
   derive_lst.addComponent("logden", desc_lst, State_Type, URHO, NVAR);
 
 #ifdef USE_PS_HYDRO
@@ -315,7 +315,7 @@ CAMR::variableSetUp()
   // tagging the raw state slot lacks).  Named ps_alpha1 to distinguish it
   // from the EB fluid volume fraction "vfrac".
   derive_lst.add(
-    "ps_alpha1", amrex::IndexType::TheCellType(), 1, CAMR_der_ps_alpha1, the_same_box);
+    "ps_alpha1", amrex::IndexType::TheCellType(), 1, PSAMR_der_ps_alpha1, the_same_box);
   // The full state (URHO..NVAR) is registered, not UALPHA1 alone: a
   // gradient tagging criterion FillPatches this derive's source with one
   // ghost cell, and the PS boundary fill (BCfill.cpp) reads and writes all
@@ -327,51 +327,51 @@ CAMR::variableSetUp()
   // X from rhoX
   //
   std::string spec_string_F = "X(F)";
-  derive_lst.add(spec_string_F,amrex::IndexType::TheCellType(),1,CAMR_derspec,the_same_box);
+  derive_lst.add(spec_string_F,amrex::IndexType::TheCellType(),1,PSAMR_derspec,the_same_box);
   derive_lst.addComponent(spec_string_F,desc_lst,State_Type,URHO,1);
   derive_lst.addComponent(spec_string_F,desc_lst,State_Type,UFS,1);
   std::string spec_string_A = "X(A)";
-  derive_lst.add(spec_string_A,amrex::IndexType::TheCellType(),1,CAMR_derspec,the_same_box);
+  derive_lst.add(spec_string_A,amrex::IndexType::TheCellType(),1,PSAMR_derspec,the_same_box);
   derive_lst.addComponent(spec_string_A,desc_lst,State_Type,URHO,1);
   derive_lst.addComponent(spec_string_A,desc_lst,State_Type,UFS+1,1);
   std::string spec_string_P = "X(P)";
-  derive_lst.add(spec_string_P,amrex::IndexType::TheCellType(),1,CAMR_derspec,the_same_box);
+  derive_lst.add(spec_string_P,amrex::IndexType::TheCellType(),1,PSAMR_derspec,the_same_box);
   derive_lst.addComponent(spec_string_P,desc_lst,State_Type,URHO,1);
   derive_lst.addComponent(spec_string_P,desc_lst,State_Type,UFS+2,1);
 
   // Velocities
-  derive_lst.add("x_velocity", amrex::IndexType::TheCellType(), 1, CAMR_dervelx, the_same_box);
+  derive_lst.add("x_velocity", amrex::IndexType::TheCellType(), 1, PSAMR_dervelx, the_same_box);
   derive_lst.addComponent("x_velocity", desc_lst, State_Type, URHO, NVAR);
 
 #if (AMREX_SPACEDIM >= 2)
-  derive_lst.add("y_velocity", amrex::IndexType::TheCellType(), 1, CAMR_dervely, the_same_box);
+  derive_lst.add("y_velocity", amrex::IndexType::TheCellType(), 1, PSAMR_dervely, the_same_box);
   derive_lst.addComponent("y_velocity", desc_lst, State_Type, URHO, NVAR);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-  derive_lst.add("z_velocity", amrex::IndexType::TheCellType(), 1, CAMR_dervelz, the_same_box);
+  derive_lst.add("z_velocity", amrex::IndexType::TheCellType(), 1, PSAMR_dervelz, the_same_box);
   derive_lst.addComponent("z_velocity", desc_lst, State_Type, URHO, NVAR);
 #endif
 
   derive_lst.add(
-    "magvel", amrex::IndexType::TheCellType(), 1, CAMR_dermagvel, the_same_box);
+    "magvel", amrex::IndexType::TheCellType(), 1, PSAMR_dermagvel, the_same_box);
   derive_lst.addComponent("magvel", desc_lst, State_Type, URHO, NVAR);
 
   derive_lst.add(
-    "magmom", amrex::IndexType::TheCellType(), 1, CAMR_dermagmom, the_same_box);
+    "magmom", amrex::IndexType::TheCellType(), 1, PSAMR_dermagmom, the_same_box);
   derive_lst.addComponent("magmom", desc_lst, State_Type, URHO, NVAR);
 
 #ifdef AMREX_USE_EB
   derive_lst.add(
-    "volfrac", amrex::IndexType::TheCellType(), 1, CAMR_dernull, the_same_box);
+    "volfrac", amrex::IndexType::TheCellType(), 1, PSAMR_dernull, the_same_box);
   derive_lst.addComponent("volfrac", desc_lst, State_Type, URHO, 1);
 
   derive_lst.add(
-    "vfrac",   amrex::IndexType::TheCellType(), 1, CAMR_dernull, the_same_box);
+    "vfrac",   amrex::IndexType::TheCellType(), 1, PSAMR_dernull, the_same_box);
   derive_lst.addComponent("vfrac", desc_lst, State_Type, URHO, 1);
 #endif
 
-  derive_lst.add("cp", amrex::IndexType::TheCellType(), 1, CAMR_dercp, the_same_box);
+  derive_lst.add("cp", amrex::IndexType::TheCellType(), 1, PSAMR_dercp, the_same_box);
   derive_lst.addComponent("cp", desc_lst, State_Type, URHO, NVAR);
 
   // Set list of active sources
@@ -384,7 +384,7 @@ CAMR::variableSetUp()
 }
 
 void
-CAMR::variableCleanUp()
+PSAMR::variableCleanUp()
 {
   delete prob_parm_host;
   delete tagging_parm;
@@ -395,7 +395,7 @@ CAMR::variableCleanUp()
 }
 
 void
-CAMR::set_active_sources()
+PSAMR::set_active_sources()
 {
   // optional external source
   if (add_ext_src == 1) {

@@ -3,16 +3,16 @@
 (64 cells, defaults) under dial overrides.  Prints max relative difference of
 pressure / alpha_1 / density between the base and the perturbed run every PLOT
 steps, the cell where it sits, and the fitted growth factor per step between
-1e-10 and 1e-4.  EXE env = binary (default: the newest ./CAMR1d.*.ex)."""
+1e-10 and 1e-4.  EXE env = binary (default: the newest ./PSAMR1d.*.ex)."""
 import os, sys, glob, subprocess, numpy as np
 import ps_plotfile as R
-EXE = os.environ.get('EXE') or sorted(glob.glob('./CAMR1d.*.ex'), key=os.path.getmtime)[-1]
+EXE = os.environ.get('EXE') or sorted(glob.glob('./PSAMR1d.*.ex'), key=os.path.getmtime)[-1]
 PLOT = int(os.environ.get('PLOT', '4')); EPS = float(os.environ.get('EPS', '1e-12'))
 N = os.environ.get('NCELL', '64')
 B2 = ('inputs amr.n_cell=%s geometry.prob_lo=0.0 geometry.prob_hi=1.0 prob.x_diaph=0.5 prob.alpha_trace=0.0 '
-      'prob.p_amb=5000000.0 CAMR.cfl=0.25 CAMR.do_mol=0 stop_time=0.0006867567 CAMR.ps_flux=wp CAMR.ps_wp_order=2 '
+      'prob.p_amb=5000000.0 PSAMR.cfl=0.25 PSAMR.do_mol=0 stop_time=0.0006867567 PSAMR.ps_flux=wp PSAMR.ps_wp_order=2 '
       'prob.phase_L=1 prob.T_L=260 prob.u_L=0 prob.x_qual_L=0.0 prob.phase_R=0 prob.T_R=260 prob.p_R=500000.0 '
-      'prob.u_R=0 prob.x_qual_R=1.0 amr.v=0 CAMR.v=0 amr.checkpoint_files_output=0' % N).split()
+      'prob.u_R=0 prob.x_qual_R=1.0 amr.v=0 PSAMR.v=0 amr.checkpoint_files_output=0' % N).split()
 tag = sys.argv[1]; ov = sys.argv[2:]
 d = 'sens_runs/' + tag; os.makedirs(d, exist_ok=True)
 for nm, pl in (('a', 8.0e6), ('b', 8.0e6 * (1 + EPS))):

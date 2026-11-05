@@ -54,7 +54,7 @@ struct ProbParmDevice
     // Single p_amb field — required by the shared PS_NSCBC path in
     // BCfill.cpp (which currently reads one ambient P per case).  We
     // default it to p_amb_hi (matches the R-side).  For B4 you'll
-    // want CAMR.ps_bc_use_nscbc = 0 to activate the sgn-aware
+    // want PSAMR.ps_bc_use_nscbc = 0 to activate the sgn-aware
     // bcnormal instead; see the NOTE at the top of prob.H.
     amrex::Real p_amb    = 5.0e6;    // Pa   (fallback for NSCBC path)
 };

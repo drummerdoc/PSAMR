@@ -7,13 +7,13 @@
 //  relaxation sweep, the hem kernels), reached through ps_counters().
 //  Counting is done by the thin count_*() wrappers at the kernels (no-ops
 //  on GPU builds) or by direct field access from host-only code; the
-//  report sites in CAMR_advance.cpp, PS_relax.H and PS_sources.H
+//  report sites in PSAMR_advance.cpp, PS_relax.H and PS_sources.H
 //  read the fields, MPI-reduce them per field and reset their section.
 //
 //  Reset cadence:
 //    reset_guards / reset_face / reset_promote / reset_presence /
-//    fold.reset       : the [PS-MASS] probe (ps_diag_mass) in CAMR_advance
-//    reset_mass       : the [PS-FLOOR] census (CAMR_PS_DIAG builds)
+//    fold.reset       : the [PS-MASS] probe (ps_diag_mass) in PSAMR_advance
+//    reset_mass       : the [PS-FLOOR] census (PSAMR_PS_DIAG builds)
 //    n_gate_presence / pres.reset / x3_stats, mt_stats
 //                     : per ps_apply_relaxation sweep
 //    reset_mt_cause, mt_coexist.reset, reset_flash_refuse
@@ -34,7 +34,7 @@ constexpr int PS_COUNTERS_FLR_NCAUSE = 20;
 // ---------------------------------------------------------------------
 //  Per-sweep thermal-leg instrument, reset and reported with the sweep.
 //  [PS-DT]: |T1-T2| at entry and exit of the leg (completeness), fed by
-//  X3 under CAMR.ps_pres_diag.  Docs/MODEL_AND_ALGORITHM.md §8.6.
+//  X3 under PSAMR.ps_pres_diag.  Docs/MODEL_AND_ALGORITHM.md §8.6.
 // ---------------------------------------------------------------------
 struct PsPresDiag {
     // [PS-DT] |T1-T2| at thermal-leg entry and exit, cells whose leg ran
@@ -47,7 +47,7 @@ struct PsPresDiag {
 // ---------------------------------------------------------------------
 //  Fold-mass audit: every fold event and the phase mass it moved, by
 //  cause, so phase-removal churn is visible ([PS-FOLD]).  Read and reset
-//  with the [PS-MASS] report in CAMR_advance.cpp.
+//  with the [PS-MASS] report in PSAMR_advance.cpp.
 //  Docs/MODEL_AND_ALGORITHM.md §4.4.
 // ---------------------------------------------------------------------
 struct PsFoldAudit {
@@ -60,7 +60,7 @@ struct PsFoldAudit {
 
 namespace hem {
 
-// ---- Mass-transfer cost/convergence instrumentation (CAMR.ps_mt_diag) ----
+// ---- Mass-transfer cost/convergence instrumentation (PSAMR.ps_mt_diag) ----
 //  Answers whether the equilibrium Newton converges cheaply or burns
 //  max_iter on most cells.
 //  seen      : cells entering ps_mass_transfer_finite_cell
@@ -75,7 +75,7 @@ struct PsMtStats {
     // One-step path error of the finite-rate transfer as the dimensionless
     // contraction ratio |dm'|/|dm| (a second solve from the post-step state).
     // ratio < 1 = damped ringing; ratio >= 1 = a genuinely non-contracting
-    // cell.  Filled only under CAMR.ps_mt_diag >= 2 (costs a second
+    // cell.  Filled only under PSAMR.ps_mt_diag >= 2 (costs a second
     // equilibrium solve per transferring cell).
     long   cr_samples = 0;      // cells where the ratio was formed
     long   cr_nonctr  = 0;      // of those, normalised ratio >= 1
