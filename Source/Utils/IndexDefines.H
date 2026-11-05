@@ -117,7 +117,7 @@
 //  module applies the A±ΔQ wave-propagation update instead.
 //  See docs/MODEL_AND_ALGORITHM.md §1.
 //
-//  Without USE_PS_HYDRO the layout is identical to upstream PSAMR.
+//  Without USE_PS_HYDRO the layout is identical to the upstream code (ACKNOWLEDGEMENTS.md).
 // ---------------------------------------------------------------------
 #ifdef USE_PS_HYDRO
 #define NUM_PS 5
