@@ -126,8 +126,9 @@ PSAMR::read_params()
   }
 
 #ifdef USE_PS_HYDRO
-  // Retired PSAMR.ps_* keys abort here, before any PS accessor reads the
-  // table (PS_retired_keys.H).
+  // ps_* keys under another prefix, then retired PSAMR.ps_* keys, abort here,
+  // before any PS accessor reads the table (PS_retired_keys.H).
+  ps_abort_on_foreign_ps_keys();
   ps_abort_on_retired_keys();
 #endif
 

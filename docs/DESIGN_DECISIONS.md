@@ -340,7 +340,7 @@ F-8  `hem::ps_state_from_cons` dial switch (`ps_p_mode`, `ps_p_clip`, `ps_c_mode
 
 ## 6. Retired keys
 
-A set key aborts at startup with a retirement note. The traps live in one table, `Source/Hydro/PelantiShyue/PS_retired_keys.H`, checked once at startup, so a stale deck fails before the first step. Retired values of live keys are trapped at the key's accessor.
+A set key aborts at startup with a retirement note. The traps live in one table, `Source/Hydro/PelantiShyue/PS_retired_keys.H`, checked once at startup, so a stale deck fails before the first step. Retired values of live keys are trapped at the key's accessor. The same file holds `ps_abort_on_foreign_ps_keys()`: a `ps_*` key under any prefix other than `PSAMR` aborts at startup naming the keys, because every accessor reads `PSAMR.ps_*` only and a deck written for another prefix would otherwise run on defaults without a word. Non-`ps_` keys under another prefix are not caught; `amrex.abort_on_unused_inputs=1` reports them at the end of a run.
 
 | key | reason | replacement |
 |:--|:--|:--|

@@ -11,6 +11,11 @@
 //  PSAMR prefix, so their retired keys (eos_*) live here too.  Retired *values* of live keys (PSAMR.ps_flux other
 //  than wp, PSAMR.ps_relax_mode=3) are refused at their accessors.
 //  Docs/DESIGN_DECISIONS.md §6.
+//
+//  ps_abort_on_foreign_ps_keys() is the companion check: every ps_* key is
+//  read under the PSAMR prefix only, so a ps_* key under any other prefix (or
+//  none) is a deck written for another prefix and would otherwise run on
+//  defaults without a word.  Docs/DESIGN_DECISIONS.md §6.
 // =====================================================================
 #ifdef USE_PS_HYDRO
 
@@ -77,6 +82,28 @@ inline void ps_abort_on_retired_keys()
         if (pp.contains(rk.key)) {
             amrex::Abort(std::string("PSAMR.") + rk.key + " is retired: " + rk.reason);
         }
+    }
+}
+
+// Every ps_* key the code reads is read under PSAMR.  A deck whose ps_* keys sit
+// under another prefix (or have none) is silently ignored by every accessor, so
+// the run would use defaults; abort and name each offending key instead.  Host
+// side, once at startup; the table is scanned, nothing is queried.
+inline void ps_abort_on_foreign_ps_keys()
+{
+    std::string found;
+    for (const std::string& name : amrex::ParmParse::getEntries()) {
+        const auto dot = name.rfind('.');
+        const std::string prefix = (dot == std::string::npos) ? std::string() : name.substr(0, dot);
+        const std::string leaf   = (dot == std::string::npos) ? name : name.substr(dot + 1);
+        if (leaf.rfind("ps_", 0) == 0 && prefix != "PSAMR") {
+            found += "  " + name + "\n";
+        }
+    }
+    if (!found.empty()) {
+        amrex::Abort("ps_* input keys are read only under the PSAMR prefix; these are under another "
+                     "prefix and would be ignored:\n" + found +
+                     "Rename the prefix to PSAMR (for example PSAMR.ps_flux).");
     }
 }
 
