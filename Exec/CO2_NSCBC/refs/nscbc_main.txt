@@ -1,0 +1,24 @@
+nscbc_suite.py against the current NSCBC ghost (no relaxed boundary), 1-D set
+tag:   port of the verification set onto main (local main d6d81ac)
+host:  Linux aarch64 (Cowork VM), g++ 11.4.0, amrex 65db2e4e678a, DIM=1 USE_MPI=FALSE COMP=gnu Eos_Model=PR
+date:  2026-11-09
+state: defaults of main (relaxation mode 6), ps_bc_use_nscbc as the suite sets it
+
+N1   vapour 20 bar / 280 K, velocity pulse
+       256 cells, 1 m/s   r = +0.0005   PASS
+       256 cells, 50 m/s  r = +0.0196   PASS
+       512 cells, 1 m/s   r = +0.0005   PASS
+N1b  saturated mixture 280 K, alpha_1 = 0.05, pulse 1 m/s (wave 156 m/s)
+       NSCBC face         r = +0.2387   FAIL (prediction 0)
+       zero-gradient copy r = +0.2388   (prediction 0.29, PASS)
+N3   entropy spot   max|p'|/p0: before exit 9.43e-06, during 7.30e-06, after 1.99e-06
+     alpha blob     max|p'|/p0: 4.55e-03, 4.48e-03, 4.38e-03  (the mixture outflow offset noted in nscbc_BASE.txt)
+N4   (P_mean - P_amb)/(p0 - P_amb), per ms:
+       1.000 0.763 0.625 0.528 0.293 0.253 0.060 0.009 0.008 0.006 0.005 0.003 0.001 0.001 0.000 ...
+N2   not run (needs the 2-D executable)
+
+Reading: N1, N3 and N4 give the numbers recorded for the ghost alone in nscbc_BASE.txt.
+In the mixture the ghost reflects like a frozen-impedance face, the same as the copy
+(N1b r = +0.239 here, +0.241 in nscbc_BASE.txt).  nscbc_BASE.txt records that a boundary
+posed on the relaxed state brought this to -0.011 (trial impedance) or +0.067 (Wood
+impedance); main has no such boundary.

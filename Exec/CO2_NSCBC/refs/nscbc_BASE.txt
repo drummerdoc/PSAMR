@@ -1,0 +1,67 @@
+NSCBC verification set — recorded 2026-09-11 on the [DECIDE-27c] tree (mixture pressure
+in the invariants; sigma default 0; impedance selector default frozen), PSAMR1d.gnu.PS.PR.ex,
+Linux aarch64 VM, g++ 11.4.  r = reflected / incident pressure amplitude (signed).
+
+N1  vapour 20 bar / 280 K, velocity pulse 1 m/s (p' 5 kPa) unless noted, both faces NSCBC
+  sigma 0.25  256 cells  order 2          r = +0.1325   (prediction sigma/2 = 0.125)
+  sigma 0.25  256 cells  order 1          r = +0.1355
+  sigma 0.25  512 cells  order 2          r = +0.1422
+  sigma 0.25  256 cells  pulse 50 m/s     r = +0.1345   (p' 2.6 bar)
+  sigma 0     256 cells  order 2          r = +0.0005   (was +0.0041 before 27c)
+  sigma 0     512 cells  order 2          r = +0.0005   (was +0.0040)
+  sigma 0     256 cells  pulse 50 m/s     r = +0.0197   (before 27c)
+  zero-gradient copy (ps_bc_use_nscbc=0)  r = -0.0001
+N1b saturated mixture 280 K, alpha_1 = 0.05, mode 5 defaults, pulse 1 m/s, sigma 0
+  wave speed 156-158 m/s (Wood; frozen derive 282), amplitude 11.1 -> 8.5 kPa over 2.5 ms
+  frozen impedance (default)              r = +0.22     (prediction 0.29)
+  Wood impedance (impedance=1)            r = -0.07 .. +0.09 (face-cell arrival transient)
+  before 27c (auto-detect pressure): face at rest drove u = -18 m/s, +5.6 bar inward, step 1
+flashing_front.py v2s at this tree: 1.6675 (reference 2.3644, -29.5 %); before 27c 2.2431 at
+  sigma 0.25 and 2.4000 at sigma 0 — the auto-detect root equalled the HEM pressure at the
+  flashing vent by accident; the face has no flash physics of its own (B-4).
+
+Recorded 2026-09-11 after 26fa0a9 (same tree):
+N1b zero-gradient copy (ps_bc_use_nscbc=0)    r = +0.225  — the same as the frozen-impedance NSCBC:
+  the reflection of a relaxed wave is the frozen Riemann fan at the face, not the invariant
+  construction (a relaxed wave projects onto both frozen characteristics; sub-characteristic
+  condition).  The boundary condition has to be posed on the relaxed system (O-26 b).
+N3 entropy spot (vapour, T +5 % at fixed P, u0 = 50 m/s, x-lo zero-gradient inflow, x-hi NSCBC sigma 0)
+  max|p'|/p0 before exit 9.4e-6, during 7.3e-6, after 2.0e-6  — leaves cleanly.
+N3 alpha blob (mixture, alpha_1 0.05 -> 0.20, u0 = 50 m/s, same faces)
+  max|p'|/p0 4.5e-3 throughout: NOT the blob — with a 50 m/s mean flow the mixture outflow face
+  sets a steady -0.18 bar offset at t < 1 ms (before the blob arrives) that propagates upstream at
+  the relaxed speed; the vapour face with the same mean flow shows 2e-5 of p0.  Unexplained;
+  instrument before use (the NSCBC far field carries no velocity, u_amb = 0).
+N4 mean-pressure recovery, vapour at rest, p0 = 1.1 p_amb, both faces NSCBC, (P_mean - P_amb)/(p0 - P_amb):
+  sigma 0     1.00 .76 .63 .53 .29 .25 .06 .01 .008 .006 .005 .003 .001 ... (per ms) — gone in ~7 ms
+  sigma 0.25  1.00 .80 .68 .59 .39 .36 .19 .13 .13 .10 .08 .07 .04 .03 .02 .02 .015 .01 — ~5x slower
+N2 2-D cylindrical pressure pulse (vapour, 1 % of p0, w = 0.08 m, 64x64 on 1 m x 1 m, four NSCBC faces)
+  amplitude reaching the faces ~2.2 kPa (t = 2 ms; 1/sqrt(r) decay from 19.6 kPa); residual after
+  the wave has left (t >= 4 ms): sigma 0  143 Pa (~6.5 % of the arriving amplitude, corners and
+  oblique incidence — the 1-D normal-incidence figure is 0.05 %); sigma 0.25  235-330 Pa (~11-15 %)
+  and it decays more slowly (0.041 -> 0.012 of A over 4-6 ms against 0.008 -> 0.007).
+
+Re-recorded 2026-09-11 at R-16 (one saturation curve; the mixture's P_LV now equals EOS::Psat):
+  N1b frozen impedance, sigma 0    r = +0.223   (was +0.222)
+  N1b Wood impedance,   sigma 0    r = -0.074   (was -0.074)
+  N1 vapour rows unchanged by construction (no dome involvement).
+
+Recorded 2026-09-11, relaxed-state pass (PSAMR.ps_bc_rx=1, docs/PLAN_relaxed_boundary.md §12), same VM/compiler:
+N1  vapour, 256 cells, sigma 0 (retired):  ghost only r = +0.0005;  pass (wood Z) -0.00004;  pass (trial Z) -0.00002
+N1b mixture alpha_1 = 0.05, mode 5:        ghost only r = +0.241;   pass (wood Z) +0.067;    pass (trial Z) -0.011   (wave 139 m/s)
+ps_bc_rx_z default set to trial after these rows.
+N1b mode 0 (mechanical only, mt/flash off): ghost only r = +0.144;   pass +0.005 either Z                              (wave 174 m/s, Wood)
+N2  2-D pulse residual max|p'|/A at 4/5/6 ms: ghost only 0.0083/0.0067/0.0071;  pass 0.0091/0.0072/0.0056
+ps_bc_rx=0 and =2 bit-identical to the pre-edit binary (N1, N1b, N2); fb = 0 everywhere.
+Recorded 2026-09-13, ps_bc_rx_form=value (Hedstrom on the relaxed step, I = P_inf), trial Z:
+N1  vapour   pass (value) r = +0.0005 (the ghost's own number);  N1b mode 5  pass (value) r = +0.0052  (rate form -0.011)
+Recorded 2026-09-13, face type vent (ps_bc_rx_type_*=vent, P~ = P_inf / choked) vs nr (value form):
+N1  vent |r| = 0.93 (a pressure node);  N4 (P_mean-P_amb)/(p0-P_amb) per ms:
+  ghost      1.000 .763 .528 .293 .060 .008 .006 .003 .001 0 ...
+  nr (value) 1.000 .761 .526 .291 .058 .008 .006 .003 .001 0 ...   (G4 at K = 0: the ghost's own trace)
+  vent       1.000 .537 .080 -.371 -.817 -.572 -.122 .332 .790 .742 .630 .286 -.169 -.616  (open-end ringing)
+flashing_front v2s: vent 2.6978 (+14.1 %; four early steps accepted unconverged, then every step refused -> the fan wave); nr (value) 1.4674, -38 %
+Recorded 2026-09-14, vent with the plenum inflow relation (R12): N4 both faces vent, per ms:
+  1.000 .538 .082 -.370 -.816 -.728 -.511 -.293 -.073 .007 .003 .002   (inflow phase absorbed; was ringing)
+Recorded 2026-09-14, the fan as the vent outflow wave model (e011e0a refactor bit-identical; then vent uses _fan_march):
+flashing_front v2s vent 2.4689 (= the ghost pin, no refusals; face cell relaxed at 5.5 bar, Mw 1.1-1.24);  N4 both vent 1 .540 .084 -.367 -.814 -.731 -.514 -.295 -.076 .008;  N1 vent |r| 0.92
