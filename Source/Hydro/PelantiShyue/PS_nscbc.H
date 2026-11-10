@@ -8,7 +8,8 @@
 //  NSCBC (JCP 101, 1992), which fits the FillPatch ghost pattern without
 //  persistent boundary state.  With u_out the outward normal velocity and
 //  ρc the Wallis frozen impedance of the boundary cell (as the flux) and
-//  P the mixture pressure α₁P₁ + α₂P₂ (as the flux):
+//  P the mixture pressure α₁P₁ + α₂P₂ (as the flux).  ps_bc_nscbc_impedance=1
+//  replaces the frozen ρc by the Wood (equilibrium) one in R+, R- only:
 //      R+ = u_out + P/(ρc)  leaves; extrapolated (minmod slope, 3 cells)
 //      R- = u_out − P/(ρc)  enters; modelled, selected by Params::form:
 //        pin:   R- = −P_amb/ρc                        (Hedstrom far field;
@@ -56,6 +57,13 @@ namespace PS_NSCBC {
 // Incoming-invariant model (file header): pin, rate.
 enum Form : int { FORM_PIN = 1, FORM_RATE = 2 };
 
+// Impedance rho c of the invariants R+ and R-.  FROZEN is the Wallis speed
+// that also drives the Mach dispatch (the default); WOOD is the mechanical-
+// equilibrium speed of the same cell, the speed a wave has once the phases
+// have equalised.  Only the invariants change: the Mach dispatch, the rate
+// constant K, lambda_in and the fan with its dispatch stay on the frozen speed.
+enum Impedance : int { IMP_FROZEN = 0, IMP_WOOD = 1 };
+
 // Ghost construction taken by outflow_face, reported to diagnostics only.
 enum Branch : int { BR_ZG = 0, BR_SUPERSONIC = 1, BR_SMALL = 2, BR_FAN = 3 };
 
@@ -71,6 +79,8 @@ struct Params {
     // R+ extrapolation: 1 = copy R+_N (reproduces the standalone driver's
     // NONREFLECTING fill bit-for-bit); 2 = minmod slope over three cells.
     int         nscbc_order = 2;
+    // 0 = frozen impedance (default, bit-identical to before), 1 = Wood.
+    int         impedance = IMP_FROZEN;
 };
 
 
@@ -220,6 +230,23 @@ _hem_reclose(amrex::Real P,
 //  UTEMP is zero-gradient (diagnostic slot).  A non-null branch receives
 //  the Branch taken (the plotfile probe's report; the fill passes none).
 // ---------------------------------------------------------------------
+// Wood (mechanical-equilibrium) mixture sound speed from the per-phase
+// decomposition, 1/(rho c^2) = sum_k alpha_k/(rho_k c_k^2).  A phase with
+// alpha = 0 drops out, so a single-phase cell returns its own c; `fallback`
+// (the frozen speed) is returned when the sum is degenerate.
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+amrex::Real
+wood_cmix(const PsPhaseSpeeds& ph, amrex::Real fallback) noexcept
+{
+    using amrex::Real;
+    Real inv = Real(0.0);
+    if (ph.alpha1 > Real(0.0)) inv += ph.alpha1 / (ph.rho1 * ph.c1 * ph.c1);
+    if (ph.alpha2 > Real(0.0)) inv += ph.alpha2 / (ph.rho2 * ph.c2 * ph.c2);
+    const Real cw2 = (inv > Real(0.0)) ? Real(1.0) / (ph.rho * inv) : Real(-1.0);
+    return (std::isfinite(cw2) && cw2 > Real(0.0)) ? std::sqrt(cw2) : fallback;
+}
+
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -302,67 +329,83 @@ outflow_face(const amrex::Real s_N  [NVAR],
     }
 
     // ---- 4. Subsonic (either sign): characteristic invariants -----
-    const Real rho_c = ph.rho * c_N;
+    // The impedance of the invariants: frozen (default) or Wood (the
+    // header comment of Impedance).  One evaluation of the invariant solve
+    // is a function of it; the Mach dispatch above, K and lambda_in use the
+    // frozen c_N whichever is chosen.
+    const Real rho_cf = ph.rho * c_N;
+    const Real rho_cz = (p.impedance == IMP_WOOD) ? ph.rho * wood_cmix(ph, c_N)
+                                                  : rho_cf;
+    struct Inv { Real un_out_g; Real P_g; Real P_disp; };
+    auto solve_invariants = [&] (Real rho_c) -> Inv {
+        const Real Rp_N   = un_out_N   + P_N   / rho_c;
+        const Real Rp_Nm1 = un_out_Nm1 + P_Nm1 / rho_c;
+        const Real Rp_Nm2 = un_out_Nm2 + P_Nm2 / rho_c;
 
-    const Real Rp_N   = un_out_N   + P_N   / rho_c;
-    const Real Rp_Nm1 = un_out_Nm1 + P_Nm1 / rho_c;
-    const Real Rp_Nm2 = un_out_Nm2 + P_Nm2 / rho_c;
-
-    Real dRp_scaled;                            // dx · ∂R_+/∂x |_N, minmod
-    if (p.nscbc_order <= 1) {
-        dRp_scaled = Real(0.0);
-    } else {
-        const Real slope_hi = Rp_N   - Rp_Nm1;
-        const Real slope_lo = Rp_Nm1 - Rp_Nm2;
-        if (slope_hi * slope_lo <= Real(0.0)) {
+        Real dRp_scaled;                            // dx · ∂R_+/∂x |_N, minmod
+        if (p.nscbc_order <= 1) {
             dRp_scaled = Real(0.0);
-        } else if (std::abs(slope_hi) < std::abs(slope_lo)) {
-            dRp_scaled = slope_hi;
         } else {
-            dRp_scaled = slope_lo;
+            const Real slope_hi = Rp_N   - Rp_Nm1;
+            const Real slope_lo = Rp_Nm1 - Rp_Nm2;
+            if (slope_hi * slope_lo <= Real(0.0)) {
+                dRp_scaled = Real(0.0);
+            } else if (std::abs(slope_hi) < std::abs(slope_lo)) {
+                dRp_scaled = slope_hi;
+            } else {
+                dRp_scaled = slope_lo;
+            }
         }
-    }
-    const Real Rp_ghost = Rp_N
-                        + static_cast<Real>(layer_offset) * dRp_scaled;
+        const Real Rp_ghost = Rp_N
+                            + static_cast<Real>(layer_offset) * dRp_scaled;
 
-    // Incoming invariant R-, by form (file header).  The pinned value is
-    // kept beside the form's own because the fan dispatch in section 5
-    // reads the far-field jump whichever model the small-signal ghost
-    // uses.  In the rate form 1 - M² and c - u_out are both strictly
-    // positive here (the supersonic branches returned above).
-    const Real Rm_pin = -p.P_amb / rho_c;
-    Real Rm_target;
-    if (p.form == FORM_RATE) {
-        const Real Rm_N      = un_out_N - P_N / rho_c;
-        const Real lambda_in = c_N - un_out_N;
-        const Real K = p.sigma * (Real(1.0) - Mach_N * Mach_N) * c_N / p.L_ref;
-        Rm_target = Rm_N + static_cast<Real>(layer_offset) * dx_normal
-                           * K * (P_N - p.P_amb) / (lambda_in * rho_c);
-    } else {
-        Rm_target = Rm_pin;
-    }
-    // Backflow bound: R-_pin is the incoming invariant of a far field at
-    // rest; a larger R- is a far field moving outward with the flow, a
-    // smaller one a far field driving fluid in, which a quiescent ambient
-    // cannot do.  So the form's R- is used only above the pin: outflow on
-    // or above the pin's simple wave u_out = (P_N - P_amb)/rho c keeps the
-    // form (with its low-frequency reflection), while a face at rest under
-    // an overpressure and every inflow at or above P_amb take the pin
-    // (under pin the bound is the identity).  max() is continuous.
-    if (p.backflow != 0) {
-        Rm_target = amrex::max(Rm_target, Rm_pin);
-    }
+        // Incoming invariant R-, by form (file header).  The pinned value is
+        // kept beside the form's own because the fan dispatch in section 5
+        // reads the far-field jump whichever model the small-signal ghost
+        // uses.  In the rate form 1 - M² and c - u_out are both strictly
+        // positive here (the supersonic branches returned above).
+        const Real Rm_pin = -p.P_amb / rho_c;
+        Real Rm_target;
+        if (p.form == FORM_RATE) {
+            const Real Rm_N      = un_out_N - P_N / rho_c;
+            const Real lambda_in = c_N - un_out_N;
+            const Real K = p.sigma * (Real(1.0) - Mach_N * Mach_N) * c_N / p.L_ref;
+            Rm_target = Rm_N + static_cast<Real>(layer_offset) * dx_normal
+                               * K * (P_N - p.P_amb) / (lambda_in * rho_c);
+        } else {
+            Rm_target = Rm_pin;
+        }
+        // Backflow bound: R-_pin is the incoming invariant of a far field at
+        // rest; a larger R- is a far field moving outward with the flow, a
+        // smaller one a far field driving fluid in, which a quiescent ambient
+        // cannot do.  So the form's R- is used only above the pin: outflow on
+        // or above the pin's simple wave u_out = (P_N - P_amb)/rho c keeps the
+        // form (with its low-frequency reflection), while a face at rest under
+        // an overpressure and every inflow at or above P_amb take the pin
+        // (under pin the bound is the identity).  max() is continuous.
+        if (p.backflow != 0) {
+            Rm_target = amrex::max(Rm_target, Rm_pin);
+        }
 
-    Real un_out_g = Real(0.5) * (Rp_ghost + Rm_target);
-    Real P_g      = Real(0.5) * rho_c * (Rp_ghost - Rm_target);
-    // Far-field jump for the fan dispatch: the form's own ghost pressure
-    // except under the bare rate form, whose per-fill increment is
-    // O(dx/L_ref) of the jump and would never reach the fan on a blowdown.
-    // With the backflow bound a face at rest under a blowdown takes the pin
-    // through max(), so the selected ghost's own pressure dispatches, and
-    // a through-flow at P_amb stays off the fan.
-    const Real P_disp = (p.form == FORM_RATE && p.backflow == 0)
-                      ? Real(0.5) * rho_c * (Rp_ghost - Rm_pin) : P_g;
+        Real un_out_g = Real(0.5) * (Rp_ghost + Rm_target);
+        Real P_g      = Real(0.5) * rho_c * (Rp_ghost - Rm_target);
+        // Far-field jump for the fan dispatch: the form's own ghost pressure
+        // except under the bare rate form, whose per-fill increment is
+        // O(dx/L_ref) of the jump and would never reach the fan on a blowdown.
+        // With the backflow bound a face at rest under a blowdown takes the pin
+        // through max(), so the selected ghost's own pressure dispatches, and
+        // a through-flow at P_amb stays off the fan.
+        const Real P_disp = (p.form == FORM_RATE && p.backflow == 0)
+                          ? Real(0.5) * rho_c * (Rp_ghost - Rm_pin) : P_g;
+        return Inv{un_out_g, P_g, P_disp};
+    };
+    const Inv inv = solve_invariants(rho_cz);
+    Real un_out_g = inv.un_out_g;
+    Real P_g      = inv.P_g;
+    // The fan test sees the frozen far-field jump whichever impedance the
+    // small-signal ghost uses, so the dispatch is the one of the frozen ghost.
+    const Real P_disp = (p.impedance == IMP_FROZEN) ? inv.P_disp
+                                                    : solve_invariants(rho_cf).P_disp;
 
     // Ghost pressure floor max(1e-3 P_amb, 1 Pa).
     const Real P_floor = amrex::max(Real(1.0e-3) * p.P_amb, Real(ps_guard::P_FLOOR_PA));

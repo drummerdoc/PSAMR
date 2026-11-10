@@ -31,6 +31,7 @@ struct PCHypFillExtDir
   // Per-face open-end declaration (0 default): outflow cells of the face
   // always take the choked-expansion fan (PS_nscbc.H).
   amrex::GpuArray<int, 2*AMREX_SPACEDIM> open_end_face;
+  int         nscbc_impedance;// 0 frozen (default), 1 Wood impedance in R+/R- (PS_nscbc.H).
   // Per-face ambient pressure targets, indexed [2*idir + (0=lo,1=hi)];
   // a value <= 0 inherits prob.p_amb at fill time.
   amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> p_amb_face;
@@ -45,6 +46,7 @@ struct PCHypFillExtDir
                            const amrex::GpuArray<int, 2*AMREX_SPACEDIM>& form_face_,
                            int         nscbc_order_,
                            int         nscbc_backflow_,
+                           int         nscbc_impedance_,
                            const amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM>& p_amb_face_,
                            const amrex::GpuArray<int, 2*AMREX_SPACEDIM>& open_end_face_
 #ifdef USE_PS_HYDRO
@@ -57,6 +59,7 @@ struct PCHypFillExtDir
     , form_face(form_face_)
     , nscbc_order(nscbc_order_)
     , nscbc_backflow(nscbc_backflow_)
+    , nscbc_impedance(nscbc_impedance_)
     , p_amb_face(p_amb_face_)
     , open_end_face(open_end_face_)
 #ifdef USE_PS_HYDRO
@@ -173,6 +176,7 @@ struct PCHypFillExtDir
         params.form         = form_face[2*idir + ((sgn > 0) ? 0 : 1)];
         params.backflow     = nscbc_backflow;
         params.open_end     = open_end_face[2*idir + ((sgn > 0) ? 0 : 1)];
+        params.impedance    = nscbc_impedance;
         // Rate form: the relaxation rate is referenced to the domain
         // extent along the face normal, so sigma keeps its literature
         // meaning and only sigma/L_ref is physical.
@@ -263,6 +267,11 @@ PSAMR_bcfill_hyp(
   //     drives fluid in, and keeps inflow cells off the fan; the identity
   //     under pin.  0 is the unbounded rate form, refuted on the jet and
   //     kept only until the stage-3 retirement (DESIGN_DECISIONS.md B-6).
+  //   PSAMR.ps_bc_nscbc_impedance (0): impedance rho c of the invariants
+  //     R+ and R-.  0 = frozen (Wallis; bit-identical to before), 1 = Wood
+  //     (mechanical-equilibrium speed).  Only the invariants change; the
+  //     Mach dispatch, the rate constant, lambda_in, the fan and the fan's
+  //     dispatch stay frozen.
   //   PSAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
   //     ambient pressure, for problems whose two ends see different far
   //     fields.
@@ -276,7 +285,7 @@ PSAMR_bcfill_hyp(
   // The resolved values (after the no-USE_PS_HYDRO force-off and the
   // order forcing) are added back to the table so job_info records the BC
   // path that actually ran even when the deck was silent.
-  struct NscbcCfg { int order; int backflow;
+  struct NscbcCfg { int order; int backflow; int impedance;
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> sface;
                     amrex::GpuArray<int, 2*AMREX_SPACEDIM> fface;
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> pamb;
@@ -287,6 +296,7 @@ PSAMR_bcfill_hyp(
     amrex::Real sg = amrex::Real(0.25);
     int od = 2;
     int bf = 1;
+    int zi = 0;
     std::string fm = "pin";
     amrex::ParmParse pp("PSAMR");
     pp.query("ps_bc_use_nscbc",   u);
@@ -294,6 +304,7 @@ PSAMR_bcfill_hyp(
     pp.query("ps_bc_nscbc_form",  fm);
     pp.query("ps_bc_nscbc_order", od);
     pp.query("ps_bc_nscbc_backflow", bf);
+    pp.query("ps_bc_nscbc_impedance", zi);
     static const char* fnm[6] = {"xlo","xhi","ylo","yhi","zlo","zhi"};
     // Per-face form and sigma; unset inherits the global key.
     std::string ffs[2*AMREX_SPACEDIM];
@@ -328,6 +339,9 @@ PSAMR_bcfill_hyp(
     }
     if (bf != 0 && bf != 1) {
       amrex::Abort("PSAMR.ps_bc_nscbc_backflow: accepts 0 or 1.");
+    }
+    if (zi != 0 && zi != 1) {
+      amrex::Abort("PSAMR.ps_bc_nscbc_impedance: accepts 0 (frozen) or 1 (Wood).");
     }
 #endif
     // Per-face ambient targets; -1 = inherit prob.p_amb at fill time.
@@ -390,6 +404,7 @@ PSAMR_bcfill_hyp(
     pp.add("ps_bc_nscbc_form",  fm);
     pp.add("ps_bc_nscbc_order", od);
     pp.add("ps_bc_nscbc_backflow", bf);
+    pp.add("ps_bc_nscbc_impedance", zi);
     // Resolved per-face form and sigma -> job_info.
     for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
       pp.add((std::string("ps_bc_nscbc_form_") + fnm[f]).c_str(), ffs[f]);
@@ -425,7 +440,7 @@ PSAMR_bcfill_hyp(
       }
       if (of[f] == 1) { pp.add((std::string("ps_bc_open_end_") + fnm[f]).c_str(), 1); }
     }
-    return NscbcCfg{od, bf, sf, ff, pa, uf, of};
+    return NscbcCfg{od, bf, zi, sf, ff, pa, uf, of};
   }();
   const int nscbc_order = nscbc_cfg.order;
 
@@ -460,14 +475,15 @@ PSAMR_bcfill_hyp(
       }
       amrex::Print()
           << ",  R+ order = " << nscbc_order
-          << ",  backflow = " << nscbc_cfg.backflow << "\n";
+          << ",  backflow = " << nscbc_cfg.backflow
+          << ",  impedance = " << (nscbc_cfg.impedance == 1 ? "wood" : "frozen") << "\n";
       banner_shown = true;
     }
   }
 
   amrex::GpuBndryFuncFab<PCHypFillExtDir> hyp_bndry_func(
     PCHypFillExtDir{lprobparm, nscbc_cfg.uface, nscbc_cfg.sface, nscbc_cfg.fface,
-                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.pamb, nscbc_cfg.oface
+                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.impedance, nscbc_cfg.pamb, nscbc_cfg.oface
 #ifdef USE_PS_HYDRO
                     , ps_presence_params()   // host-side read
 #endif
