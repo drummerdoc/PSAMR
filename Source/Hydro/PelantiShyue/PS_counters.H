@@ -207,6 +207,8 @@ struct PsCounters {
     long   nscbc_zg_pack     = 0;
     long   nscbc_flash       = 0;
     long   nscbc_pmix_fail   = 0;
+    long   nscbc_fan_cells   = 0;   // fan visits and their substeps (diagnostic)
+    long   nscbc_fan_steps   = 0;
     // ---- clean_state mass repairs (PS_guards.H), [PS-FLOOR] ----------
     long   mass_neg          = 0;
     long   mass_nonfinite    = 0;
@@ -266,6 +268,7 @@ struct PsCounters {
         flux_sanit = reflux_cap = reflux_clamp = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
+        nscbc_fan_cells = nscbc_fan_steps = 0;
     }
     void reset_mass() { mass_neg = mass_nonfinite = 0; mass_neg_kg = 0.0; }
     void reset_face() {

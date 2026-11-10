@@ -65,6 +65,7 @@ struct Params {
     amrex::Real sigma   = amrex::Real(0.25);        // rate form: Poinsot-Lele coefficient (pin ignores it)
     int         form    = FORM_PIN;                 // incoming-invariant model
     int         backflow = 1;                       // 1: R- bounded below by the pin (identity under pin)
+    int         open_end = 0;                       // 1: face declared an open end, outflow cells always take the fan
     amrex::Real L_ref   = amrex::Real(1.0);         // m, domain extent along the face normal (rate form)
     PsPres      pres{};                              // presence params (by value)
     // R+ extrapolation: 1 = copy R+_N (reproduces the standalone driver's
@@ -444,8 +445,13 @@ outflow_face(const amrex::Real s_N  [NVAR],
     //  pin selected by the bound, is the inflow ghost.  A face at rest
     //  (un_out_N = 0, a blowdown) keeps the fan.
     const bool inflow_bound = (p.backflow != 0) && (un_out_N < Real(0.0));
+    //  A face declared an open end (p.open_end) sends every outflow cell to
+    //  the fan, whatever the per-cell test would say; inflow cells under the
+    //  bound keep the small-signal branch.  Off (0) the expression is the
+    //  per-cell rule unchanged.
     const bool small_signal = inflow_bound
-                           || ((std::abs(P_disp - P_N) <= cap0)
+                           || ((p.open_end == 0)
+                               && (std::abs(P_disp - P_N) <= cap0)
                                && (P_eq - P_N <= cap0));
 
     if (small_signal) {
@@ -583,6 +589,7 @@ outflow_face(const amrex::Real s_N  [NVAR],
             if (P_cur == P_t) break;
             if (steps >= FAN_NMAX) { fan_ok = false; break; }
         }
+        ps_guard::count_nscbc_fan(steps);
         if (!fan_ok) {
             ps_guard::count_nscbc_zg_pack();
             _zero_gradient_ghost(s_N, s_ghost);

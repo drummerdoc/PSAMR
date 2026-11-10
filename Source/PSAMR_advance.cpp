@@ -303,18 +303,24 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long np_ = pc.nscbc_zg_pack;
             amrex::Long nf_ = pc.nscbc_flash;
             amrex::Long nm_ = pc.nscbc_pmix_fail;
+            amrex::Long nfc_ = pc.nscbc_fan_cells;
+            amrex::Long nfs_ = pc.nscbc_fan_steps;
             amrex::ParallelDescriptor::ReduceLongSum(nc_);
             amrex::ParallelDescriptor::ReduceLongSum(ns_);
             amrex::ParallelDescriptor::ReduceLongSum(nt_);
             amrex::ParallelDescriptor::ReduceLongSum(np_);
             amrex::ParallelDescriptor::ReduceLongSum(nf_);
             amrex::ParallelDescriptor::ReduceLongSum(nm_);
+            amrex::ParallelDescriptor::ReduceLongSum(nfc_);
+            amrex::ParallelDescriptor::ReduceLongSum(nfs_);
             amrex::Print() << " | nscbc_zg(c=" << nc_
                            << ",sup=" << ns_
                            << ",slots=" << nt_
                            << ",pack=" << np_ << ")"
                            << " nscbc_flash=" << nf_
-                           << " pmix_fail=" << nm_ << "\n";
+                           << " pmix_fail=" << nm_
+                           << " fan_cells=" << nfc_
+                           << " fan_steps=" << nfs_ << "\n";
             pc.reset_guards();
             // Face audit, gated on PSAMR.ps_face_diag (0); the counters
             // themselves cost a few compares per face.  The health lines

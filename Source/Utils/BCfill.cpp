@@ -28,6 +28,9 @@ struct PCHypFillExtDir
   amrex::GpuArray<int, 2*AMREX_SPACEDIM>         form_face;
   int         nscbc_order;    // 1 or 2: R+ extrapolation order.
   int         nscbc_backflow; // 1: R- bounded below by the pin (PS_nscbc.H).
+  // Per-face open-end declaration (0 default): outflow cells of the face
+  // always take the choked-expansion fan (PS_nscbc.H).
+  amrex::GpuArray<int, 2*AMREX_SPACEDIM> open_end_face;
   // Per-face ambient pressure targets, indexed [2*idir + (0=lo,1=hi)];
   // a value <= 0 inherits prob.p_amb at fill time.
   amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> p_amb_face;
@@ -42,7 +45,8 @@ struct PCHypFillExtDir
                            const amrex::GpuArray<int, 2*AMREX_SPACEDIM>& form_face_,
                            int         nscbc_order_,
                            int         nscbc_backflow_,
-                           const amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM>& p_amb_face_
+                           const amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM>& p_amb_face_,
+                           const amrex::GpuArray<int, 2*AMREX_SPACEDIM>& open_end_face_
 #ifdef USE_PS_HYDRO
                            , const PsPres& pres_
 #endif
@@ -54,6 +58,7 @@ struct PCHypFillExtDir
     , nscbc_order(nscbc_order_)
     , nscbc_backflow(nscbc_backflow_)
     , p_amb_face(p_amb_face_)
+    , open_end_face(open_end_face_)
 #ifdef USE_PS_HYDRO
     , pres(pres_)
 #endif
@@ -167,6 +172,7 @@ struct PCHypFillExtDir
         params.sigma        = sigma_face[2*idir + ((sgn > 0) ? 0 : 1)];
         params.form         = form_face[2*idir + ((sgn > 0) ? 0 : 1)];
         params.backflow     = nscbc_backflow;
+        params.open_end     = open_end_face[2*idir + ((sgn > 0) ? 0 : 1)];
         // Rate form: the relaxation rate is referenced to the domain
         // extent along the face normal, so sigma keeps its literature
         // meaning and only sigma/L_ref is physical.
@@ -262,6 +268,11 @@ PSAMR_bcfill_hyp(
   //     fields.
   //   PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi} (-1 = inherit ps_bc_use_nscbc):
   //     per-face NSCBC enable.
+  //   PSAMR.ps_bc_open_end_{x,y,z}{lo,hi} (0): declares the face an open end
+  //     (a vent): every outflow cell of it takes the choked-expansion fan,
+  //     inflow cells under the backflow bound keep the small-signal branch.
+  //     0 leaves the per-cell rule untouched (bit-identical).  Needs the
+  //     NSCBC ghost on that face.
   // The resolved values (after the no-USE_PS_HYDRO force-off and the
   // order forcing) are added back to the table so job_info records the BC
   // path that actually ran even when the deck was silent.
@@ -269,7 +280,8 @@ PSAMR_bcfill_hyp(
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> sface;
                     amrex::GpuArray<int, 2*AMREX_SPACEDIM> fface;
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> pamb;
-                    amrex::GpuArray<int, 2*AMREX_SPACEDIM> uface; };
+                    amrex::GpuArray<int, 2*AMREX_SPACEDIM> uface;
+                    amrex::GpuArray<int, 2*AMREX_SPACEDIM> oface; };
   static const NscbcCfg nscbc_cfg = []() -> NscbcCfg {
     int u = 0;
     amrex::Real sg = amrex::Real(0.25);
@@ -345,6 +357,14 @@ PSAMR_bcfill_hyp(
     pp.query("ps_bc_nscbc_zlo", uf[4]);
     pp.query("ps_bc_nscbc_zhi", uf[5]);
 #endif
+    amrex::GpuArray<int, 2*AMREX_SPACEDIM> of;
+    for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
+      of[f] = 0;
+      pp.query((std::string("ps_bc_open_end_") + fnm[f]).c_str(), of[f]);
+      if (of[f] != 0 && of[f] != 1) {
+        amrex::Abort("PSAMR.ps_bc_open_end_{x,y,z}{lo,hi}: accepts 0 or 1.");
+      }
+    }
     for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
       if (uf[f] != -1 && uf[f] != 0 && uf[f] != 1) {
         amrex::Abort("PSAMR.ps_bc_nscbc_{x,y,z}{lo,hi}: accepts 0, 1, or "
@@ -397,7 +417,15 @@ PSAMR_bcfill_hyp(
     pp.add("ps_bc_p_amb_zlo", pa[4]);
     pp.add("ps_bc_p_amb_zhi", pa[5]);
 #endif
-    return NscbcCfg{od, bf, sf, ff, pa, uf};
+    for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
+      if (of[f] == 1 && uf[f] == 0) {
+        amrex::Abort(std::string("PSAMR.ps_bc_open_end_") + fnm[f] +
+                     "=1 needs the NSCBC ghost on that face "
+                     "(ps_bc_use_nscbc or ps_bc_nscbc_" + fnm[f] + "=1).");
+      }
+      if (of[f] == 1) { pp.add((std::string("ps_bc_open_end_") + fnm[f]).c_str(), 1); }
+    }
+    return NscbcCfg{od, bf, sf, ff, pa, uf, of};
   }();
   const int nscbc_order = nscbc_cfg.order;
 
@@ -425,6 +453,11 @@ PSAMR_bcfill_hyp(
         }
       }
 #endif
+      for (int f = 0; f < 2*AMREX_SPACEDIM; ++f) {
+        if (nscbc_cfg.oface[f] == 1) {
+          amrex::Print() << ",  open end: " << fnm[f];
+        }
+      }
       amrex::Print()
           << ",  R+ order = " << nscbc_order
           << ",  backflow = " << nscbc_cfg.backflow << "\n";
@@ -434,7 +467,7 @@ PSAMR_bcfill_hyp(
 
   amrex::GpuBndryFuncFab<PCHypFillExtDir> hyp_bndry_func(
     PCHypFillExtDir{lprobparm, nscbc_cfg.uface, nscbc_cfg.sface, nscbc_cfg.fface,
-                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.pamb
+                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.pamb, nscbc_cfg.oface
 #ifdef USE_PS_HYDRO
                     , ps_presence_params()   // host-side read
 #endif
