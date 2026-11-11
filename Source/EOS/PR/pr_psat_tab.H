@@ -5,6 +5,21 @@
 // spline on 128 knots uniform in theta = sqrt(1 - T/Tc), T in [T_triple, Tc - 0.5 K]; above, Pc.
 // Max relative error at knot midpoints: 4.35e-09.  This is the EOS's own saturation
 // curve, the one its two-phase states are built on.
+// The two arrays are indexed at run time, so on a GPU build they live in device
+// constant memory, defined once in pr_psat_coeffs.cpp (which sets PR_PSAT_DEFINE
+// before including this file) and declared extern elsewhere, as for the GERG
+// tables (gerg_co2.H); on a host build they are constexpr.
+#if defined(AMREX_USE_GPU)
+#include <AMReX_GpuQualifiers.H>
+#endif
+#if defined(AMREX_USE_GPU) && !defined(PR_PSAT_DEFINE)
+#define PR_PSAT_CONST extern AMREX_GPU_CONSTANT const
+#define PR_PSAT_DECL_ONLY 1
+#elif defined(AMREX_USE_GPU)
+#define PR_PSAT_CONST extern AMREX_GPU_CONSTANT const
+#else
+#define PR_PSAT_CONST constexpr
+#endif
 namespace pr_psat {
 constexpr int    NPS   = 128;
 constexpr double TC    = 304.13;
@@ -12,7 +27,9 @@ constexpr double TH_LO = 0.040546686687507924;
 constexpr double TH_HI = 0.53649870624496254;
 constexpr double DTH   = 0.0039051340122634223;
 constexpr double P_TRIPLE = 515940.52702922968;   // coexistence pressure at T_triple
-constexpr double PS[NPS] = {
+PR_PSAT_CONST double PS[NPS]
+#ifndef PR_PSAT_DECL_ONLY
+= {
     7296065.2527014762,    7279745.936823125,    7261958.4541252265,
     7242711.0229434017,    7222012.5327230347,    7199872.5391116235,
     7176301.2586822705,    7151309.5632948782,    7124908.9741003197,
@@ -56,8 +73,12 @@ constexpr double PS[NPS] = {
     738073.45822662837,    703332.71789222967,    669599.68354730937,
     636872.11662836268,    605146.88659724337,    574419.97027885157,
     544686.45234806568,    515940.52702922968,
-};
-constexpr double PSP[NPS] = {
+}
+#endif
+;
+PR_PSAT_CONST double PSP[NPS]
+#ifndef PR_PSAT_DECL_ONLY
+= {
     -3990234.481654746,    -4367205.5862420527,    -4742152.0914339703,
     -5114904.2328178361,    -5485292.1800776087,    -5853146.7966090972,
     -6218300.0270610042,    -6580585.1316938959,    -6939836.8433430744,
@@ -101,6 +122,8 @@ constexpr double PSP[NPS] = {
     -9025328.3550651874,    -8767071.3212410472,    -8509273.4453630969,
     -8252162.9590576701,    -7995968.4056283534,    -7740918.3531977367,
     -7487241.0936788209,    -7235164.3214490684,
-};
+}
+#endif
+;
 } // namespace pr_psat
 #endif

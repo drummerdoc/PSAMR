@@ -47,14 +47,23 @@ int main() {
                     "// spline on %d knots uniform in theta = sqrt(1 - T/Tc), T in [T_triple, Tc - 0.5 K]; above, Pc.\n"
                     "// Max relative error at knot midpoints: %.2e.  This is the EOS's own saturation\n"
                     "// curve, the one its two-phase states are built on.\n", N, err);
+    std::fprintf(o, "// The two arrays are indexed at run time, so on a GPU build they live in device\n"
+                    "// constant memory, defined once in pr_psat_coeffs.cpp (which sets PR_PSAT_DEFINE\n"
+                    "// before including this file) and declared extern elsewhere, as for the GERG\n"
+                    "// tables (gerg_co2.H); on a host build they are constexpr.\n"
+                    "#if defined(AMREX_USE_GPU)\n#include <AMReX_GpuQualifiers.H>\n#endif\n"
+                    "#if defined(AMREX_USE_GPU) && !defined(PR_PSAT_DEFINE)\n"
+                    "#define PR_PSAT_CONST extern AMREX_GPU_CONSTANT const\n#define PR_PSAT_DECL_ONLY 1\n"
+                    "#elif defined(AMREX_USE_GPU)\n#define PR_PSAT_CONST extern AMREX_GPU_CONSTANT const\n"
+                    "#else\n#define PR_PSAT_CONST constexpr\n#endif\n");
     std::fprintf(o, "namespace pr_psat {\nconstexpr int    NPS   = %d;\nconstexpr double TC    = %.17g;\n"
                     "constexpr double TH_LO = %.17g;\nconstexpr double TH_HI = %.17g;\nconstexpr double DTH   = %.17g;\n"
                     "constexpr double P_TRIPLE = %.17g;   // coexistence pressure at T_triple\n", N, Tc, th_lo, th_hi, dth, P[N-1]);
-    std::fprintf(o, "constexpr double PS[NPS] = {\n");
+    std::fprintf(o, "PR_PSAT_CONST double PS[NPS]\n#ifndef PR_PSAT_DECL_ONLY\n= {\n");
     for (int i = 0; i < N; ++i) std::fprintf(o, "    %.17g,%s", P[i], (i % 3 == 2 || i == N-1) ? "\n" : "");
-    std::fprintf(o, "};\nconstexpr double PSP[NPS] = {\n");
+    std::fprintf(o, "}\n#endif\n;\nPR_PSAT_CONST double PSP[NPS]\n#ifndef PR_PSAT_DECL_ONLY\n= {\n");
     for (int i = 0; i < N; ++i) std::fprintf(o, "    %.17g,%s", yp[i], (i % 3 == 2 || i == N-1) ? "\n" : "");
-    std::fprintf(o, "};\n} // namespace pr_psat\n#endif\n");
+    std::fprintf(o, "}\n#endif\n;\n} // namespace pr_psat\n#endif\n");
     std::fclose(o);
     std::printf("wrote ../pr_psat_tab.H: %d knots, max midpoint rel error %.3e at T=%.3f; P(T_triple)=%.6g P(280)=%.6g\n", N, err, worst_T, P[N-1], hem::Psat(f.pr, 280.0));
     return 0;
