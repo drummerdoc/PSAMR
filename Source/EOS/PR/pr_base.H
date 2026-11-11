@@ -100,8 +100,10 @@
       x = (x > double(NPS - 1) - 1e-12) ? double(NPS - 1) - 1e-12 : x;
       const int i = int(x);
       const double t = x - double(i), h = DTH, t2 = t * t, t3 = t2 * t;
-      return amrex::Real(PS[i] * (2*t3 - 3*t2 + 1) + PSP[i] * h * (t3 - 2*t2 + t)
-                       + PS[i+1] * (-2*t3 + 3*t2) + PSP[i+1] * h * (t3 - t2));
+      const double* ps  = PS;    // read through pointers: on a GPU build the
+      const double* psp = PSP;   // arrays are __constant__ (as in gerg_co2_sat.H)
+      return amrex::Real(ps[i] * (2*t3 - 3*t2 + 1) + psp[i] * h * (t3 - 2*t2 + t)
+                       + ps[i+1] * (-2*t3 + 3*t2) + psp[i+1] * h * (t3 - t2));
   }
 
   // Saturated liquid / vapour (rho, e) at T on the PR coexistence curve,
