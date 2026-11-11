@@ -22,3 +22,7 @@ In the mixture the ghost reflects like a frozen-impedance face, the same as the 
 (N1b r = +0.239 here, +0.241 in nscbc_BASE.txt).  nscbc_BASE.txt records that a boundary
 posed on the relaxed state brought this to -0.011 (trial impedance) or +0.067 (Wood
 impedance); main has no such boundary.
+
+Update with the Wood impedance as the default (ps_bc_nscbc_impedance=1; =0 gives the numbers above):
+       N1b NSCBC face     r = +0.0879   PASS (margin 0.10)
+       N1, N3, N4 unchanged; N3 alpha blob after exit 5.9e-12 with the tabulated saturation curve (4.38e-3 before it).

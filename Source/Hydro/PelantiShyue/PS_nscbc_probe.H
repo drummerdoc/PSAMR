@@ -65,6 +65,7 @@ inline int ps_nscbc_probe(const std::string& plt, amrex::Real p_amb_global)
         pp.query("ps_bc_nscbc_sigma", prm.sigma);
         pp.query("ps_bc_nscbc_order", prm.nscbc_order);
         pp.query("ps_bc_nscbc_backflow", prm.backflow);
+        pp.query("ps_bc_nscbc_impedance", prm.impedance);
         std::string fm = "pin";
         pp.query("ps_bc_nscbc_form", fm);
         pp.query("ps_bc_nscbc_form_xhi", fm);          // the x-hi face's own, if set

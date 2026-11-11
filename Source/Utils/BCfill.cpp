@@ -267,9 +267,9 @@ PSAMR_bcfill_hyp(
   //     drives fluid in, and keeps inflow cells off the fan; the identity
   //     under pin.  0 is the unbounded rate form, refuted on the jet and
   //     kept only until the stage-3 retirement (DESIGN_DECISIONS.md B-6).
-  //   PSAMR.ps_bc_nscbc_impedance (0): impedance rho c of the invariants
-  //     R+ and R-.  0 = frozen (Wallis; bit-identical to before), 1 = Wood
-  //     (mechanical-equilibrium speed).  Only the invariants change; the
+  //   PSAMR.ps_bc_nscbc_impedance (1): impedance rho c of the invariants
+  //     R+ and R-.  1 = Wood (mechanical-equilibrium speed), 0 = frozen
+  //     (Wallis; the previous behaviour).  Only the invariants change; the
   //     Mach dispatch, the rate constant, lambda_in, the fan and the fan's
   //     dispatch stay frozen.
   //   PSAMR.ps_bc_p_amb_{x,y,z}{lo,hi} (-1 = inherit prob.p_amb): per-face
@@ -296,7 +296,7 @@ PSAMR_bcfill_hyp(
     amrex::Real sg = amrex::Real(0.25);
     int od = 2;
     int bf = 1;
-    int zi = 0;
+    int zi = 1;
     std::string fm = "pin";
     amrex::ParmParse pp("PSAMR");
     pp.query("ps_bc_use_nscbc",   u);

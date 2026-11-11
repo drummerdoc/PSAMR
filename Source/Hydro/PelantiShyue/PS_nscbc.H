@@ -9,7 +9,7 @@
 //  persistent boundary state.  With u_out the outward normal velocity and
 //  ρc the Wallis frozen impedance of the boundary cell (as the flux) and
 //  P the mixture pressure α₁P₁ + α₂P₂ (as the flux).  ps_bc_nscbc_impedance=1
-//  replaces the frozen ρc by the Wood (equilibrium) one in R+, R- only:
+//  (the default) replaces the frozen ρc by the Wood (equilibrium) one in R+, R- only:
 //      R+ = u_out + P/(ρc)  leaves; extrapolated (minmod slope, 3 cells)
 //      R- = u_out − P/(ρc)  enters; modelled, selected by Params::form:
 //        pin:   R- = −P_amb/ρc                        (Hedstrom far field;
@@ -79,8 +79,8 @@ struct Params {
     // R+ extrapolation: 1 = copy R+_N (reproduces the standalone driver's
     // NONREFLECTING fill bit-for-bit); 2 = minmod slope over three cells.
     int         nscbc_order = 2;
-    // 0 = frozen impedance (default, bit-identical to before), 1 = Wood.
-    int         impedance = IMP_FROZEN;
+    // 1 = Wood impedance (default), 0 = frozen (the previous behaviour).
+    int         impedance = IMP_WOOD;
 };
 
 
