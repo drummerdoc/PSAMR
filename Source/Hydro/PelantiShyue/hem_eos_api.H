@@ -249,7 +249,7 @@ struct PsPhaseAPI {
     AMREX_GPU_HOST_DEVICE
     bool T_from_rho_e_seeded(int phase, double rho, double e, double T_seed,
                              double& T, int& its) const {
-        return ps_eos_T_seeded(phase, rho, e, T_seed, 8.314462618 / molar_mass(), T, its);
+        return ps_eos_T_seeded(phase, rho, e, T_seed, r_gas() / molar_mass(), T, its);
     }
 
     AMREX_GPU_HOST_DEVICE
@@ -281,6 +281,10 @@ struct PsPhaseAPI {
     //  EOS::Y2WBAR.
     double M_kg_mol   = 0.0;
     AMREX_GPU_HOST_DEVICE double molar_mass() const { return M_kg_mol; }
+    //  Universal gas constant [J/(mol K)], the backend's own (one value
+    //  in the EOS and in the SRT prefactor).
+    double R_gas_J_molK = 0.0;
+    AMREX_GPU_HOST_DEVICE double r_gas() const { return R_gas_J_molK; }
 
     AMREX_GPU_HOST_DEVICE bool valid() const { return has_eos; }
 };

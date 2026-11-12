@@ -76,6 +76,7 @@ ps_make_psamr_eos_api()
         amrex::Real wbar = amrex::Real(0.0);
         EOS::Y2WBAR(Yw, wbar);            // [kg/mol] in every PSAMR backend
         api.M_kg_mol = double(wbar);
+        api.R_gas_J_molK = double(hem::R_gas);
     }
     return api;
 }

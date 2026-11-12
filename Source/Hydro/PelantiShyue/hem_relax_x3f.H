@@ -219,7 +219,7 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         F[2] = (t.m2 * t.p2.e - (b.U2 + dm * h_c + q + W)) / E_s;
         if (n == 5) {
             //  Rates at the trial state (X3's expressions).
-            constexpr double two_pi = 6.283185307179586, R_u = 8.314462618;
+            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
             if (!(t.p1.cv > 0.0) || !(t.p2.cv > 0.0) || !(T2 > 0.0)) return false;
             const double inv = 1.0 / (t.m1 * t.p1.cv) + 1.0 / (t.m2 * t.p2.cv);
             const double rT = joint_pt ? 0.0 : (T1 - T2) / (xp.theta * inv);
@@ -284,7 +284,7 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         J[2][3] = -1.0 / E_s;
         J[2][4] = (t.p2.e + m2 * e2_dm - h_c - W_dm) / E_s;
         if (n == 5) {
-            constexpr double two_pi = 6.283185307179586, R_u = 8.314462618;
+            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
             const double T_s = std::max(b.T1, b.T2);
             if (joint_pt) {
                 J[3][1] = 1.0 / T_s; J[3][2] = -1.0 / T_s; J[3][3] = 0.0;
@@ -488,7 +488,7 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     auto step_once = [&](const Base& bb, double dtl, Base& out) -> int {
         double rT0 = 0.0, rM0 = 0.0;
         {
-            constexpr double two_pi = 6.283185307179586, R_u = 8.314462618;
+            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
             if (!(bb.cv1 > 0.0) || !(bb.cv2 > 0.0) || !(bb.T2 > 0.0)) return 3;
             const double inv = 1.0 / (bb.m1 * bb.cv1) + 1.0 / (bb.m2 * bb.cv2);
             rT0 = joint_pt ? 0.0 : (bb.T1 - bb.T2) / (xp.theta * inv);

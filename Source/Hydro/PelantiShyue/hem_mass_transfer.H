@@ -421,7 +421,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
         const double srt_D     = eos.dials.mt_srt_d;
         const double srt_delta = eos.dials.mt_srt_delta;
         constexpr double two_pi = 6.283185307179586;
-        constexpr double R_u    = 8.314462618;          // J/(mol K)
+        const double R_u = eos.r_gas();                 // J/(mol K)
         // Direction is fixed by the entry state: the rate vanishes at
         // g1 = g2, so the BE path never reverses; the carrier follows it.
         const double s_dir = (g_diff > 0.0) ? 1.0 : -1.0;
@@ -579,7 +579,7 @@ inline bool ps_mass_transfer_finite_cell(V6& U, const PsPhaseAPI& eos,
             const double srt_D     = eos.dials.mt_srt_d;
             const double srt_delta = eos.dials.mt_srt_delta;
             constexpr double two_pi = 6.283185307179586;
-            constexpr double R_u    = 8.314462618;         // J/(mol K)
+            const double R_u = eos.r_gas();                // J/(mol K)
             //  Evaporation (g_1 > g_2): vapour receives; else liquid receives.
             const double a_geom = (p1.g > p2.g)
                                 ? (alpha2 + srt_delta) * alpha1
