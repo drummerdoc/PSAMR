@@ -214,6 +214,7 @@ struct PsKernelDials {
     double flash_alpha_thr        = 0.0;   // PSAMR.ps_flash_alpha_thr
     double flash_meta_margin      = 0.0;   // PSAMR.ps_flash_metastable_margin
     int    flash_h_mode           = 0;     // PSAMR.ps_flash_h_mode (0 dom, 1 avg, 2 auto)
+    int    flash_implicit         = 0;     // PSAMR.ps_flash_implicit
 };
 
 // ---------------------------------------------------------------------
@@ -442,6 +443,19 @@ inline double ps_dial_flash_meta_margin() {
     static const double v = ps_dial_real("ps_flash_metastable_margin", 0.10);
     return v;
 }
+//  PSAMR.ps_flash_implicit (0): 0 = the windows of the entering state
+//  multiply the nucleation proposal (forward Euler in the window); 1 = the
+//  committed fraction solves s = W(s), the windows taken on the state the
+//  step produces (docs: the steady birth step).  Read once on the host and
+//  passed to the kernels through PsKernelDials.
+inline int ps_dial_flash_implicit() {
+    static const int v = []{
+        const int x = ps_dial_int("ps_flash_implicit", 0);
+        if (x != 0 && x != 1) amrex::Abort("PSAMR.ps_flash_implicit must be 0 or 1");
+        return x;
+    }();
+    return v;
+}
 inline int ps_dial_flash_h_mode() {
     static const int v = []{
         const std::string s = ps_dial_string("ps_flash_h_mode", "auto");
@@ -470,6 +484,7 @@ inline PsKernelDials ps_kernel_dials()
     d.flash_alpha_thr   = ps_dial_flash_alpha_thr();
     d.flash_meta_margin = ps_dial_flash_meta_margin();
     d.flash_h_mode      = ps_dial_flash_h_mode();
+    d.flash_implicit    = ps_dial_flash_implicit();
     return d;
 }
 
