@@ -259,8 +259,7 @@ struct PsPhaseAPI {
     PsKernelDials dials;
 
     // Fluid critical and triple-point data, set from the EOS so the
-    // two-phase gates stay fluid-agnostic; <= 0 = unset, the accessors
-    // then return the CO2 values.
+    // two-phase gates stay fluid-agnostic (ps_make_psamr_eos_api sets all).
     double T_crit_K   = 0.0;
     double P_crit_Pa  = 0.0;
     double T_triple_K = 0.0;
@@ -274,14 +273,14 @@ struct PsPhaseAPI {
     double rho_dom_lo = 0.0;
     double rho_dom_hi = 0.0;
     AMREX_GPU_HOST_DEVICE bool has_rho_dom() const { return rho_dom_lo > 0.0 && rho_dom_hi > rho_dom_lo; }
-    AMREX_GPU_HOST_DEVICE double t_crit()   const { return (T_crit_K   > 0.0) ? T_crit_K   : 304.13; }
-    AMREX_GPU_HOST_DEVICE double p_crit()   const { return (P_crit_Pa  > 0.0) ? P_crit_Pa  : 7.3773e6; }
-    AMREX_GPU_HOST_DEVICE double t_triple() const { return (T_triple_K > 0.0) ? T_triple_K : 216.6; }
-    AMREX_GPU_HOST_DEVICE double p_triple() const { return (P_triple_Pa > 0.0) ? P_triple_Pa : 5.1795e5; }
+    AMREX_GPU_HOST_DEVICE double t_crit()   const { return T_crit_K; }
+    AMREX_GPU_HOST_DEVICE double p_crit()   const { return P_crit_Pa; }
+    AMREX_GPU_HOST_DEVICE double t_triple() const { return T_triple_K; }
+    AMREX_GPU_HOST_DEVICE double p_triple() const { return P_triple_Pa; }
     //  Molar mass [kg/mol] for the SRT kinetic prefactor; set from
-    //  EOS::Y2WBAR, CO2 fallback by the same convention.
+    //  EOS::Y2WBAR.
     double M_kg_mol   = 0.0;
-    AMREX_GPU_HOST_DEVICE double molar_mass() const { return (M_kg_mol > 0.0) ? M_kg_mol : 0.04401; }
+    AMREX_GPU_HOST_DEVICE double molar_mass() const { return M_kg_mol; }
 
     AMREX_GPU_HOST_DEVICE bool valid() const { return has_eos; }
 };
