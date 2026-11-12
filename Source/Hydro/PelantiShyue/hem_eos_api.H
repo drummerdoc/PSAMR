@@ -107,10 +107,10 @@ inline void ps_eos_phase_state(int phase, double rho, double e, PsPhase& ph)
 {
     amrex::Real Y[NUM_SPECIES];
     ps_pure_species(Y);
-    amrex::Real P, T, S;
+    amrex::Real P, T, S, Cs;
     const Phase3 ph3 = (phase == 1) ? Phase3::Liquid : Phase3::Vapor;
-    if (!EOS::REY2PTS_phase_try(amrex::Real(rho), amrex::Real(e), Y, ph3,
-                                P, T, S)) {
+    if (!EOS::REY2PTSc_phase_try(amrex::Real(rho), amrex::Real(e), Y, ph3,
+                                 P, T, S, Cs)) {
         //  No root on this branch: report invalid per the PsPhaseAPI
         //  contract; every consumer tests ph.valid.
         ph.rho = rho; ph.e = e;
@@ -127,8 +127,6 @@ inline void ps_eos_phase_state(int phase, double rho, double e, PsPhase& ph)
     ph.s     = double(S);
     ph.g     = ph.h - double(T) * double(S);   // Gibbs = h - T s
     // Sound speed is always filled: ps_state_from_cons requires ph.c > 0.
-    amrex::Real Cs = amrex::Real(0);
-    EOS::REY2Cs_phase(amrex::Real(rho), amrex::Real(e), Y, ph3, Cs);
     ph.c     = double(Cs);
     ph.valid = std::isfinite(P) && P > 0.0 && std::isfinite(T) && T > 0.0;
 }
