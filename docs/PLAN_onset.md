@@ -171,3 +171,27 @@ GERG executable `PSAMR1d.llvm.TPROF.PS.GERG.ex`, `pipe_depress.py` with `PSAMR.p
   selector-0 run of this build, and a control with `ps_flash_implicit=0` (2.4034) shows the birth step is not
   the cause: the drift predates it (the saturation table, the gas constant or stage B). The `v2s` pin 2.4081 is
   current to 0.03 %. Both are re-issued once at stage D, not here.
+
+### 6.2 peart (gnu, CUDA 2-D and host 2-D builds of `bb2794b7`), 14 Nov 2026: O-P7 holds
+
+`Exec/CO2_TBlowdown`, `inputs-sym-x-lo` (320 K, 100 bar liquid venting to 1 bar; the liquid crosses the dome
+near 300 K, where $m$ = 0.014, so the rule acts), 300 steps, selector 0 and 1, one GPU and one host run each
+(host gnu 15.2, GPU nvcc with gnu 13.4). `gpu_vs_host.py` on the step-300 `Level_0`, max|a − b| / max|a|:
+
+| comparison | density | pressure | alpha_1 | xmom |
+|---|---|---|---|---|
+| host: onset 1 vs 0 | 2.41e-02 | 1.11e-01 | 1.27e-02 | 9.70e-02 |
+| gpu: onset 1 vs 0 | 2.41e-02 | 1.11e-01 | 1.27e-02 | 9.70e-02 |
+| gpu vs host, onset 0 | 6.44e-15 | 2.09e-14 | 1.33e-14 | 2.64e-14 |
+| gpu vs host, onset 1 | 7.52e-15 | 2.24e-14 | 7.77e-15 | 3.12e-14 |
+
+The rule acts identically on the GPU (its effect equals the host's to three digits in every field) and the
+GPU-versus-host difference is round-off in both legs. No abort (O-P8). Plotfiles in
+`~/src/PSAMR-trial/tblow_onset/{gpu,host}_s{0,1}`.
+
+### 6.3 `[DECIDE-O3]`: the flip (Marc, 14 Nov 2026, conditional on §6.2, which holds)
+
+`ps_flash_onset` defaults to 1; 0 is kept as the opt-out until the selector is retired, as for
+`ps_flash_implicit`. The decision record is DESIGN_DECISIONS R-16; the law is MODEL §5.5. Proof of the flip
+commit on the Mac: at `PSAMR.ps_flash_onset=0` the fingerprints reproduce `onset_off` 21/21; at the default they
+reproduce `onset_on` 21/21; `ps_cover` 8/8. The stored references are not re-issued here (stage D).

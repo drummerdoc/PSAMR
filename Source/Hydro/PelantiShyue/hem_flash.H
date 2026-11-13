@@ -271,10 +271,12 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     //     below (1 - margin) P_sat, a vapour-dominant cell condenses as P
     //     rises above (1 + margin) P_sat, each a smooth ramp.
     // PSAMR.ps_flash_metastable_margin (documented at its accessor).
-    // PSAMR.ps_flash_onset (0, documented at its accessor): at 1 a liquid's
+    // PSAMR.ps_flash_onset (1, documented at its accessor): a liquid's
     // margin is the classical-nucleation-theory onset at its temperature,
-    // capped at the constant (ps_flash_margin_cnt); a vapour-dominant cell
-    // (condensation) keeps the constant.  docs/PLAN_onset.md.
+    // capped at the constant (ps_flash_margin_cnt), which is the
+    // heterogeneous (wall) floor; 0 keeps the constant (the opt-out until
+    // retired).  A vapour-dominant cell (condensation) always uses the
+    // constant.  docs/MODEL_AND_ALGORITHM.md §5.5.
     const double meta_margin_max = eos.dials.flash_meta_margin;
     const int flash_onset = eos.dials.flash_onset;
     const bool flash_liq = liq_dominant;
