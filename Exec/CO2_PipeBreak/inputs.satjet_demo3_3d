@@ -50,7 +50,6 @@ PSAMR.ps_bc_nscbc_zhi = 1    # z-hi as y-hi
 PSAMR.ps_bc_nscbc_form_xhi  = rate
 PSAMR.ps_bc_nscbc_sigma_xhi = 4.0   # K = sigma (1 - M^2) c / L_x: 1/K ~ 5 ms on the 4 m domain, ~2.5 ms on 2 m
 PSAMR.ps_bc_nscbc_backflow  = 1     # the default, pinned: unbounded rate reverses the face (B-4)
-PSAMR.ps_lw_skip_contact = 2 # the default, pinned: the deck cannot silently run mode 0 on a stale executable
 PSAMR.ps_wp_transverse = 0   # directionally split (no transverse term); the shear
                             # layer is resolved by ps_mu instead.  1 = contact-only
                             # transverse term.

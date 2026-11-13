@@ -23,8 +23,7 @@
 //  and captured into kernels; the classifier reads alpha_k and phase
 //  totals only, never species.  Dials (all PSAMR.*): ps_alpha_cond (2e-2),
 //  ps_alpha_birth (4e-2), ps_presence_vanish (1e-8), ps_presence_rho_deg
-//  (0.5), ps_presence_e_deg_lo/_hi (-2e6 / 2e7), ps_promote_checked (1),
-//  ps_floor_indep (1).
+//  (0.5), ps_presence_e_deg_lo/_hi (-2e6 / 2e7).
 // =====================================================================
 #ifdef USE_PS_HYDRO
 
@@ -56,16 +55,6 @@ struct PsPres {
     // EOS's scale spans about [-1.5e5, 4e6].
     amrex::Real e_deg_lo     = amrex::Real(-2.0e6);
     amrex::Real e_deg_hi     = amrex::Real( 2.0e7);
-    // PSAMR.ps_promote_checked (1): a would-be-Independent phase is demoted
-    // to Corridor when its (rho_k, e_k) has no root on its own branch
-    // (PS_promote.H); 0 = A/B opt-out.  On because it is provably inert on
-    // the healthy path and closes the inherited-corrupt promotion abort.
-    int         promote_checked = 1;
-    // PSAMR.ps_floor_indep (1): ps_apply_floor's per-phase leg acts on
-    // Independent phases only; 0 = A/B opt-out.  A corridor phase is
-    // host-slaved and never branch-queried, so flooring it only manufactures
-    // non-conservative energy drift with no face-level consumer.
-    int         floor_indep     = 1;
 };
 
 //  Frozen mass-weighted mixture sound speed squared, c^2 = Y1 c1^2 + Y2 c2^2,
@@ -148,8 +137,6 @@ inline const PsPres& ps_presence_params()
         v.alpha_birth     = ps_dial_real("ps_alpha_birth",       v.alpha_birth);
         v.alpha_vanish    = ps_dial_real("ps_presence_vanish",   v.alpha_vanish);
         v.rho_deg         = ps_dial_real("ps_presence_rho_deg",  v.rho_deg);
-        v.promote_checked = ps_dial_int ("ps_promote_checked",   v.promote_checked);
-        v.floor_indep     = ps_dial_int ("ps_floor_indep",       v.floor_indep);
         v.e_deg_lo        = ps_dial_real("ps_presence_e_deg_lo", v.e_deg_lo);
         v.e_deg_hi        = ps_dial_real("ps_presence_e_deg_hi", v.e_deg_hi);
         // ps_presence_vanish is also the fold threshold and must stay > 0.

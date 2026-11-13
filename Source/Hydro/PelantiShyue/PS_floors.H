@@ -217,11 +217,9 @@ ps_apply_floor(amrex::MultiFab& S_new, int nghost = 0)
                 const int  ue  = (ph == 1) ? UE1 : UE2;
                 //  A non-Independent phase is host-slaved and never
                 //  branch-queried, so flooring its e_k only manufactures
-                //  UE_k drift: skip and count (PSAMR.ps_floor_indep, see
-                //  PS_presence.H).  The UEDEN/UEINT reset below still fires
-                //  if the other phase is floored.
-                if (l_floor_pr.floor_indep != 0 &&
-                    ps_regime(alk, mk, l_floor_pr) != PsRegime::Independent) {
+                //  UE_k drift: skip and count.  The UEDEN/UEINT reset below
+                //  still fires if the other phase is floored.
+                if (ps_regime(alk, mk, l_floor_pr) != PsRegime::Independent) {
 #if !defined(AMREX_USE_GPU)
                     ++ps_counters().floor_skip;
 #endif

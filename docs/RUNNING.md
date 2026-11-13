@@ -55,7 +55,6 @@ The table below is built from the read sites in `Source/` (`pp.query`, `pp.conta
 | `ps_flux` | `wp` | Interior flux. Only `wp` (Berger–LeVeque fluctuation form) is accepted; any other value aborts. Force-added to `job_info`. | production |
 | `ps_wp_order` | 2 | 2 = the limited Lax–Wendroff correction fluxes on top of the first-order fluctuations (second order, the acceptance order); 1 = fluctuations only, for comparisons. Any other value aborts. | production |
 | `ps_wp_limiter` | `vanleer` | `none`/`unlimited` removes the limiter on the correction (pure Lax–Wendroff) for smooth order-of-accuracy runs. | alternative |
-| `ps_lw_skip_contact` | 2 | Contact-wave Lax–Wendroff treatment: 2 = regime taper $w = 1 - \mathrm{smoothstep}(\lvert\Delta\alpha\rvert/\alpha_{\mathrm{cond}})$; 1 = blanket skip; 0 = off. Other values abort. | production (2); 0/1 retire-candidate [DECIDE-1] |
 | `ps_wp_transverse` | 0 | Transverse coupling in 2-D/3-D: 0 off (directionally split), 1 contact-only LeVeque transverse term. 2 (the former acoustic term) is retired and aborts. | production (0); 1 alternative |
 | `ps_mu` | 0 | Newtonian dynamic viscosity [Pa s], 2-D only; 0 = inviscid. Pipe-break decks 2.0. | production |
 | `ps_bl_reflux` | 1 | Coarse–fine treatment of the non-conservative slots: nonzero = co-move α with its refluxed partial mass in `PSAMR::reflux` (without it $\rho_k = m_k/\alpha_k$ drifts in the C-F layer and XC2D dies at coarse step 22); 0 = off (conservative FluxRegister only, for A/B). Decks historically set 2, which is still accepted and means on. | production |
@@ -96,8 +95,6 @@ The table below is built from the read sites in `Source/` (`pp.query`, `pp.conta
 | `ps_presence_vanish` | 1e-8 | $\alpha_k \le \alpha_{\mathrm{vanish}}$ (or $m_k \le 0$) is ABSENT; the vanish fold's threshold. Must stay > 0. | production |
 | `ps_presence_rho_deg` | 0.5 kg/m³ | Degeneracy floor for Independent promotion and the fold's corridor reap (minimum legitimate Independent ρ over the battery is 1.406; the failing 2-D promotion carried 0.076). | production |
 | `ps_presence_e_deg_lo` / `_hi` | −2e6 / 2e7 J/kg | Energy-degeneracy band for the fold's energy reap (physical CO₂ spans about −1.5e5 to 4e6 on this EOS's scale). | production |
-| `ps_promote_checked` | 1 | Checked promotion Corridor → Independent; 0 = unchecked (A/B, disables an abort-prevention fix). | production; 0 retire-candidate [DECIDE-2] |
-| `ps_floor_indep` | 1 | `ps_apply_floor`'s per-phase leg only on Independent phases; 0 floors corridor phases too. | production; 0 retire-candidate [DECIDE-2] |
 | `ps_bc_use_nscbc` | 0 | Global characteristic (NSCBC) outflow on `Inflow`-typed faces; 0 = `bcnormal` interior-copy/reservoir path. The ghost construction is always the choked fan with HEM flash along the fan. Force-added. | production |
 | `ps_bc_nscbc_form` | `pin` | NSCBC incoming-invariant model: `pin` (far-field pin, faces onto a quiescent far field) or `rate` (Poinsot–Lele rate, σ as in the literature; under the backflow bound the model for a through-flow face). `value` is retired and aborts. Force-added. | production (`pin`; `rate` on demo3 x-hi) |
 | `ps_bc_nscbc_sigma` | 0.25 | The rate form's coefficient; ignored by `pin`. | alternative |

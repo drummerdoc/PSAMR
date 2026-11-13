@@ -14,8 +14,7 @@
 #   (2) alpha-gradient refinement tag 0.01 instead of 0.1;
 #   (3) amr.n_error_buf 4 instead of 2, keeping coarse-fine faces off the
 #       tagged features.
-#  ps_lw_skip_contact is written out at its default (2) so the deck records
-#  the scheme it runs.  Output prefixes plt_sj3_ / chk_sj3_.
+#  Output prefixes plt_sj3_ / chk_sj3_.
 #  stop_time 2.5 ms; max_step is a cap that never governs.
 # =====================================================================
 amrex.fpe_trap_invalid = 0
@@ -50,7 +49,6 @@ PSAMR.ps_bc_nscbc_yhi = 1    # per-face NSCBC outflow: upper edge of the full pl
 PSAMR.ps_bc_nscbc_form_xhi  = rate
 PSAMR.ps_bc_nscbc_sigma_xhi = 4.0   # K = sigma (1 - M^2) c / L_x: 1/K ~ 5 ms on the 4 m domain, ~2.5 ms on 2 m
 PSAMR.ps_bc_nscbc_backflow  = 1     # the default, pinned: unbounded rate reverses the face (B-4)
-PSAMR.ps_lw_skip_contact = 2 # the default, pinned: the deck cannot silently run mode 0 on a stale executable
 PSAMR.ps_wp_transverse = 0   # directionally split (no transverse term); the shear
                             # layer is resolved by ps_mu instead.  1 = contact-only
                             # transverse term.
