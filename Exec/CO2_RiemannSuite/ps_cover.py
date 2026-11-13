@@ -63,8 +63,8 @@ overrides shown on a failure line.
             live).  Printed, not asserted: the largest step-to-step pressure
             rise in a nucleating cell (3.4 bar at 1, 15 bar at 0).
   selftest  PSAMR.ps_ptg_selftest, ps_relax_sweep, ps_x3_test = 1 at
-            max_step = 0.  Asserts rc = 0 and a PASS verdict line; lines flagging a
-            case FAIL or BAD are printed, not asserted (main prints one).
+            max_step = 0.  Asserts rc = 0, a PASS verdict line, and no line
+            flagging a case FAIL or BAD.
 
 Not covered here: other EOS backends (PRTab, GERG, GERGTab builds);
 saturation, EOS round-trip, flash-kernel, X3/MT, fold/floor, corridor,
@@ -327,7 +327,7 @@ def t_selftest():
         for l in flagged[:3]: print('          ' + l[:160])
         ok &= check(T, rc == 0, '%s: rc=%d' % (k, rc), cmd)
         ok &= check(T, bool(verdict), '%s: no PASS verdict line' % k, cmd)
-        if flagged: print('      REPORT-ONLY  %d line(s) flag a case FAIL/BAD although the verdict is PASS (main prints a [DIR BAD] mark; cause not yet identified)' % len(flagged))
+        ok &= check(T, not flagged, '%s: %d line(s) flag a case FAIL/BAD although the verdict is PASS' % (k, len(flagged)), cmd)
     return ok
 
 TESTS = [('order', t_order), ('limiter', t_limiter), ('badkeys', t_badkeys), ('strang', t_strang),
