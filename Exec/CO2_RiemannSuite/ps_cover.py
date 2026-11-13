@@ -32,8 +32,7 @@ overrides shown on a failure line.
             ps_relax_mode=7, and ps_do_relax=0 at mode 5 with ps_mt_tau > 0
             (the values RUNNING.md §3 says abort).
             Asserts rc != 0 and the key's name in the message.  And the
-            validator itself: clean A1 with ps_validate=2 completes (rc 0); B3 and B4 are
-            run and reported, not asserted (main's tripwire fires on them)
+            validator itself: clean A1, B3, B4 with ps_validate=2 complete (rc 0)
             -- the seeded-bad-IC abort of the plan's row needs a C++ seed and
             is not covered.
   skipc     B3 (saturated L|V contact at rest, an exact alpha jump of 1) with
@@ -211,10 +210,7 @@ def t_badkeys():
         rc, log, fs, cmd = run(T, case, ['PSAMR.ps_validate=2'])
         why = [l.strip() for l in log.split('\n') if 'first bulk violation' in l or ('[PS-VALIDATE]' in l and rc != 0)][-2:]
         print('      clean %s with ps_validate=2: rc=%d  %s' % (case, rc, ' || '.join(w[:230] for w in why) if rc else ''))
-        if case == 'A1':
-            ok &= check(T, rc == 0, 'a clean %s aborts under ps_validate=2 (rc=%d)' % (case, rc), cmd)
-        elif rc:
-            print('      REPORT-ONLY  %s: the tripwire fires on main (negative phase energy in the contact cell); cause not yet identified, not changed by the fold fix' % case)
+        ok &= check(T, rc == 0, 'a clean %s aborts under ps_validate=2 (rc=%d)' % (case, rc), cmd)
     return ok
 
 # -------------------------------------------------------------------- skipc

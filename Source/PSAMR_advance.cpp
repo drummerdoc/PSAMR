@@ -201,10 +201,12 @@ PSAMR::PSAMR_advance (Real time,
 #else
 #define PS_CELL_PROBE(S,L) ((void)0)
 #endif  // PSAMR_PS_DIAG
-    auto diag_mass = [&](amrex::MultiFab& S, const char* label) {
+    auto diag_mass = [&](amrex::MultiFab& S, const char* label, bool pre_repair = false) {
         // Invariant tripwire (PSAMR.ps_validate, 0 = off), independent of
-        // the ps_diag_mass gate.
-        ps_validate_state(S, label);
+        // the ps_diag_mass gate.  pre_repair marks the stages before the
+        // floor/fold/clean repair (H, A, A2), where a round-off alpha_1
+        // outside [0, 1] or a negative partial mass is counted, not aborted on.
+        ps_validate_state(S, label, 0, pre_repair);
         // PSAMR.ps_diag_mass (0): the probe's gate.
         static const int dgm = ps_dial_int("ps_diag_mass", 0);
         if (dgm == 0) return;
@@ -473,10 +475,10 @@ PSAMR::PSAMR_advance (Real time,
 #if defined(USE_PRTAB_EOS) && !defined(AMREX_USE_GPU)
         EOS::prtab_diag::stage() = 1;   // PRTab guard census: calls below belong to the reaction operator
 #endif
-        diag_mass(S, "A enter (post-hydro/C-F)");
+        diag_mass(S, "A enter (post-hydro/C-F)", true);
         PS_CELL_PROBE(S, "A  enter (post-hydro)   ");
         ps_resync_mixture_mass(S, ng);  // URHO == UM1RHO1 + UM2RHO2 after hydro/C-F
-        diag_mass(S, "A2 post mass resync");
+        diag_mass(S, "A2 post mass resync", true);
         PS_CELL_PROBE(S, "A2 post mixture resync ");
         ps_resync_phase_energy(S, ng);
         PS_CELL_PROBE(S, "A3 post phase-E resync ");  // UE1 + UE2 == UEDEN after C-F interp/regrid
@@ -621,7 +623,7 @@ PSAMR::PSAMR_advance (Real time,
     //  of the floor, so this is the only window where a state computeTemp
     //  later aborts on still exists.  Reads the state, changes nothing.
 #ifdef USE_PS_HYDRO
-    diag_mass(S_new, "H post-hydro (pre-floor)");
+    diag_mass(S_new, "H post-hydro (pre-floor)", true);
 #endif
     clean_state(S_new, 0, false);   // intermediate: skip the UTEMP diagnostic sweep
 

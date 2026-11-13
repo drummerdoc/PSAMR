@@ -108,7 +108,7 @@ The table below is built from the read sites in `Source/` (`pp.query`, `pp.conta
 | `ps_bc_open_end_{x,y,z}{lo,hi}` | 0 | Declares the face an open end (a vent): every outflow cell of it takes the choked-expansion fan, whatever the per-cell test would choose; inflow cells under the backflow bound keep the small-signal branch. 0 leaves the per-cell rule untouched (bit-identical). Needs the NSCBC ghost on that face (aborts otherwise). Recorded in `job_info` and the bcfill banner when set to 1. | per face, off by default |
 | `ps_bc_nscbc_{x,y,z}{lo,hi}` | −1 | Per-face NSCBC enable: 0, 1, or unset (inherits `ps_bc_use_nscbc`). Resolved values force-added. | production |
 | `ps_bc_p_amb_{x,y,z}{lo,hi}` | −1 | Per-face far-field pressure [Pa]; unset inherits `prob.p_amb`. Force-added. | production |
-| `ps_validate` | 0 | Reference-free invariant sweep V1–V7 at every diagnostic point: 1 count and report, 2 abort on the first bulk violation. | diagnostic (kept) |
+| `ps_validate` | 0 | Reference-free invariant sweep V1–V7 at every diagnostic point: 1 count and report, 2 abort on the first bulk violation (an $\alpha_1$ outside [0, 1] and a negative partial mass are only counted at the stages before the floor/fold/clean repair, H, A and A2). | diagnostic (kept) |
 | `ps_diag_mass` | 0 | `[PS-MASS]` per-stage mixture-mass drift, max $m_1+m_2$, max $\lvert E_k\rvert/m_k$, plus the guard-counter audit. | diagnostic (kept) |
 | `ps_pres_diag` | 0 | `[PS-X3]`, `[PS-DT]`, `[PS-GATE]` per-sweep outcome tables of the coupled source, and the `[PS-FLASH-REF]` flash-refusal table. | diagnostic (kept) |
 | `ps_diag_alpha` | 0 | `[PS-DIAG]` α₁ range at labelled points (init interpolation, advance stages). | diagnostic |
