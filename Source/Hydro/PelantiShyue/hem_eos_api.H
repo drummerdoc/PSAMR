@@ -215,6 +215,7 @@ struct PsKernelDials {
     double flash_meta_margin      = 0.0;   // PSAMR.ps_flash_metastable_margin
     int    flash_h_mode           = 0;     // PSAMR.ps_flash_h_mode (0 dom, 1 avg, 2 auto)
     int    flash_implicit         = 1;     // PSAMR.ps_flash_implicit
+    int    flash_onset            = 0;     // PSAMR.ps_flash_onset
 };
 
 // ---------------------------------------------------------------------
@@ -457,6 +458,20 @@ inline int ps_dial_flash_implicit() {
     }();
     return v;
 }
+//  PSAMR.ps_flash_onset (0): temporary selector (docs/PLAN_onset.md).
+//  0 = a liquid's metastability margin is the constant
+//  ps_flash_metastable_margin; 1 = it is the classical-nucleation-theory
+//  onset at the liquid's temperature (ps_flash_margin_cnt, hem_flash.H),
+//  capped at that constant.  Other values abort.  Read once on the host
+//  and passed to the kernels through PsKernelDials.
+inline int ps_dial_flash_onset() {
+    static const int v = []{
+        const int x = ps_dial_int("ps_flash_onset", 0);
+        if (x != 0 && x != 1) amrex::Abort("PSAMR.ps_flash_onset must be 0 or 1");
+        return x;
+    }();
+    return v;
+}
 inline int ps_dial_flash_h_mode() {
     static const int v = []{
         const std::string s = ps_dial_string("ps_flash_h_mode", "auto");
@@ -486,6 +501,7 @@ inline PsKernelDials ps_kernel_dials()
     d.flash_meta_margin = ps_dial_flash_meta_margin();
     d.flash_h_mode      = ps_dial_flash_h_mode();
     d.flash_implicit    = ps_dial_flash_implicit();
+    d.flash_onset       = ps_dial_flash_onset();
     return d;
 }
 
