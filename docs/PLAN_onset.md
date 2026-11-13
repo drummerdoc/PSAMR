@@ -140,4 +140,34 @@ implicit solve works in; its bracket holds by construction).
 
 ## 6. Results
 
-(to be recorded)
+### 6.1 The Mac (llvm, contraction-free), 13 Nov 2026, build at commit 2 on branch `onset`
+
+GERG executable `PSAMR1d.llvm.TPROF.PS.GERG.ex`, `pipe_depress.py` with `PSAMR.ps_bc_open_end_xhi=1`,
+`prob.p_amb=6e5` (the Mac line's ambient), `PSAMR.ps_flash_onset` 0 and 1, 640 cells, 6 ms.
+
+| | measured | selector 0 (fixed margin) | selector 1 (CNT onset) | prediction |
+|---|---|---|---|---|
+| Test 24, level at 0.28 / 0.484 / 0.8 m [bar] | 60.9 / 62.7 / 63.8 | 59.6 / 59.8 / 60.0 | **63.8 / 63.9 / 64.0** | 64.0 ± 0.5 at 0.8 m |
+| Test 24, level / $P_{\mathrm{sat}}(T)$ at the crossing (298.7 K) | ≈ 0.98 | 0.92 | 0.979–0.982 | $1 - m/2$, $m$ = 0.023 |
+| Test 24, 0.8 m at +2, +3 ms | 61.9, 61.9 | 47.9, 46.9 | 49.5, 47.8 | not improved (transfer rate) |
+| Test 19, every sensor and delay | 34.2 at 0.8 m | 35.6 | **35.6, byte-identical** (trace and last plotfile) | identical (cap binds) |
+
+- **O-P1 holds**: `characterize.py` at selector 0 (`onset_off`) against the previous build's record (`c4_flip`,
+  the steady-birth-step default): 21 identical, 0 changed.
+- **O-P2, fingerprint part, holds**: selector 1 (`onset_on`) against 0: 20 identical, **B7 alone changed**
+  (max rel P 2.06e-2, α₁ 7.70e-3, T 1.23e-3; the Mac line measured P 2.2e-2, α₁ 8e-3). B2 and B9 identical
+  (cap-bound fronts), every A and C row identical.
+- **O-P2, `exact_suite` part, holds**: at selector 1 and mode 5, B7 is ρ / u / P rel-L2 **0.1603 / 0.7418 / 0.3113**,
+  the Mac BASE4 row to four digits; at mode 6 (the default) 0.1604 / 0.7416 / 0.3115. Every other B row equals the
+  step-on record of 13 Nov (B2 0.0760 / 0.8037 / 0.1485, B9 0.0966 / 0.7749 / 0.1456). `verify_canonical.py` at
+  selector 1: ALL CHECKS PASS (32). Transcripts in `~/src/PSAMR-trial/records/2026-11-13_onset/`.
+- **O-P3 holds**: `ps_cover.py` 8/8 at the default; `front` unchanged (plateau 20.21 bar at 255.95 K, band
+  18.10–20.23, max dP/P 2.7e-12 at `ps_flash_implicit=1`, 3.0e-1 at 0).
+- **O-P5 holds** at the predicted number, the same digits as the Mac line's GERG run (63.8 / 63.9 / 64.0).
+- **O-P6 holds**: `trace.csv` and `plt02308/Level_0` identical between the two Test 19 runs.
+- **O-P8 holds** on both tests (`rc 0`, no abort).
+- **O-P4 holds**: `flashing_front.py` on the PR executable, selector 0 → 1: `ref` 2.4038 → 2.4111 (+0.3 %),
+  `v2s` 2.4090 → 2.4163 (+0.3 %); no abort. Found on the way: the stored `ref` pin 2.3428 is 2.6 % below the
+  selector-0 run of this build, and a control with `ps_flash_implicit=0` (2.4034) shows the birth step is not
+  the cause: the drift predates it (the saturation table, the gas constant or stage B). The `v2s` pin 2.4081 is
+  current to 0.03 %. Both are re-issued once at stage D, not here.
