@@ -75,7 +75,7 @@ The table below is built from the read sites in `Source/` (`pp.query`, `pp.conta
 | `ps_mt_update_alpha` | −1 | Density-preserving α update with transfer, $d\alpha_1 = -dm/\rho_1$: −1 auto (resolves 1), 0 off, 1 on. | production (auto) |
 | `ps_triple_point_action` | 0 | Response to a dominant phase below the triple point in the source stage: 0 off, 1 count and report, 2 raise its energy to $T_{\mathrm{triple}}$ (non-conservative by design), 3 abort on the first such cell. | alternative |
 | `ps_flash_metastable_margin` | 0.10 | Required relative undershoot of $P_{\mathrm{sat}}$ before flash fires, so saturated contacts (B3) do not false-trigger on dissipation. | production |
-| `ps_flash_implicit` | 0 | 0 = the flash windows of the entering state multiply the nucleation proposal; 1 = the committed fraction solves $s=W(s)$ with the windows taken on the state the step produces (steady birth step; a pressure error leaves multiplied by $1/(1+g)$ instead of $1-g$). Other values abort. | alternative |
+| `ps_flash_implicit` | 1 | 1 = the committed fraction solves $s=W(s)$ with the windows taken on the state the step produces (steady birth step; a pressure error leaves multiplied by $1/(1+g)$ instead of $1-g$); 0 = the flash windows of the entering state multiply the nucleation proposal (the previous step). Other values abort. | production (1); 0 opt-out until retired |
 | `ps_flash_alpha_thr` | 0.10 | Flash fires only in nominally single-phase cells, α > 0.9 or α < 0.1. | production |
 | `ps_flash_h_mode` | `auto` | Enthalpy carried by flashed mass: `avg`, `dom`, or a T-adaptive blend across $T_{\mathrm{crit}} \pm 30$ K. | production |
 | `ps_mt_h_weight` | 0.5 | Enthalpy weighting of transferred mass; negative = upwind by direction. | alternative |
