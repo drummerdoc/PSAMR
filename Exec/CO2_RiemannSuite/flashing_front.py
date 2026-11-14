@@ -41,7 +41,7 @@ OUT  = os.environ.get('FLASH_OUT', './flash_red_runs')
 os.makedirs(OUT, exist_ok=True)
 
 T_SCORE = 8.0e-5           # scoring time (the reference dies just past it)
-RED = {'ref': 2.3428, 'leg': 2.1022, 'v2e': 1.4838, 'v2s': 2.4081}   # v2s re-pinned at B-5 (was 2.2474)
+RED = {'ref': 2.4111, 'leg': 2.1022, 'v2e': 1.4838, 'v2s': 2.4163}   # ref, v2s re-pinned 2026-11-14 (stage D: table, birth step, CNT onset; were 2.3428, 2.4081); leg, v2e historical
 
 COMMON = ['inputs', 'PSAMR.cfl=0.25', 'prob.alpha_trace=1.0e-6',
           'prob.u_L=0', 'prob.u_R=0', 'stop_time=2.5e-4',

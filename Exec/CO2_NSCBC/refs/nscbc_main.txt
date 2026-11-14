@@ -26,3 +26,13 @@ impedance); main has no such boundary.
 Update with the Wood impedance as the default (ps_bc_nscbc_impedance=1; =0 gives the numbers above):
        N1b NSCBC face     r = +0.0879   PASS (margin 0.10)
        N1, N3, N4 unchanged; N3 alpha blob after exit 5.9e-12 with the tabulated saturation curve (4.38e-3 before it).
+
+Repeated 2026-11-14 on the present code (main after the port: saturation table, relaxed impedance, open-end
+option, steady birth step and CNT nucleation onset as defaults), Mac, llvm, DIM=1 USE_MPI=FALSE Eos_Model=PR,
+the suite's own executable in this directory:
+N1   256 cells, 1 m/s  r = +0.0005   PASS;  256 cells, 50 m/s  r = +0.0196   PASS;  512 cells, 1 m/s  r = +0.0005   PASS
+N1b  NSCBC face (Wood impedance, the default)  r = +0.0879   PASS (margin 0.10);  zero-gradient copy  r = +0.2388
+N3   entropy spot  max|p'|/p0: before exit 9.43e-06, during 7.30e-06, after 1.99e-06
+     alpha blob    max|p'|/p0: 6.13e-12, 6.18e-12, 6.11e-12  (round-off; 5.9e-12 recorded with the table on 11 Nov)
+N4   (P_mean - P_amb)/(p0 - P_amb), per ms: 1.000 0.763 0.625 0.528 0.293 0.253 0.060 0.009 0.008 0.006 0.005 0.003 ...
+Every number of the 9 Nov record and the 11 Nov update reproduced; zg = 0 on every case.
