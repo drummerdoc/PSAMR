@@ -52,16 +52,17 @@ overrides shown on a failure line.
             byte-identical (every Level_0/Cell_D_*) and equal time.  B2 (the
             case §10 shows amplifying 1e-12 perturbations) likewise.
   front     B2 (evaporation wave) and the nucleator's own feedback.  Two runs
-            differing by 1e-12 in p_L, a plotfile every 4 steps, at
-            ps_flash_implicit = 1 and 0.  Asserts at 1: the largest relative
-            pressure difference stays below 1e-8 (the perturbation is not
-            amplified); the plateau ahead of the front (median over the cells
-            with 1e-9 < 1 - alpha_1 < 1e-2 at the end) lies inside the
-            metastability window's band [(1 - 1.5 m), (1 - 0.5 m)] P_sat(T) at
-            the plateau's own temperature, m = 0.1.  Asserts at 0: the same
-            difference exceeds 1e-4 (the explicit step amplifies; the dial is
-            live).  Printed, not asserted: the largest step-to-step pressure
-            rise in a nucleating cell (3.4 bar at 1, 15 bar at 0).
+            differing by 1e-12 in p_L, a plotfile every 4 steps, with the
+            steady birth step (the only step since the forward-Euler opt-out
+            ps_flash_implicit = 0 was retired on 14 Nov 2026; at it the
+            difference exceeded 1e-4 and the rise was 15 bar).  Asserts: the
+            largest relative pressure difference stays below 1e-8 (the
+            perturbation is not amplified); the plateau ahead of the front
+            (median over the cells with 1e-9 < 1 - alpha_1 < 1e-2 at the end)
+            lies inside the metastability window's band
+            [(1 - 1.5 m), (1 - 0.5 m)] P_sat(T) at the plateau's own
+            temperature, m = 0.1.  Printed, not asserted: the largest
+            step-to-step pressure rise in a nucleating cell (3.4 bar).
   selftest  PSAMR.ps_ptg_selftest, ps_relax_sweep, ps_x3_test = 1 at
             max_step = 0.  Asserts rc = 0, a PASS verdict line, and no line
             flagging a case FAIL or BAD.
@@ -281,24 +282,25 @@ def t_restart():
 # ----------------------------------------------------------------- selftest
 def t_front(T='front'):
     """B2 (evaporation wave) and the nucleator's own feedback.  Two runs
-    differing by 1e-12 in p_L, a plotfile every 4 steps, at
-    ps_flash_implicit = 1 and 0.  At 1: the largest relative pressure
-    difference stays below 1e-8 (a contraction) and the plateau ahead of the
-    front lies inside the metastability band [(1 - 1.5 m), (1 - 0.5 m)] P_sat
-    at its own temperature, m = 0.1.  At 0: the difference exceeds 1e-4 (the
-    explicit step amplifies; the dial is live).  Printed, not asserted: the
-    largest step-to-step pressure rise in a nucleating cell."""
+    differing by 1e-12 in p_L, a plotfile every 4 steps, with the steady
+    birth step (the only nucleation step since the forward-Euler opt-out
+    ps_flash_implicit = 0 was retired on 14 Nov 2026; at that opt-out the
+    difference exceeded 1e-4).  The largest relative pressure difference
+    stays below 1e-8 (a contraction) and the plateau ahead of the front lies
+    inside the metastability band [(1 - 1.5 m), (1 - 0.5 m)] P_sat at its own
+    temperature, m = 0.1.  Printed, not asserted: the largest step-to-step
+    pressure rise in a nucleating cell."""
     ok = True; m = 0.1
     def pair(k):
         out = []
         for nm, pl in (('a', 8.0e6), ('b', 8.0e6 * (1 + 1e-12))):
-            rc, log, fs, cmd = run('%s%d%s' % (T, k, nm), 'B2', ['prob.p_L=%.17g' % pl, 'amr.plot_int=%d' % (1 if nm == 'a' else 4),
-                                   'PSAMR.ps_flash_implicit=%d' % k], final_only=False)
+            rc, log, fs, cmd = run('%s%d%s' % (T, k, nm), 'B2', ['prob.p_L=%.17g' % pl, 'amr.plot_int=%d' % (1 if nm == 'a' else 4)],
+                                   final_only=False)
             out.append((rc, fs, cmd))
         return out
-    for k in (1, 0):
+    for k in (1,):
         (rca, fa, cmda), (rcb, fb, cmdb) = pair(k)
-        if not check(T, rca == 0 and rcb == 0 and fa and fb, 'implicit=%d: B2 did not complete (rc %d, %d)' % (k, rca, rcb), cmda): ok = False; continue
+        if not check(T, rca == 0 and rcb == 0 and fa and fb, 'B2 did not complete (rc %d, %d)' % (rca, rcb), cmda): ok = False; continue
         byname = {os.path.basename(p): p for p in fa}
         dp = max(maxrel_cell(byname[os.path.basename(q)], q, 'pressure') for q in fb if os.path.basename(q) in byname)
         P = np.array([R.rd1d(p, 'pressure') for p in fa]); A = np.array([R.rd1d(p, 'alpha_1') for p in fa])
@@ -308,14 +310,11 @@ def t_front(T='front'):
         Pp = float(np.median(P[-1][pl])) if pl.any() else float('nan')
         Tp = float(np.median(R.rd1d(fa[-1], 'Temp')[pl])) if pl.any() else float('nan')
         Ps = pr_psat(Tp) if pl.any() else float('nan')
-        print('      implicit=%d  max dP/P %.1e   max rise %.2f bar   plateau %.2f bar at %.2f K (band %.2f..%.2f, %d cells)'
-              % (k, dp, rise, Pp / 1e5, Tp, (1 - 1.5 * m) * Ps / 1e5, (1 - 0.5 * m) * Ps / 1e5, pl.sum()))
-        if k == 1:
-            ok &= check(T, dp < 1e-8, 'implicit=1: a 1e-12 perturbation of p_L grows to dP/P = %.1e (expected < 1e-8)' % dp, cmdb)
-            ok &= check(T, pl.any() and (1 - 1.5 * m) * Ps <= Pp <= (1 - 0.5 * m) * Ps,
-                        'implicit=1: plateau %.3f bar outside the window band at %.2f K' % (Pp / 1e5, Tp), cmda)
-        else:
-            ok &= check(T, dp > 1e-4, 'implicit=0: dP/P = %.1e, expected > 1e-4 (the explicit step amplifies)' % dp, cmdb)
+        print('      max dP/P %.1e   max rise %.2f bar   plateau %.2f bar at %.2f K (band %.2f..%.2f, %d cells)'
+              % (dp, rise, Pp / 1e5, Tp, (1 - 1.5 * m) * Ps / 1e5, (1 - 0.5 * m) * Ps / 1e5, pl.sum()))
+        ok &= check(T, dp < 1e-8, 'a 1e-12 perturbation of p_L grows to dP/P = %.1e (expected < 1e-8)' % dp, cmdb)
+        ok &= check(T, pl.any() and (1 - 1.5 * m) * Ps <= Pp <= (1 - 0.5 * m) * Ps,
+                    'plateau %.3f bar outside the window band at %.2f K' % (Pp / 1e5, Tp), cmda)
     return ok
 def t_selftest():
     T = 'selftest'; ok = True

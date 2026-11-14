@@ -90,8 +90,8 @@ inline double co2_surface_tension(double T, double T_c)
 // the heterogeneous (wall) floor the data require far from the critical
 // point.  Closed form: ln J = ln J_CRIT gives dP^2 = A / ln(pref/J_CRIT),
 // no iteration.  No EOS call: P_sat through the api, the saturation
-// densities from co2_sat_state.  Device code; selected by
-// PSAMR.ps_flash_onset (PsKernelDials) at its two call sites.
+// densities from co2_sat_state.  Device code; used at the two places the
+// liquid margin is needed (the constant-margin opt-out was retired).
 // -----------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE
 inline double ps_flash_margin_cnt(double T, double P_sat, const PsPhaseAPI& eos,
@@ -271,16 +271,15 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     //     below (1 - margin) P_sat, a vapour-dominant cell condenses as P
     //     rises above (1 + margin) P_sat, each a smooth ramp.
     // PSAMR.ps_flash_metastable_margin (documented at its accessor).
-    // PSAMR.ps_flash_onset (1, documented at its accessor): a liquid's
-    // margin is the classical-nucleation-theory onset at its temperature,
-    // capped at the constant (ps_flash_margin_cnt), which is the
-    // heterogeneous (wall) floor; 0 keeps the constant (the opt-out until
-    // retired).  A vapour-dominant cell (condensation) always uses the
-    // constant.  docs/MODEL_AND_ALGORITHM.md §5.5.
+    // A liquid's margin is the classical-nucleation-theory onset at its
+    // temperature, capped at that constant (ps_flash_margin_cnt), which is
+    // the heterogeneous (wall) floor; a vapour-dominant cell (condensation)
+    // uses the constant.  docs/MODEL_AND_ALGORITHM.md §5.5.  (The
+    // constant-margin opt-out for liquids, ps_flash_onset = 0, was retired
+    // on 14 Nov 2026.)
     const double meta_margin_max = eos.dials.flash_meta_margin;
-    const int flash_onset = eos.dials.flash_onset;
     const bool flash_liq = liq_dominant;
-    const double meta_margin = (flash_onset == 1 && flash_liq)
+    const double meta_margin = flash_liq
         ? ps_flash_margin_cnt(p_dom.T, P_sat_here, eos, meta_margin_max)
         : meta_margin_max;
     const double bw_P = meta_margin * P_sat_here;   // pressure ramp band
@@ -301,18 +300,16 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
     // Rate factor: 1 - exp(-dt/tau), capped at 20 % of the remaining
     // distance per step, times the three windows.
     //
-    // PSAMR.ps_flash_implicit (1), selector kept as the opt-out until
-    // retired: 0 = the windows of the entering state
-    // multiply the proposal (forward Euler in the window); 1 = the proposal
-    // is built with the windows at one and the committed fraction s solves
-    // s = W(s), the windows evaluated on the state the step produces
-    // (backward Euler in the window; a perturbation of the entering
-    // pressure leaves multiplied by 1/(1+g), g the loop gain).
-    const int flash_implicit = eos.dials.flash_implicit;
+    // The proposal is built with the windows at one and the committed
+    // fraction s solves s = W(s) below, the windows evaluated on the state
+    // the step produces (the steady birth step: backward Euler in the
+    // window; a perturbation of the entering pressure leaves multiplied by
+    // 1/(1+g), g the loop gain).  The forward-Euler form, in which the
+    // entering state's windows multiplied the proposal (ps_flash_implicit
+    // = 0), was retired on 14 Nov 2026.
     const double W_0 = w_T * w_meta * w_alpha;
     double blend = 1.0 - std::exp(-dt / tau_flash);
     if (blend > 0.2) blend = 0.2;
-    if (flash_implicit == 0) blend *= w_T * w_meta * w_alpha;
 
     // Coupled alpha + m step with the saturation projection: dm =
     // rho_sat(T_dom) dalpha so the newborn phase lies on the saturation
@@ -476,7 +473,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
         }
         s_star = s_lo;
     }
-    if (flash_implicit == 1 && s_star > 0.0) {
+    if (s_star > 0.0) {
         // W(s): the three windows on the dominant phase of trial(s), queried
         // on its own branch as p_dom was.  A dominant phase without a finite
         // state closes the window (W = 0), which keeps the root below it.
@@ -496,7 +493,7 @@ inline bool ps_flash_source_cell(V6& U, const PsPhaseAPI& eos,
                             * ss01((T_crit_g - c.T) / bw_T);
             if (wT <= 0.0) return 0.0;
             const double Ps = eos.Psat_of_T(c.T);
-            const double mm = (flash_onset == 1 && flash_liq)
+            const double mm = flash_liq
                 ? ps_flash_margin_cnt(c.T, Ps, eos, meta_margin_max) : meta_margin_max;
             const double bP = mm * Ps;
             if (!(bP > 0.0)) return 0.0;

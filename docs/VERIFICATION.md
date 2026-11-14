@@ -179,11 +179,11 @@ Recorded 2026-11-14 (the CNT onset as the default, GERG, llvm, contraction-free)
 
 | test | measured speed / level / outlet [m/s, bar, bar] | GERG | PR |
 |:--|:--|:--|:--|
-| 19 (124.7 bar, 10.2 °C) | 585 / 34.2 / 21.8 | 592 / 35.6 / 27.2 (cap-bound: identical with `ps_flash_onset=0`) | 497 / 33.9 / 26.8 |
-| 24 (115.6 bar, 35.8 °C) | 370 / 63.8 / 40.4 | 366 / 64.0 / 37.4 (`ps_flash_onset=0`: 60.0) | — / 59.7 / 36.3 |
-| 23 (121.9 bar, 31.5 °C, held out) | 441 / 42.9 / 45.2 | 419 / 56.7 / 36.2 (`ps_flash_onset=0`: 55.4) | — |
+| 19 (124.7 bar, 10.2 °C) | 585 / 34.2 / 21.8 | 592 / 35.6 / 27.2 (cap-bound: identical with the constant 10 % margin) | 497 / 33.9 / 26.8 |
+| 24 (115.6 bar, 35.8 °C) | 370 / 63.8 / 40.4 | 366 / 64.0 / 37.4 (constant 10 % margin: 60.0) | — / 59.7 / 36.3 |
+| 23 (121.9 bar, 31.5 °C, held out) | 441 / 42.9 / 45.2 | 419 / 56.7 / 36.2 (constant 10 % margin: 55.4) | — |
 
-The warm level was predicted at 64.0 ± 0.5 bar before the run (`docs/PLAN_onset.md` §4) and the cold test predicted unchanged; both held. Test 23 fired its falsifier (the onset run is 1.3 bar farther from the measured level than the fixed window): that measurement is not an onset plateau (43 bar at 294.6 K would be past the homogeneous limit; the fluid is already evaporating), so the test does not discriminate onset laws (DESIGN_DECISIONS R-16). What the code does not reproduce: the undershoot-and-recovery of the cold tests and the pressure behind the first level of the warm test, both the transfer rate behind the onset (FUTURE_WORK §1). Without the open-end declaration the cold test's outlet locks at 61 bar (B-7).
+The constant-margin runs were made with the opt-out `ps_flash_onset=0`, retired on 14 Nov 2026 (DESIGN_DECISIONS O-30). The warm level was predicted at 64.0 ± 0.5 bar before the run (`docs/PLAN_onset.md` §4) and the cold test predicted unchanged; both held. Test 23 fired its falsifier (the onset run is 1.3 bar farther from the measured level than the fixed window): that measurement is not an onset plateau (43 bar at 294.6 K would be past the homogeneous limit; the fluid is already evaporating), so the test does not discriminate onset laws (DESIGN_DECISIONS R-16). What the code does not reproduce: the undershoot-and-recovery of the cold tests and the pressure behind the first level of the warm test, both the transfer rate behind the onset (FUTURE_WORK §1). Without the open-end declaration the cold test's outlet locks at 61 bar (B-7).
 
 ## 7. The 2-D tests
 

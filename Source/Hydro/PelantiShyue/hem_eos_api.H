@@ -214,8 +214,6 @@ struct PsKernelDials {
     double flash_alpha_thr        = 0.0;   // PSAMR.ps_flash_alpha_thr
     double flash_meta_margin      = 0.0;   // PSAMR.ps_flash_metastable_margin
     int    flash_h_mode           = 0;     // PSAMR.ps_flash_h_mode (0 dom, 1 avg, 2 auto)
-    int    flash_implicit         = 1;     // PSAMR.ps_flash_implicit
-    int    flash_onset            = 1;     // PSAMR.ps_flash_onset
 };
 
 // ---------------------------------------------------------------------
@@ -444,35 +442,6 @@ inline double ps_dial_flash_meta_margin() {
     static const double v = ps_dial_real("ps_flash_metastable_margin", 0.10);
     return v;
 }
-//  PSAMR.ps_flash_implicit (1): 1 = the committed fraction solves
-//  s = W(s), the windows taken on the state the step produces (the steady
-//  birth step); 0 = the windows of the entering state multiply the
-//  nucleation proposal (forward Euler in the window), kept as the opt-out
-//  until the selector is retired.  Read once on the host and passed to the
-//  kernels through PsKernelDials.
-inline int ps_dial_flash_implicit() {
-    static const int v = []{
-        const int x = ps_dial_int("ps_flash_implicit", 1);
-        if (x != 0 && x != 1) amrex::Abort("PSAMR.ps_flash_implicit must be 0 or 1");
-        return x;
-    }();
-    return v;
-}
-//  PSAMR.ps_flash_onset (1): 1 = a liquid's metastability margin is the
-//  classical-nucleation-theory onset at the liquid's temperature
-//  (ps_flash_margin_cnt, hem_flash.H), capped at ps_flash_metastable_margin
-//  (docs/MODEL_AND_ALGORITHM.md §5.5, DESIGN_DECISIONS R-16); 0 = the
-//  margin is that constant, kept as the opt-out until the selector is
-//  retired.  Other values abort.  Read once on the host and passed to the
-//  kernels through PsKernelDials.
-inline int ps_dial_flash_onset() {
-    static const int v = []{
-        const int x = ps_dial_int("ps_flash_onset", 1);
-        if (x != 0 && x != 1) amrex::Abort("PSAMR.ps_flash_onset must be 0 or 1");
-        return x;
-    }();
-    return v;
-}
 inline int ps_dial_flash_h_mode() {
     static const int v = []{
         const std::string s = ps_dial_string("ps_flash_h_mode", "auto");
@@ -501,8 +470,6 @@ inline PsKernelDials ps_kernel_dials()
     d.flash_alpha_thr   = ps_dial_flash_alpha_thr();
     d.flash_meta_margin = ps_dial_flash_meta_margin();
     d.flash_h_mode      = ps_dial_flash_h_mode();
-    d.flash_implicit    = ps_dial_flash_implicit();
-    d.flash_onset       = ps_dial_flash_onset();
     return d;
 }
 

@@ -195,3 +195,7 @@ GPU-versus-host difference is round-off in both legs. No abort (O-P8). Plotfiles
 `ps_flash_implicit`. The decision record is DESIGN_DECISIONS R-16; the law is MODEL §5.5. Proof of the flip
 commit on the Mac: at `PSAMR.ps_flash_onset=0` the fingerprints reproduce `onset_off` 21/21; at the default they
 reproduce `onset_on` 21/21; `ps_cover` 8/8. The stored references are not re-issued here (stage D).
+
+### 6.4 The selector retired (Marc, 14 Nov 2026, after stage D)
+
+`ps_flash_onset` and `ps_flash_implicit` are retired together (DESIGN_DECISIONS O-30): a set key aborts from the retired table, the constant-margin and forward-Euler branches leave `hem_flash.H`, the two fields leave `PsKernelDials`. Battery byte-identical at the defaults, as predicted (only dead branches leave).

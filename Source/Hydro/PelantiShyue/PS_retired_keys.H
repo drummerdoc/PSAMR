@@ -79,6 +79,8 @@ inline void ps_abort_on_retired_keys()
         { "ps_lw_skip_contact",  "the contact-wave correction is always the smoothstep taper in |d alpha|/alpha_cond" },
         { "ps_promote_checked",  "promotion to Independent is always energy-checked" },
         { "ps_floor_indep",      "the per-phase floor acts on Independent phases only" },
+        { "ps_flash_implicit",   "the steady birth step (s = W(s)) is the only nucleation step; MODEL_AND_ALGORITHM §5.5" },
+        { "ps_flash_onset",      "a liquid's nucleation margin is the classical-nucleation-theory onset capped at ps_flash_metastable_margin; DESIGN_DECISIONS R-16" },
     };
     amrex::ParmParse pp("PSAMR");
     for (const RetiredKey& rk : table) {
