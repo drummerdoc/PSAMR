@@ -19,8 +19,12 @@
 #ifndef PR_EDGE_H
 #define PR_EDGE_H
 
+#ifndef HEM_NO_AMREX
 #include <AMReX_REAL.H>
 #include <AMReX_GpuQualifiers.H>
+#else
+#include "hem_saturation_amrex.H"   // the HEM_NO_AMREX shim for the AMReX macros (table generators)
+#endif
 #include <cmath>
 
 namespace pr_edge {
