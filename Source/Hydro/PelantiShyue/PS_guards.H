@@ -176,6 +176,7 @@ inline void  count_nscbc_zg_pack()  { ++ps_counters().nscbc_zg_pack; }
 inline void  count_nscbc_flash()    { ++ps_counters().nscbc_flash; }
 inline void  count_nscbc_pmix_fail(){ ++ps_counters().nscbc_pmix_fail; }
 inline void  count_nscbc_fan(int steps) { ++ps_counters().nscbc_fan_cells; ps_counters().nscbc_fan_steps += steps; }
+inline void  count_nscbc_locked()   { ++ps_counters().nscbc_locked; }
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_zg_c()     noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_zg_sup()   noexcept {}
@@ -184,6 +185,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_zg_pack()  noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_flash()    noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_pmix_fail() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_fan(int) noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_nscbc_locked() noexcept {}
 #endif
 
 // ---------------------------------------------------------------------

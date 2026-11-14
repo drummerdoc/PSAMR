@@ -505,6 +505,24 @@ outflow_face(const amrex::Real s_N  [NVAR],
 
     if (small_signal) {
         // ---- Small-signal branch: one linearised isentropic step. ----
+#if !defined(AMREX_USE_GPU)
+        //  The locked face, counted (nscbc_locked in the [PS-GUARD] line):
+        //  an outflow cell of a face NOT declared an open end that is pure
+        //  subcooled liquid (P_N above its own saturation pressure) facing
+        //  an ambient below that saturation pressure.  Reaching P_amb must
+        //  cross the dome, which the linear step cannot, so the face holds
+        //  above saturation and never flashes (docs/DESIGN_DECISIONS.md
+        //  B-7).  The test uses only the cell's own branch-locked
+        //  temperature and EOS::Psat; no new constant.  Host builds only.
+        if (p.open_end == 0 && !inflow_bound && un_out_N > Real(0.0)
+            && p1_present && !p2_present) {
+            Real Pq, Tq, Sq, cq;
+            if (EOS::REY2PTSc_phase_try(ph.rho1, ph.e1, Yp, hem::Phase3::Liquid, Pq, Tq, Sq, cq)) {
+                const Real Ps = EOS::Psat(Tq);
+                if (std::isfinite(Ps) && p.P_amb < Ps && Ps < P_N) ps_guard::count_nscbc_locked();
+            }
+        }
+#endif
         const Real dP = P_g - P_N;
         if (p1_present) {
             const Real drho1 = dP / (ph.c1 * ph.c1);

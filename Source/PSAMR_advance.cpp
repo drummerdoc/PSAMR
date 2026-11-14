@@ -307,6 +307,8 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long nm_ = pc.nscbc_pmix_fail;
             amrex::Long nfc_ = pc.nscbc_fan_cells;
             amrex::Long nfs_ = pc.nscbc_fan_steps;
+            amrex::Long nlk_ = pc.nscbc_locked;
+            amrex::ParallelDescriptor::ReduceLongSum(nlk_);
             amrex::ParallelDescriptor::ReduceLongSum(nc_);
             amrex::ParallelDescriptor::ReduceLongSum(ns_);
             amrex::ParallelDescriptor::ReduceLongSum(nt_);
@@ -322,7 +324,8 @@ PSAMR::PSAMR_advance (Real time,
                            << " nscbc_flash=" << nf_
                            << " pmix_fail=" << nm_
                            << " fan_cells=" << nfc_
-                           << " fan_steps=" << nfs_ << "\n";
+                           << " fan_steps=" << nfs_
+                           << " locked=" << nlk_ << "\n";
             pc.reset_guards();
             // Face audit, gated on PSAMR.ps_face_diag (0); the counters
             // themselves cost a few compares per face.  The health lines
