@@ -1,0 +1,7 @@
+tag:      BASE_2026-11-14
+date:     2026-11-14T00:26Z
+psamr:     99164fa1883582a353844c21135fe4dfa0737d46 (0 modified tracked files)
+amrex:    65db2e4e678a15acec1b666d4c42e339ad5b9ec0
+host:     Darwin arm64
+compiler: Apple clang version 21.0.0 (clang-2100.1.1.101)
+GERG_EXT_C=<unset>
