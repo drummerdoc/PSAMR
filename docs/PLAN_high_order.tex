@@ -1393,9 +1393,70 @@ counter.  Stage 3 replaces this correction by a reconstruction, which
 changes the question rather than answering it: a characteristic-wise
 WENO weight is also a ratio of slot-normalised quantities.
 
-\paragraph{Decision for Marc.}  The limiter's treatment of noise-level
-slots: the counter and the slot-exclusion run first, then the floor or
-another rule with its derivation, before Stage 3.  Commits of this stage:
-the seed instrument in the T-Blowdown deck; this record.
+\paragraph{The two tests (Marc's go; commit of the instruments
+follows).}  \code{lim\_noise\_slot} counts, per wave, an inner product in
+which one slot contributes more than half of the summed $|$terms$|$ while
+its scale is below $10^{-10}$ of the largest slot scale on the face;
+\code{PSAMR.ps\_lim\_skip\_slot} leaves one slot out of the inner product.
+Neither changes the arithmetic at the defaults: the battery bitwise
+unchanged (all 31 checks pass, A/C numbers identical to Stage 0), XC2D
+bitwise identical to the Stage 2 run.
+
+\begin{center}
+\small
+\begin{tabular}{llrrr}
+\toprule
+run (seed $10^{-8}$, 100 steps) & $\max|\rho v|$ at step 100 & counter total & first count & verdict \\
+\midrule
+default & 45 & 739\,703 & level 0, step 0 & unstable \\
+\code{ps\_wp\_order=1} & $1.8\times10^{-6}$ & 0 & none & stable \\
+limiter \code{none} & $2.1\times10^{-5}$ & 0 & none & stable \\
+no seed & 0 & 58\,146 & level 1, step 7 & exactly 0 \\
+$y$-momentum slot excluded & $9.8\times10^{-7}$ & 203\,459 & level 0, step 1 & \textbf{stable} \\
+slot excluded, no seed & 0 & 58\,146 & level 1, step 7 & exactly 0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The slot-exclusion prediction held: with the $y$-momentum slot out of the
+inner product the seeded run stays at the seed level for the whole run,
+and nothing else was changed.  The reading is confirmed on its decisive
+test.  The counter prediction held in its two zeros and failed as an
+instrument: it fires without a seed (58\,146 events), because its scale
+criterion, relative to the largest slot on the face, catches the
+trace-phase mass and energy slots, which are small by physics rather
+than by noise; the seeded run's 740\,000 against 58\,000 is the
+$y$-momentum vote on top of that.  A criterion that separates a slot at
+noise level from a slot that is physically small needs the per-slot
+reference scale the derivation below is about, which is why the counter
+cannot be that derivation.
+
+On XC2D the exclusion changes the solution by $5\times10^{-2}$ of range on
+level 0 and $1.2\times10^{-2}$ on level 1 (ray-diff fine interior
+$|\Delta\alpha_1|$ $2.8\times10^{-9}$ against $4.1\times10^{-11}$, edge
+$1.7\times10^{-9}$ against $1.8\times10^{-9}$): the transverse momentum's
+vote shapes a real two-dimensional solution, so excluding it is a test,
+not a fix.  The counter fires $1.4\times10^{6}$ times in those 40 steps
+under the default and $7\times10^{5}$ with the slot excluded.
+
+\paragraph{Decision for Marc.}  The rule for a slot's weight in the
+limiter's inner product.  What the evidence supports: the weight
+$1/(|U_L|+|U_R|)^2$ makes every slot's normalised jump $O(1)$ whatever
+its size, so a slot carrying only noise (the transverse momentum of a
+nominally one-dimensional flow, and, by the same arithmetic, any slot at
+round-off in a sweep direction along which it is uniform) decides $\phi$
+as much as the mass slot does.  Three candidate rules, none derived here:
+a per-slot reference scale in the normalisation (mass by $\rho$,
+momentum by $\rho c$, energy by $\rho c^2$, or the face's own state
+scales), so that a slot below a fraction of its reference drops out; a
+relative floor on $sc$ against such a reference (O-31's declined option,
+now with its evidence); or limiting on a reduced set of slots per wave
+family.  Each is a change to the acceptance operator and moves the
+battery; the record for whichever is chosen is the seeded tube (stable
+to the seed level), the battery (A/C mean and bands), XC2D (ray-diff
+zones) and the pipe-break shear-mode checkerboard at step 50 (MODEL
+\S3.8, the quantity recorded there), with predictions written first.
+\code{ps\_lim\_skip\_slot} is retired with that commit.  Commits of this
+stage: the seed instrument; the record; the two limiter instruments.
 
 \end{document}
