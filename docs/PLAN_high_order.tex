@@ -1527,4 +1527,75 @@ zones) and the pipe-break shear-mode checkerboard at step 50 (MODEL
 \code{ps\_lim\_skip\_slot} is retired with that commit.  Commits of this
 stage: the seed instrument; the record; the two limiter instruments.
 
+
+\subsection{Stage 2d: the reference-scale rule, two passes (15 November 2026, Mac \code{llvm})}
+\label{sec:stage2d}
+
+\paragraph{First pass, the floor: refuted.}  Implemented as written in
+\S\ref{sec:stages} (the slot scale floored at $\varepsilon R_n$).  Seeded
+tube: $\max|\rho v|$ 39 at step 10 and 42 at step 100, the instability
+unchanged, with the floor acting $1.5\times10^{6}$ times; XC2D unchanged
+to $2\times10^{-14}$ of range; demo3 contact-window metric
+$1.26\times10^{-3}$ against $9.2\times10^{-4}$.  The 1-D binary of this
+pass did not build (a 2-D index in the momentum class), so its battery
+line was a stale binary and is void.  Why the floor fails: in a sweep
+through a flow uniform along that direction every other slot's jump is
+round-off, so the floored $y$-momentum slot, at $|W_f|/(\varepsilon R)
+\sim 10^{-3}$ against $10^{-13}$ for the rest, still decides $\phi$.  The
+plan's own wording was that such a slot ``drops out''; the floor was an
+implementation of a weaker thing.
+
+\paragraph{Second pass, the drop-out rule: landed.}  A slot below
+$\varepsilon R_n$ is excluded from the inner product (counted
+\code{lim\_slot\_floor}); a wave with no slot left takes $\phi = 0$
+(counted \code{lim\_wave\_noise}).  Against the predictions:
+\begin{enumerate}[nosep]
+\item Battery: the 21 fingerprints change at round-off ($10^{-16}$ to
+      $10^{-15}$ relative per field, the acceptance configuration), so
+      ``bitwise identical'' is refuted by one ulp: some 1-D slot does sit
+      below $10^{-8}$ of its reference somewhere in the battery;
+      \code{verify\_canonical} all 31 checks pass with A/C numbers
+      identical to Stage 0 to the printed digits.
+\item Seeded tube: $\max|\rho v|$ between $10^{-6}$ and $4\times10^{-6}$
+      for 100 steps, $9.8\times10^{-7}$ at step 100 (seed
+      $8.5\times10^{-6}$; old rule 45): held.  The rule acted
+      $2.6\times10^{6}$ times, $1.1\times10^{5}$ waves at $\phi = 0$.
+      Unseeded tube: $y$-momentum exactly 0; the 300-step run differs from
+      Stage 2 by $1.4\times10^{-13}$ of range (the rule acts $3\times10^{5}$
+      times on slots at noise level in the $x$-sweep too), so ``bitwise
+      identical'' is refuted at round-off and the substance held.
+\item XC2D 40 steps: counters 0, fold census identical, every ray-diff
+      zone identical to the old rule's to the printed digits, the two
+      solutions $2.7\times10^{-11}$ apart on level 0; run time 2.09\,s
+      against 2.10: held.  The rule acted $2.6\times10^{6}$ times,
+      $7\times10^{4}$ waves at $\phi = 0$.
+\item demo3 to step 50: counters 0, no folds under either rule; contact
+      window $\max|d^2\alpha_1|$ $1.30\times10^{-3}$ with 4 extrema against
+      $9.2\times10^{-4}$ with 3 (refuted, $+42\,\%$ against the 10\,\% band);
+      front window $1.18\times10^{-3}$ against $1.36\times10^{-3}$ (better);
+      whole axis $1.51\times10^{-3}$ against $1.75\times10^{-3}$ (better).
+      The rule acted $3.1\times10^{6}$ times and set $6.4\times10^{5}$
+      waves to $\phi = 0$ in 50 steps: in the jet's nearly uniform regions
+      the old rule applied noise-driven corrections and the new rule
+      applies none, and the centreline contact window reads the
+      difference.  Whether $9.2\times10^{-4}$ with the old rule was the
+      better solution or a smoother-looking artefact of random
+      corrections is not something this metric can say; the
+      independent instruments (battery, XC2D against the uniform
+      reference) do not move.
+\item Cost: held.  GPU: queued.
+\end{enumerate}
+
+\paragraph{State and the decision it leaves.}  The rule is landed with
+\code{ps\_lim\_ref\_eps} $= 10^{-8}$ as the default and 0 as the old rule,
+O-32 in the register, MODEL \S3.3 and the guard tables updated,
+\code{ps\_lim\_skip\_slot} retired.  What Marc weighs: the demo3
+centreline metric against the tube, the battery and XC2D.  If the
+production metric is to be protected as it stands, the default goes to 0
+and the rule stays available; if the transverse instability is to be
+closed, the default stays and VERIFICATION \S7.5 re-baselines the demo3
+metric from this binary.  Either way the instrument for the next
+question, which production regions the rule acts in, is
+\code{lim\_wave\_noise} by level and step.
+
 \end{document}
