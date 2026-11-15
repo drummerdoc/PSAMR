@@ -437,8 +437,13 @@ half step.
 \label{sec:stages}
 % =====================================================================
 
-Every stage builds on the Mac (\code{COMP=llvm}) and, before it is called
-done, on peart (\code{COMP=gnu}, CUDA).  Comparisons use
+Every stage is measured on the Mac (\code{COMP=llvm}).  Its GPU check
+(peart, \code{COMP=gnu}, CUDA: XC2D 40 steps to round-off against the Mac
+run) is queued from a bundle and appended to the stage's record when it
+arrives; a stage is not merged to main without it, but the next stage does
+not wait for it (Marc, 15 November 2026, after the Stage 0 peart build ran
+serially for over an hour).  One GPU build configuration per deck, so
+peart rebuilds stay incremental.  Comparisons use
 \path{~/src/PSAMR-trial/bench_nov14/pfdiff.py} (per level,
 max $|$difference$|$/range per field).  Control binaries are copied aside
 before each rebuild.  Every two-dimensional run, new and control, carries
@@ -471,28 +476,58 @@ changed.
 
 \subsection*{Stage 1: SSPRK(3,3) through \code{AmrLevel::RK}, spatial operator unchanged}
 
-\code{rk\_order=3}, \code{ps\_wp\_order=2}, \code{cf\_interp=cons}.  The
-hydro right-hand side is the present one; only the time scheme and the
-ghost filling change.
+\code{rk\_order=3}, \code{ps\_wp\_order=2}, \code{cf\_interp=cons}.
+
+\textbf{Amended after Stage 0.}  The hydro right-hand side is \emph{not}
+left as it is: Stage 0 item 3 showed that the Lax--Wendroff factor
+$(1 - |s|\Delta t/\Delta x)$ in the correction makes the stage operator
+first order in $\Delta t$ whatever the integrator, so under
+\code{rk\_order=3} the correction takes its method-of-lines form
+$\tfrac12|s|\,\phi\,\Delta q$, with no $\Delta t$ factor and no
+transverse term (\code{ps\_wp\_transverse} must be 0; the cross term
+is supplied by the stages).  Under \code{rk\_order=2} (Heun) and the
+single-step scheme nothing changes.  The implementation does not call
+\code{AmrLevel::RK}, because the state carries no ghost cells
+(\code{state\_nghost=0}) and that path asserts on it; the stage states
+live in \code{Sborder} and the \code{FillPatcher} is built with
+\code{numGrow()} ghosts (\code{PSAMR::rk\_fill},
+\code{PSAMR::rk\_store\_coarse}), otherwise the AMReX sequence.  The
+ADV2D runs below are on the corrected deck (commit \code{9a3e96fb}); the
+amplitude is 0.0025 unless stated, so the taper is at weight 1 and the
+operator is what is measured.  Prediction 1 is restated with a resolution
+clause: the third-order $\Delta t$ error is small, and a pair difference
+below $10^{-8}$ in $L_1(\alpha_1)$ is at the level of the EOS and
+round-off noise seen in Stage 0 (the one-dimensional single-step pairs at
+$10^{-9}$), so such a pair declares the measurement unresolved, to be
+repeated at a larger step ratio, rather than refuted.  Prediction 4 adds
+the A/C mean, from Stage 0 item 4.
 
 \begin{enumerate}[nosep]
-\item ADV2D $64^2$, \code{cfl} 0.3, 0.15, 0.075: $\log_2$ of the
-      self-convergence ratio in $\Dt$ is $3.0\pm0.3$.  Falsifier: below 2.5
-      (then the stage weights or the ghost filling are wrong, and no
-      further stage runs until it is found).
-\item ADV2D $32^2$ to $128^2$ at fixed \code{cfl}: rate $2.0\pm0.1$, and
-      $L_1$ at $64^2$ within 5\,\% of the Heun value (the spatial error
-      dominates at second order).  Falsifier: rate below 1.9.
+\item ADV2D $64^2$, transverse 0, \code{cfl} 0.3, 0.15, 0.075: $\log_2$ of
+      the self-convergence ratio in $\Dt$ is $3.0\pm0.3$ when both pair
+      differences exceed $10^{-8}$; unresolved otherwise.  Falsifier: below
+      2.5 with resolved pairs (then the stage weights, the correction form
+      or the ghost filling are wrong, and no further stage runs until it is
+      found).  Beside it, the same under \code{rk\_order=2} on the
+      corrected deck as the control: 1.0, as Stage 0 measured.
+\item ADV2D $32^2$ to $128^2$ at \code{cfl=0.3}, transverse 0: rate
+      $2.0\pm0.15$, and $L_1$ at $64^2$ within a factor 1.5 of the
+      single-step transverse-1 value $2.21\times10^{-6}$ (the limited
+      central correction against the Lax--Wendroff one).  Falsifier: rate
+      below 1.8.  At amplitude 0.25 the rate is recorded, not predicted:
+      the taper holds it near 1 whatever the integrator.
 \item ADV2D \code{inputs-fb-rk2} (static fine box, periodic): total mass and
       $\rho E$ conserved to round-off across the \code{sum\_interval=20}
       totals (below $10^{-13}$ relative).  Falsifier: a drift above that,
       which means the reflux register is not carrying the stage weights
       the step used.
-\item Battery: the \code{verify\_canonical} PASS set equal to the Heun
-      control's; every \code{err\_vs\_analytic} error within 2\,\% of the
-      Heun control's (the battery is shock-limited and the spatial operator
-      is unchanged).  Falsifier: a check that passed under Heun and fails
-      here, or an error moved by more than 10\,\%.
+\item Battery under \code{rk\_order=3}: the A/C mean of
+      \code{verify\_canonical} at $0.035\pm0.002$ (Stage 0 item 4: the
+      Heun path's 0.0444 is the stage-wise Lax--Wendroff correction at
+      $\nu\approx0.25$ being a quarter smaller than the method-of-lines
+      one); the per-case frozen bands and the \code{exact\_suite} errors
+      recorded against the single-step scheme's, any band lost a finding.
+      Falsifier for the scheme: a mean above 0.040.
 \item XC2D, 40 steps, level 1: runs to step 40; \code{flux\_sanit} and the
       three limiter counters 0; the \code{reflux\_*} counters equal to the
       Heun control's.  Falsifier: an abort, or a limiter counter above 0.
@@ -683,7 +718,323 @@ One item per commit, on \code{high-order} off \code{main} at
 \label{sec:results}
 % =====================================================================
 
-Empty at the time of writing.  Each stage appends its measured numbers
-against the predictions above, with refuted predictions marked as such.
+Each stage appends its measured numbers against the predictions above,
+with refuted predictions marked as such.
+
+\subsection{Stage 0: controls (15 November 2026, Mac \code{llvm} at \code{e9eecf18}, peart \code{gnu}/CUDA at the same commit)}
+\label{sec:stage0}
+
+No code in the tree was changed.  One experiment ran on a copy of the
+ADV2D deck in the scratch directory (item 2 below); the copy differs from
+the tree by two lines of \src{Exec/CO2\_ADV2D/prob.H} and is not in the
+tree.  Three of the five predictions were refuted, and the refutations
+change Stages 1 and 3.
+
+\paragraph{Item 1, the quartic interpolater.  Prediction held.}
+\code{CellConservativeQuartic::interp} (\src{AMReX\_Interpolater.cpp}) calls
+\code{ccquartic\_interp} (\src{AMReX\_Interp\_2D\_C.H}): a fixed five-point
+stencil with weights $(-3, 22, 128, -22, 3)/256$ applied in $y$ then $x$,
+each fine pair formed as $2\bar q - q_{\mathrm{other}}$ so that the pair
+averages to the coarse value.  No limiter, no use of the boundary-condition
+records, refinement ratio 2 only, coarse stencil grown by 2.  As predicted:
+unlimited.
+
+\paragraph{Item 2, the ADV2D rate.  Prediction refuted, and the deck is
+not the test the record describes.}
+At the tree, $32^2 \to 64^2 \to 128^2$ with \code{do\_mol=0},
+\code{ps\_wp\_limiter=none}, \code{cfl=0.4}: $L_1(\alpha_1) = 1.125\times10^{-2}$,
+$5.495\times10^{-3}$, $1.823\times10^{-3}$, rates 1.03 and 1.59.  The
+recorded $6.80\times10^{-4}$ at $64^2$ is not reproduced; the first-order
+run (\code{ps\_wp\_order=1}) gives $6.07\times10^{-3}$, so the correction
+moves $\alpha_1$ by 10\,\% on this grid.  The pressure in the initial
+plotfile is not uniform: it varies by 11\,\% across the domain, in exact
+proportion to $\alpha_1$ (correlation $+1.000$), and the final velocity
+field varies by 0.85\,m/s.  Cause, read from \src{Exec/CO2\_ADV2D/prob.H}
+(unchanged since July, \code{9aad22b6}): phase 2 is initialised with the
+phase-1 liquid state ($\rho_2 = \rho_1$, $e_2 = e_1$, \code{T2} ignored),
+and the branch-locked EOS evaluates that state on the vapour branch, which
+returns 6.37\,MPa against the 8\,MPa of phase 1; the mixture pressure
+$\alpha_1 P_1 + \alpha_2 P_2$ then varies linearly with $\alpha_1$.  The
+README's description (phase 2 on the vapour branch at 330\,K) describes
+what the deck should do, not what it does, and every ADV2D number in
+\code{VERIFICATION.md} \S7.2 was taken on an initial condition that
+launches acoustic waves.
+
+The experiment: a scratch copy of the deck with phase 2 from
+\code{EOS::PYT2RE\_vapor(P0, Y, T2, rho\_2, e\_2)}, as \src{Exec/CO2\_XC2D/prob.H}
+and \src{Exec/CO2\_B4/prob.H} do.  Prediction written before the run: the
+initial pressure uniform to below $10^{-9}$ relative and the velocity
+uniform to round-off at the stop time.  Held: pressure range
+$1.6\times10^{-12}$ relative at $t=0$ and $3.6\times10^{-13}$ at the stop
+time, velocity range $8\times10^{-11}$\,m/s.  On that deck, $L_1(\alpha_1)$
+at the stop time, limiter \code{none}, against the translated initial
+condition:
+
+\begin{center}
+\footnotesize
+\begin{tabular}{llrrrl}
+\toprule
+configuration & amplitude & $32^2$ & $64^2$ & $128^2$ & rates \\
+\midrule
+single step, transverse 0 (deck default) & 0.25 & $1.09\times10^{-2}$ & $5.12\times10^{-3}$ & $1.42\times10^{-3}$ & 1.09, 1.85 \\
+single step, transverse 0 & 0.0025 & $1.04\times10^{-5}$ & $4.48\times10^{-6}$ & $2.15\times10^{-6}$ & 1.22, 1.06 \\
+single step, transverse 1 (contact only) & 0.25 & $1.08\times10^{-2}$ & $5.06\times10^{-3}$ & $1.38\times10^{-3}$ & 1.09, 1.88 \\
+single step, transverse 1 & 0.0025 & $8.05\times10^{-6}$ & $2.21\times10^{-6}$ & $6.49\times10^{-7}$ & 1.87, 1.77 \\
+single step, $v_0 = 0$ (one-dimensional) & 0.25 & $5.49\times10^{-3}$ & $2.54\times10^{-3}$ & $6.87\times10^{-4}$ & 1.11, 1.89 \\
+single step, $v_0 = 0$ & 0.0025 & $4.08\times10^{-6}$ & $1.02\times10^{-6}$ & $2.54\times10^{-7}$ & 2.00, 2.00 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two separate effects are in these rows, each isolated by one line of the
+table.
+
+\begin{enumerate}[nosep]
+\item \textbf{The missing transverse term.}  With $v_0 = 0$ and the small
+      amplitude the scheme is second order to two decimals, so the
+      one-dimensional operator (\code{ps\_wp\_order=2}) is what it claims.
+      With diagonal advection and \code{ps\_wp\_transverse=0} the same
+      amplitude gives rates 1.22 and 1.06: the dimensionally unsplit update
+      without transverse propagation lacks the cross term
+      $u v\,\Delta t\,\partial_{xy}q$ of the second-order Taylor expansion,
+      an $O(\Delta t)$ truncation error, first order at fixed CFL.  The
+      contact-only transverse term (\code{ps\_wp\_transverse=1}; at uniform
+      pressure and velocity the contact carries everything, so it is the
+      full term here) recovers rates 1.87 and 1.77.  The deck does not set
+      \code{ps\_wp\_transverse}, so the deck default is the first-order
+      multi-dimensional scheme.  The $6.80\times10^{-4}$ record must have
+      been taken with a transverse term on, or with the deleted CTU path;
+      the record does not say.
+\item \textbf{The contact-wave taper (H-5).}  At amplitude 0.25 even the
+      one-dimensional case is first order on $32^2$ and $64^2$ and only
+      reaches 1.89 at $128^2$.  The per-face jump of a resolved sine of
+      amplitude 0.25 is $2\pi\cdot0.25/N$: 0.049, 0.025, 0.012 on the three
+      grids, against $\alpha_{\mathrm{cond}} = 0.02$; the keep-weight
+      $w = 1 - \mathrm{smoothstep}(|\Delta\alpha|/\alpha_{\mathrm{cond}})$
+      is 0 on the steepest faces of the two coarser grids and 0.34 at
+      $128^2$, so the contact correction is switched off exactly where the
+      gradient is.  At amplitude 0.0025 the jump is 100 times smaller,
+      $w = 1$ everywhere, and the rate is 2.  The taper therefore makes
+      $\alpha_1$ first order on any resolved smooth variation whose per-face
+      jump is of order $\alpha_{\mathrm{cond}}$, which is any smooth
+      $O(1)$ variation of $\alpha_1$ on a grid that resolves it with fewer
+      than about $2\pi/\alpha_{\mathrm{cond}} \approx 300$ cells per
+      wavelength.  H-5 was measured on the battery (no smooth $\alpha$
+      variation) and on the jet lip (an interface); this is the case it
+      was not measured on.
+\end{enumerate}
+
+\paragraph{Item 3, the Heun control.  Prediction refuted.}
+Self-convergence in $\Delta t$ on $64^2$ (\code{cfl} 0.3, 0.15, 0.075,
+limiter \code{none}), $L_1$ of the $\alpha_1$ difference between successive
+runs; the single-step scheme at \code{cfl} 0.4, 0.2, 0.1 beside it:
+
+\begin{center}
+\small
+\begin{tabular}{llrrl}
+\toprule
+scheme & deck, amplitude, transverse & pair 1 & pair 2 & observed order \\
+\midrule
+Heun & tree, 0.25, 0 & $3.77\times10^{-5}$ & $1.90\times10^{-5}$ & 0.99 \\
+Heun & corrected, 0.25, 0 & $3.70\times10^{-5}$ & $1.86\times10^{-5}$ & 0.99 \\
+Heun & corrected, 0.0025, 0 & $1.58\times10^{-6}$ & $7.91\times10^{-7}$ & 1.00 \\
+Heun & corrected, 0.0025, 1 & $2.37\times10^{-6}$ & $1.19\times10^{-6}$ & 0.99 \\
+single step & corrected, 0.0025, 0 & $2.10\times10^{-6}$ & $1.05\times10^{-6}$ & 1.00 \\
+single step & corrected, 0.0025, 1 & $3.78\times10^{-7}$ & $2.06\times10^{-7}$ & 0.88 \\
+single step & corrected, 0.0025, $v_0 = 0$ & $4.30\times10^{-9}$ & $1.49\times10^{-9}$ & 1.53 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The Heun path is first order in $\Delta t$ in every configuration, with a
+constant that does not shrink when the transverse term is on.  The reason
+is in \src{PS\_umeth.cpp}: the correction coefficient is
+$\tfrac12 |s| (1 - |s|\Delta t/\Delta x)$, the Lax--Wendroff form.  In a
+single-step scheme that factor is what makes the scheme second order in
+time.  Inside a Runge--Kutta stage it is a $\Delta t$-dependent spatial
+operator, and its $O(\Delta t)$ part, $-\tfrac12 s^2 (\Delta t/\Delta x)\phi\Delta q$,
+is a first-order error however many stages follow.  The single-step scheme
+is also first order in $\Delta t$ when the transverse term is off (the
+cross term of item 2, which scales with $\Delta t$); with it on, the
+$\Delta t$ dependence drops by a factor 5 but is still first order at a
+level of 17\,\% of the spatial error; one-dimensionally it is at the
+$10^{-9}$ level and no longer measurable against other errors.
+
+\textbf{Consequence for Stage 1.}  Prediction 1 of Stage 1 (RK3 with the
+spatial operator unchanged gives order 3 in $\Delta t$) cannot hold: the
+operator carries the $(1 - |s|\Delta t/\Delta x)$ factor.  Stage 1 needs
+the method-of-lines form of the correction, $\tfrac12 |s|\,\phi\,\Delta q$
+with no $\Delta t$ factor and no transverse term, under \code{rk\_order=3};
+the cross term is then supplied by the stages.  That is a code change to
+\src{PS\_umeth.cpp} inside the Stage 1 commit, and a decision for Marc
+(\S\ref{sec:stage0decide}).  Under the single-step scheme nothing changes.
+
+\paragraph{Item 4, the battery under Heun.  Record.}
+\code{verify\_canonical.py} with \code{PROBE\_OV="PSAMR.do\_mol=1"}, 1-D PR
+binary rebuilt at \code{e9eecf18} (the pre-rebuild binary gave identical
+A/C numbers): 10 of 31 checks pass, 21 fail.  Every A/C case fails its
+frozen band on all three fields; the A/C mean is 0.0444 against the
+0.0350 of the single-step scheme (+27\,\%); A4 doubles (0.022, 0.052,
+0.027 to 0.041, 0.097, 0.051); the B4 $u$-error is 0.158 against 0.126.
+The 10 that pass are the build-freshness check, C1 under both trace
+settings, the B4 flatness across $\theta$, B9, frozen B5, B2 front
+stability and the three B12 checks.  Under the
+single-step scheme all 31 pass.  \code{exact\_suite.py} under Heun: every
+case's errors larger than the single-step values by 10 to 40\,\%, the B
+cases included (B4 $u$ 0.126 to 0.158, B8 $u$ 0.165 to 0.198, B10 $P$
+0.083 to 0.124).  The reading is the same as item 3: the stage-wise
+Lax--Wendroff correction at $\nu \approx 0.25$ is a quarter smaller than
+the method-of-lines correction would be, so the Heun path is more
+diffusive than the single-step scheme, not merely differently
+second order.  Prediction for Stage 1, written now: with the
+method-of-lines correction under RK3 the A/C mean returns to
+$0.035 \pm 0.002$.  Falsifier: above 0.040.
+
+\paragraph{Item 5, cost and counters.  Record.}
+Mac, run time without initialisation as printed by the code; every
+\code{[PS-GUARD]} counter 0 in all runs:
+
+\begin{center}
+\small
+\begin{tabular}{lrrr}
+\toprule
+case & single step & Heun & ratio \\
+\midrule
+XC2D, 40 coarse steps, 4 ranks & 2.38\,s & 3.64\,s & 1.53 \\
+T-Blowdown \code{inputs-x-amr}, 300 coarse steps, 1 rank & 26.9\,s & 43.1\,s & 1.60 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Heun costs 1.5 to 1.6 times the single-step scheme per step at the same
+\code{cfl=0.25} (two hydro evaluations against one; the relaxation
+operator once in both).  Scaled to three stages that is 2.0 to 2.2 per
+step, below the factor 3 assumed in \S\ref{sec:gpu}.  GPU (peart, RTX PRO 6000, CUDA, one device, run
+time without initialisation): XC2D 22.5\,s single step against 37.0\,s
+Heun (ratio 1.64); T-Blowdown 31.7\,s against 55.4\,s (1.75).  The
+absolute times are launch-bound on these small decks (the Mac on four
+ranks is ten times faster on XC2D) and say nothing about production
+cost; the ratios agree with the Mac's.  The guard counters are host-only
+and compile to no-ops on the device, so the GPU runs carry none.
+
+\paragraph{Decisions this stage leaves to Marc.}
+\label{sec:stage0decide}
+\begin{enumerate}[nosep]
+\item The ADV2D deck: initialise phase 2 on the vapour branch at
+      $(P_0, T_2)$, two lines in \src{Exec/CO2\_ADV2D/prob.H}, its own
+      commit, and re-baseline \code{VERIFICATION.md} \S7.2 and the deck
+      README from the corrected deck, stating amplitude and the transverse
+      setting with every number.  Without it no ADV2D prediction in this
+      plan is measurable.
+\item Which ADV2D configuration is the reference for the rates:
+      transverse 1 at amplitude 0.0025 is the one that measures the
+      operator (second order now, the target rates at Stages 1 and 3);
+      amplitude 0.25 measures the taper.  Both should be recorded.
+\item H-5 and the high-order path: the jump-based taper caps $\alpha_1$ at
+      first order on resolved smooth gradients.  Stage 3's reconstruction
+      replaces the correction the taper acts on, so the taper has no
+      operand there and its purpose (no correction across an interface)
+      must be served by the reconstruction's own smoothness measure.  That
+      is a design point to settle before Stage 3, not here.
+\item Stage 1: the method-of-lines correction (no $\Delta t$ factor, no
+      transverse term) under \code{rk\_order=3}, as a code change inside
+      the Stage 1 commit, with the prediction above.
+\end{enumerate}
+
+
+\subsection{Stage 1: SSPRK(3,3) with the method-of-lines correction (15 November 2026, Mac \code{llvm}; commits \code{cf665056} and the correction-form commit on \code{high-order})}
+\label{sec:stage1}
+
+Implementation as amended in \S\ref{sec:stages}: \code{PSAMR.rk\_order=3}
+drives the Shu--Osher stages in \src{PSAMR\_advance.cpp} on \code{Sborder},
+with \code{PSAMR::rk\_fill} (\code{FillPatcher::fillRK} at the stage
+times) and \code{PSAMR::rk\_store\_coarse}; the flux registers take
+$\tfrac16, \tfrac16, \tfrac23$ through \code{rk\_reflux\_fac}; the
+correction coefficient in \src{PS\_umeth.cpp} is $\tfrac12|s|$ under
+\code{rk\_order=3} (\code{ps\_wp\_transverse} must be 0); the MOL CFL
+cap becomes $1/\mathrm{DIM}$ under \code{rk\_order=3}.  Controls: the Heun
+and single-step paths are bitwise unchanged on ADV2D after the commits.
+ADV2D on the corrected deck, limiter \code{none}, transverse 0.
+
+\paragraph{Prediction 1 (order in $\Delta t$).  Held, at 3.00.}
+$64^2$, amplitude 0.0025, \code{cfl} 0.3, 0.15, 0.075: $L_1(\alpha_1)$
+against the exact solution $1.60586\times10^{-6}$ at all three steps; the
+pair differences $3.60\times10^{-11}$ and $4.50\times10^{-12}$, ratio
+7.99, observed order 3.00.  At a step ratio of 4 (\code{cfl} 0.3, 0.075,
+0.01875) the pairs are $4.05\times10^{-11}$ and $6.29\times10^{-13}$,
+ratio 64.4 against the 64 of third order.  The resolution clause was not
+needed: pairs at $10^{-11}$ were clean, so the EOS and round-off noise
+feared from Stage 0's one-dimensional pairs is below $10^{-12}$ here.
+Heun on the same deck: 1.00 (Stage 0).
+
+\paragraph{Prediction 2 (rate in space).  Held, at 2.00.}
+\code{cfl=0.3}, amplitude 0.0025: $6.42\times10^{-6}$, $1.61\times10^{-6}$,
+$4.02\times10^{-7}$ on $32^2$, $64^2$, $128^2$, rates 2.00 and 2.00; the
+$64^2$ error is 0.73 of the single-step transverse-1 value.  Amplitude
+0.25 (recorded): $1.15\times10^{-2}$, $5.40\times10^{-3}$,
+$1.47\times10^{-3}$, rates 1.09 and 1.88, the taper as in Stage 0.
+
+\paragraph{Prediction 3 (conservation).  Held.}
+\code{inputs-fb-rk2} (static fine box, composite totals from the
+plotfiles, since the printed sums carry ten digits): mass
+$+3.4\times10^{-15}$, $\rho E$ $+1.4\times10^{-15}$, $\alpha_1\rho_1$
+$-1.5\times10^{-15}$, $x$-momentum $-1.3\times10^{-15}$ relative over
+33 coarse steps.  The Heun control on the same deck: mass
+$+9.0\times10^{-12}$, the other three at $10^{-16}$; a $10^{-12}$ mass
+drift under Heun is a finding for the register, not for this stage.  No
+RK ghost fallback fired on any run (the message is
+``FillPatch fallback'').
+
+\paragraph{Prediction 4 (battery).  Held: A/C mean 0.0361.}
+\code{verify\_canonical} under \code{rk\_order=3}: 21 of 31 pass; the
+A/C mean 0.0361 (trace $10^{-6}$) and 0.0362 (trace 0) pass their band
+(single step 0.0351, Heun 0.0444).  Bands lost, each by a few per cent on
+one field: A2 ($u$ 0.095 against 0.089), A3 ($u$ 0.088/0.084), A4 ($u$
+0.055/0.052), C2 ($u$ 0.132/0.125), C3 ($u$ 0.112/0.108); A1, A5, A6, C1
+and every B check pass.  \code{exact\_suite}: errors within a few per
+cent of the single-step scheme's either way (A1, A6, B5, B7, B9 smaller;
+A2 $u$ and C2 $u$ six per cent larger), against the 10 to 40\,\% the Heun
+path lost.  The stage-wise correction at full strength recovers the
+acceptance quality, as predicted; the few-per-cent residual on the
+velocity of the weaker waves is the MOL-TVD operator against the
+Lax--Wendroff one and is recorded, not a defect.
+
+\paragraph{Predictions 5 and 6 (XC2D, T-Blowdown).  Held.}
+XC2D 40 steps, level 1: runs, every guard counter 0, 3.53\,s against
+3.64\,s (Heun) and 2.38\,s (single step); worst field difference against
+the single-step run $7.5\times10^{-2}$ of range (momentum), against
+$1.65\times10^{-1}$ for Heun against single step, so the RK3 run is the
+nearer of the two.  T-Blowdown 300 steps: runs, counters 0, 54.9\,s
+against 43.1 and 26.9; worst difference against the single-step run
+$9.6\times10^{-2}$ of range, the same as Heun's $9.6\times10^{-2}$; the
+B.14 star-state fallback count is three times the single-step count on
+the same early steps (48 against 16 at steps 2, 3, 5), one per stage on
+the same faces.
+
+\paragraph{Cost.}  Per unit of simulated time at the same \code{cfl}:
+1.48 (XC2D) and 2.04 (T-Blowdown) times the single-step scheme, against
+the 2.0 to 2.2 extrapolated from Heun in Stage 0 and the factor 3 assumed
+in \S\ref{sec:gpu}.
+
+\paragraph{Prediction 7 (CFL 0.45).  Held; the cap under \code{rk\_order=3} is $1/\mathrm{DIM}$.}
+The Heun cap of 0.3 in \src{PSAMR.cpp} refused the runs, so the cap was
+made $1/\mathrm{DIM}$ under \code{rk\_order=3} (the forward Euler bound of
+the unsplit operator in the per-direction $\Delta t$ definition) and
+measured.  ADV2D $64^2$ at \code{cfl} 0.45 and 0.5 (amplitude 0.25, van
+Leer): stable, $L_1(\alpha_1) = 5.4008\times10^{-3}$ at both against
+$5.4006\times10^{-3}$ at 0.3, 88 and 79 steps against 131; at amplitude
+0.0025 and \code{cfl} 0.45, $1.60586\times10^{-6}$, the value of the
+whole $\Delta t$ sweep.  XC2D to the stop time at \code{cfl} 0.45:
+runs, counters 0, 32 steps against 56 at 0.25, 3.07\,s against 4.63\,s;
+against the 0.25 run at the same time the conserved fields differ by at
+most $7\times10^{-3}$ of range, the derived velocities by
+$5.8\times10^{-2}$ (0.43\,m/s on a range of 7.4, in the low-density
+cells).  The cost prediction of \S\ref{sec:gpu} therefore takes its
+lower branch.
+
+\paragraph{GPU check.}  Queued on peart (the detached queue
+\code{peart\_stage.sh}: XC2D 40 steps at \code{rk\_order=3}, ADV2D
+single step and \code{rk\_order=3} on the corrected deck, each against
+the Mac run to round-off); appended here when it reports.
 
 \end{document}
