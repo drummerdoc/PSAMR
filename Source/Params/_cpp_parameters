@@ -51,8 +51,10 @@ rk_order                     int          2
 
 # coarse-to-fine interpolater for the state: "cons" = cell_cons_interp
 # (limited linear, second order); "quartic" = quartic_interp (conservative
-# quartic, unlimited, fourth order, refinement ratio 2 only).  Not under
-# embedded boundaries.  docs/PLAN_high_order.pdf section 4.4.
+# quartic, unlimited, fourth order, refinement ratio 2 only); "quartic_limited"
+# = the same stencil with the McCorquodale-Colella range bound
+# (Utils/CFInterp.H).  Not under embedded boundaries.
+# docs/PLAN_high_order.pdf section 4.4 and Stage 2b.
 cf_interp                    string       "cons"
 
 # use the Pelanti-Shyue six-equation wave-propagation solver

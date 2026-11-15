@@ -1,5 +1,6 @@
 #C++ files
 CEXE_sources += BCfill.cpp
+CEXE_sources += CFInterp.cpp
 CEXE_sources += Bld.cpp
 CEXE_sources += Derive.cpp
 CEXE_sources += External.cpp
@@ -13,6 +14,7 @@ CEXE_sources += SumUtils.cpp
 CEXE_sources += Tagging.cpp
 
 #C++ headers
+CEXE_headers += CFInterp.H
 CEXE_headers += Derive.H
 CEXE_headers += IndexDefines.H
 CEXE_headers += MathConstants.H

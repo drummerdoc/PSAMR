@@ -4,6 +4,7 @@
 
 #include "PSAMR.H"
 #include "Derive.H"
+#include "CFInterp.H"
 #include "IndexDefines.H"
 #include "prob.H"
 
@@ -152,8 +153,10 @@ PSAMR::variableSetUp()
         interp = &amrex::cell_cons_interp;
     } else if (cf_interp == "quartic") {
         interp = &amrex::quartic_interp;
+    } else if (cf_interp == "quartic_limited") {
+        interp = &psamr_quartic_limited_interp;   // Utils/CFInterp.H
     } else {
-        amrex::Abort("PSAMR.cf_interp must be cons or quartic");
+        amrex::Abort("PSAMR.cf_interp must be cons, quartic or quartic_limited");
     }
 #endif
     ppc.add("cf_interp", cf_interp);   // resolved value -> job_info
