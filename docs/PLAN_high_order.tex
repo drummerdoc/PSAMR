@@ -682,8 +682,10 @@ Then the defaults are decided by Marc on the record, not here.
       relaxation terms, for third order in the full step.
 \item SSPRK(4,3), with its own \code{FillPatcher} coefficients, for a third
       less work per simulated time.
-\item A limited fourth-order coarse-to-fine interpolant, if Stage~2 shows
-      the unlimited one failing.
+\item A limited fourth-order coarse-to-fine interpolant: Stage~2 showed
+      the unlimited one failing (negative partial masses and killed traces
+      at the coarse--fine layers of the pipe-break and XC2D), so this is now
+      a prerequisite of Stage 3, not a contingency.
 \item Interface sharpening (THINC-type) for the contact, if the WENO5
       contact is measurably more smeared than the present tapered scheme on
       the pipe-break.
@@ -1036,5 +1038,83 @@ lower branch.
 \code{peart\_stage.sh}: XC2D 40 steps at \code{rk\_order=3}, ADV2D
 single step and \code{rk\_order=3} on the corrected deck, each against
 the Mac run to round-off); appended here when it reports.
+
+
+\subsection{Stage 2: the quartic coarse-to-fine interpolant (15 November 2026, Mac \code{llvm}; commit \code{144beae3})}
+\label{sec:stage2}
+
+\code{PSAMR.cf\_interp} (\code{cons} default, \code{quartic} =
+\code{CellConservativeQuartic}) in \src{PSAMR\_setup.cpp}; the RK stage
+ghost fill and regrid follow the descriptor.  The default path is bitwise
+unchanged (XC2D single step against the Stage 0 run).  Every quartic run
+below has a cons twin from the same binary.
+
+\paragraph{Prediction 1 (fine box).  Held, and the test is insensitive.}
+\code{inputs-fb-rk2} under \code{rk\_order=3}: conservation to
+$10^{-15}$ under both; the composite $L_1(\alpha_1)$ against the
+translated initial condition $1.4010\times10^{-2}$ under both to five
+digits (the coarse $32^2$ level at amplitude 0.25 dominates); the two
+runs differ by $1.6\times10^{-4}$ of range on level 0.  The static fine
+box exercises the interpolant only through ghost cells of a smooth field
+and does not discriminate.
+
+\paragraph{Prediction 2 (XC2D gaps).  Not evaluable as stated; what was
+seen refutes the interpolant.}
+Under quartic the pressure-jump tagging refines more: the fine-covered
+part of the mid-height ray grows from $x\in[0.3125,0.4375]$ (28 fine
+cells) to $[0.3125,0.5312]$ (52) under the single-step scheme and
+$[0.3125,0.5625]$ (60) under \code{rk\_order=3}, taking the contact band
+inside the fine region, so the ray-diff zones of VERIFICATION \S7.3 no
+longer correspond and the single-step quartic run reaches step 40 at a
+different time ($1.4035\times10^{-4}$ against $1.4335\times10^{-4}$).
+Under \code{rk\_order=3} at the matching time: fine interior
+$|\Delta\alpha_1| = 6.8\times10^{-2}$ at the now-refined contact, edge
+$2.5\times10^{-9}$ (cons $1.4\times10^{-9}$), coarse elsewhere
+$3.7\times10^{-9}$ (cons $4.7\times10^{-6}$, which included the contact).
+The post-reflux $\alpha_1$ minimum on level 1 is exactly 0 under quartic
+and $9\times10^{-7}$ under cons: the $1.2\times10^{-6}$ vapour trace in
+the liquid is killed.  Fold events over the 40 steps, quartic against
+cons: vanish 34534/20752 (single step), 84866/57266 (RK3); vacuum
+7547/3447 and 26961/10554; \code{edeg} 193/0 and 228/33; \code{cdeg} 52/0
+and 0/0.  Guard counters 0 throughout.
+
+\paragraph{Prediction 3 (range prints).  Held on the letter, refuted on
+the instrument that matters.}
+No post-interpolation print on XC2D, T-Blowdown or the pipe-break
+reported $\alpha_1$ outside $[0,1]$, because the presence folds act on
+the interpolated state before the next print; the fold census is where
+the undershoots show.  T-Blowdown 300 steps: counters 0 under both; the
+coarse--fine $\alpha_1$ minimum 0.447 under quartic against 0.454 under
+cons; against the cons run the conserved fields differ by 3\,\% of range
+and the transverse velocity of the 1-D-in-$x$ tube by 0.11\,m/s on a
+range of 0.18 (seeded by the unlimited stencil).
+
+\paragraph{Prediction 4 (pipe-break to step 200).  Refuted.}
+\code{inputs.satjet\_demo2}, 6 ranks, single step, three levels: both
+runs reach step 200 with guard counters 0 and no $\alpha_1$ print outside
+$[0,1]$.  Fold census over the run, quartic against cons: vanish folds
+957 (level 0), 396, 156 against 0, 0, 0, folding 3.5 and 2.8 mass
+units on the two coarse levels; vacuum folds 13 (level 0, $-0.16$ mass
+units, i.e. negative partial mass repaired) and 3 against 0; \code{edeg}
+6 per level against 0.  The two solutions differ at step 200 by 2 to
+4\,\% of range in the conserved fields on every level and by 0.019 in
+$\alpha_1$ on level 0 (39\,\% of its 0.05 range).  The unlimited
+interpolant manufactures negative partial masses and vanishing slivers at
+the coarse--fine layers of a flashing jet, which is the falsifier written
+in \S\ref{sec:stages} for this stage.
+
+\paragraph{Decision this stage forces.}  The default stays \code{cons}.
+Stage 3's reconstruction needs a fourth-order coarse-to-fine interpolant
+that is limited (the McCorquodale--Colella limited quartic, or a
+positivity-preserving blend to \code{cons} where the quartic stencil
+leaves the admissible set), as a new item before Stage 3; the
+\code{cf\_interp} dial is where it plugs in.  Whether a limited quartic
+still expands the pressure-jump tagging is a prediction for that item.
+The parked list in \S\ref{sec:parked} is updated accordingly.
+
+\paragraph{GPU check.}  Queued on peart behind the Stage 1 queue: XC2D 40
+steps single step under \code{cons} and \code{quartic} and under
+\code{rk\_order=3} with \code{quartic}, each to round-off against the Mac
+run; appended here when it reports.
 
 \end{document}
