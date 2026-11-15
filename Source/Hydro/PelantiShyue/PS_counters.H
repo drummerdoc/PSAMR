@@ -199,8 +199,9 @@ struct PsCounters {
     long   ctop_sub          = 0;
     long   ctop_host_floor   = 0;
     long   flux_sanit        = 0;   // silent limiters
-    long   reflux_cap        = 0;
-    long   reflux_clamp      = 0;
+    long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
+    long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
+    long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
     long   nscbc_zg_c        = 0;   // NSCBC zero-gradient refusals by cause
     long   nscbc_zg_sup      = 0;
     long   nscbc_zg_slots    = 0;
@@ -268,7 +269,7 @@ struct PsCounters {
     void reset_guards() {
         guard_seen = guard_reject_low = rho_clamp_lo = 0;
         ctop_seen = ctop_sub = ctop_host_floor = 0;
-        flux_sanit = reflux_cap = reflux_clamp = 0;
+        flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;

@@ -286,17 +286,21 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Print() << " | ctop_seen = " << ck_
                            << "  ctop_sub = " << cs_
                            << "  ctop_host_floor = " << cf_;
-            //  The counted limiters (flux non-finite sanitisation, reflux α
-            //  co-move cap and clamp) report and reset at the same cadence.
+            //  The counted limiter (flux non-finite sanitisation) and the
+            //  reflux co-move's three counts report and reset at the same
+            //  cadence (PS_guards.H).
             amrex::Long fs_ = pc.flux_sanit;
-            amrex::Long rc_ = pc.reflux_cap;
-            amrex::Long rk_ = pc.reflux_clamp;
+            amrex::Long ra_ = pc.reflux_absent;
+            amrex::Long rs_ = pc.reflux_sliver;
+            amrex::Long rb_ = pc.reflux_badrho;
             amrex::ParallelDescriptor::ReduceLongSum(fs_);
-            amrex::ParallelDescriptor::ReduceLongSum(rc_);
-            amrex::ParallelDescriptor::ReduceLongSum(rk_);
+            amrex::ParallelDescriptor::ReduceLongSum(ra_);
+            amrex::ParallelDescriptor::ReduceLongSum(rs_);
+            amrex::ParallelDescriptor::ReduceLongSum(rb_);
             amrex::Print() << " | flux_sanit = " << fs_
-                           << "  reflux_cap = " << rc_
-                           << "  reflux_clamp = " << rk_;
+                           << "  reflux_absent = " << ra_
+                           << "  reflux_sliver = " << rs_
+                           << "  reflux_badrho = " << rb_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;

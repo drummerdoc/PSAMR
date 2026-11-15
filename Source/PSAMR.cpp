@@ -26,7 +26,6 @@
 #include "PS_wavespeed.H"      // ps_guard counters (clean_state repairs)
 #include "PS_promote.H"       // checked promotion (ps_regime_reach)
 #include "PS_retired_keys.H"  // ps_abort_on_retired_keys (read_params)
-#include "PS_constants.H"     // ps_const::ALPHA_REFLUX_MIN (reflux)
 #endif
 
 bool PSAMR::signalStopJob = false;
@@ -985,14 +984,16 @@ PSAMR::reflux()
   amrex::MultiFab& S_crse = get_new_data(State_Type);
 
 #if defined(USE_PS_HYDRO) && !defined(AMREX_USE_EB)
-  // Capacity-form α reflux: snapshot the partial mass α₁ρ₁ (UM1RHO1) before
-  // flux_reg refluxes it, so α₁ can be co-moved with its own mass below.
-  // flux_reg does not touch UALPHA1 (its α flux is 0), so the current
-  // UALPHA1 is the pre-reflux value ρ₁ is keyed on.
-  amrex::MultiFab a1r1_pre;
+  // Capacity-form α reflux: snapshot both partial masses (UM1RHO1, UM2RHO2)
+  // before flux_reg refluxes them, so α₁ can be co-moved with the refluxed
+  // masses at the pre-reflux phase densities below.  flux_reg does not
+  // touch UALPHA1 (its α flux is 0), so the current UALPHA1 is the
+  // pre-reflux value the densities are keyed on.
+  amrex::MultiFab m_pre;
   if (ps_bl_reflux != 0) {
-    a1r1_pre.define(S_crse.boxArray(), S_crse.DistributionMap(), 1, 0);
-    amrex::MultiFab::Copy(a1r1_pre, S_crse, UM1RHO1, 0, 1, 0);
+    m_pre.define(S_crse.boxArray(), S_crse.DistributionMap(), 2, 0);
+    amrex::MultiFab::Copy(m_pre, S_crse, UM1RHO1, 0, 1, 0);
+    amrex::MultiFab::Copy(m_pre, S_crse, UM2RHO2, 1, 1, 0);
   }
 #endif
 
@@ -1020,51 +1021,64 @@ PSAMR::reflux()
 
 #if defined(USE_PS_HYDRO) && !defined(AMREX_USE_EB)
   // PS coarse-fine correction of the non-conservative slot α₁
-  // (docs/MODEL_AND_ALGORITHM.md §1.5, §4.9); PSAMR.ps_bl_reflux (0 = off,
-  // nonzero = on) is documented in Params/_cpp_parameters.
-  // Capacity-form α co-move.  α₁ has no flux; an uncoordinated α reflux
-  // shifts ρ₁ = α₁ρ₁/α₁ and spikes P₁, so α₁ is moved with its own
-  // already-refluxed mass:
-  //     Δ(α₁ρ₁) = (α₁ρ₁)_after_fluxreg − (α₁ρ₁)_before
-  //     ρ₁      = (α₁ρ₁)_before / α₁_before
-  //     α₁     += Δ(α₁ρ₁) / ρ₁
-  // which leaves ρ₁ exactly invariant.  Skipped when α₁_pre <= amin
-  // (1e-8) or ρ₁_pre <= 1e-10; |Δα₁| is capped at 0.05 per reflux and
-  // the result clamped to [amin, 1 − amin]; both limiters are counted
-  // ([PS-GUARD] reflux_cap / reflux_clamp).  A firing limiter leaves an
-  // α-vs-mass residual for the next-step resync.  The clamp holds a
-  // corridor-small α₁ at 1e-8 rather than letting it reach 0: an open
-  // decision, docs/DESIGN_DECISIONS.md §7 O-17.
+  // (docs/MODEL_AND_ALGORITHM.md §1.5, §4.9; docs/PLAN_reflux.md);
+  // PSAMR.ps_bl_reflux (0 = off, nonzero = on) is documented in
+  // Params/_cpp_parameters.
+  // Symmetric capacity form.  α₁ has no flux; an uncoordinated α reflux
+  // shifts ρ_k = m_k/α_k and spikes P_k.  After the conservative reflux
+  // both partial masses are fixed; with V_k = m_k_post / ρ_k_pre the volume
+  // each phase would take at its pre-reflux density,
+  //     α₁ = V₁ / (V₁ + V₂),   ρ_k_new = ρ_k_pre (V₁ + V₂) for both k,
+  // so both phase densities change by the same factor; when the reflux
+  // moved volume consistently (V₁ + V₂ = 1) both are exactly unchanged.
+  // For two positive refluxed masses the result is strictly inside (0, 1):
+  // no clamp and no rate cap (the former [1e-8, 1-1e-8] clamp and 0.05 cap
+  // were retired 15 Nov 2026, DESIGN_DECISIONS A-1 / O-17).  Cases:
+  //   1. a phase absent before the reflux (α₁ exactly 0 or 1): α₁ is left;
+  //      mass the reflux gave the absent phase sits at α_k = 0 and the
+  //      vanish fold in post_timestep returns it to the present phase.  A
+  //      reflux does not create a phase.  Counted reflux_sliver.
+  //   2. a pre-reflux phase density not positive, or V₁ + V₂ not positive:
+  //      an inadmissible input state (the validator reports it), skipped
+  //      and counted reflux_badrho.
+  //   3. otherwise α₁ = V₁/(V₁+V₂) is written as computed; a refluxed mass
+  //      at or below zero puts it at or beyond 0 or 1 and the vanish fold
+  //      removes that phase, conservatively and audited.  Counted
+  //      reflux_absent.
   if (ps_bl_reflux != 0) {
-      const amrex::Real amin = ps_const::ALPHA_REFLUX_MIN;
-      const amrex::Real rho_floor = amrex::Real(1.0e-10);
       for (amrex::MFIter mfi(S_crse); mfi.isValid(); ++mfi) {
           const amrex::Box& bx = mfi.validbox();
           auto s   = S_crse.array(mfi);
-          auto pre = a1r1_pre.const_array(mfi);
+          auto pre = m_pre.const_array(mfi);
           amrex::ParallelFor(bx,
           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-              const amrex::Real a1_old = s(i,j,k,UALPHA1);
-              const amrex::Real m_old  = pre(i,j,k,0);            // (α₁ρ₁)_before
-              const amrex::Real d_m    = s(i,j,k,UM1RHO1) - m_old; // Δ(α₁ρ₁)
-              if (d_m != amrex::Real(0.0) && a1_old > amin) {
-                  const amrex::Real rho1 = m_old / a1_old;         // pre-reflux ρ₁
-                  if (rho1 > rho_floor) {
-                      // Rate cap: a large coarse-fine flux mismatch at a
-                      // sharp contact would otherwise slam α₁ to the clamp.
-                      constexpr amrex::Real da_cap = amrex::Real(0.05);
-                      amrex::Real da = d_m / rho1;
-                      const amrex::Real da_raw = da;
-                      da = amrex::min(amrex::max(da, -da_cap), da_cap);
-                      if (da != da_raw) { ps_guard::count_reflux_cap(); }
-                      amrex::Real a1_new = a1_old + da;
-                      const amrex::Real a1_unclamped = a1_new;
-                      a1_new = amrex::min(amrex::max(a1_new, amin),
-                                          amrex::Real(1.0) - amin);
-                      if (a1_new != a1_unclamped) { ps_guard::count_reflux_clamp(); }
-                      s(i,j,k,UALPHA1) = a1_new;
+              const amrex::Real a1     = s(i,j,k,UALPHA1);
+              const amrex::Real m1_pre = pre(i,j,k,0);
+              const amrex::Real m2_pre = pre(i,j,k,1);
+              const amrex::Real m1     = s(i,j,k,UM1RHO1);
+              const amrex::Real m2     = s(i,j,k,UM2RHO2);
+              if (m1 == m1_pre && m2 == m2_pre) { return; }   // no correction here
+              if (a1 <= amrex::Real(0.0) || a1 >= amrex::Real(1.0)) {          // case 1
+                  if ((a1 <= amrex::Real(0.0) && m1 != m1_pre) ||
+                      (a1 >= amrex::Real(1.0) && m2 != m2_pre)) {
+                      ps_guard::count_reflux_sliver();
                   }
+                  return;
               }
+              const amrex::Real rho1 = m1_pre / a1;                              // pre-reflux densities
+              const amrex::Real rho2 = m2_pre / (amrex::Real(1.0) - a1);
+              if (!(rho1 > amrex::Real(0.0)) || !(rho2 > amrex::Real(0.0))) {  // case 2
+                  ps_guard::count_reflux_badrho(); return;
+              }
+              const amrex::Real V1 = m1 / rho1;
+              const amrex::Real V2 = m2 / rho2;
+              const amrex::Real V  = V1 + V2;
+              if (!(V > amrex::Real(0.0))) { ps_guard::count_reflux_badrho(); return; }
+              const amrex::Real a1_new = V1 / V;                                 // case 3
+              if (a1_new <= amrex::Real(0.0) || a1_new >= amrex::Real(1.0)) {
+                  ps_guard::count_reflux_absent();
+              }
+              s(i,j,k,UALPHA1) = a1_new;
           });
       }
   }

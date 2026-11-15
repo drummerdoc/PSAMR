@@ -133,20 +133,27 @@ amrex::Real clamp_phase_density(amrex::Real rho,
 //                   sanitiser.  Every input is already finite-guarded, so
 //                   a hit means the arithmetic itself produced inf*0 or
 //                   the like, a class the input guards cannot see.
-//    reflux_cap   : the reflux alpha_1 co-move rate limit |d alpha_1| <= 0.05
-//                   engaged at a coarse-fine cell (PSAMR::reflux).
-//    reflux_clamp : the co-moved alpha_1 hit the [amin, 1-amin] clamp.
+//    reflux_absent: the reflux alpha_1 co-move (PSAMR::reflux) found a
+//                   present phase whose refluxed mass is <= 0; alpha_1 is
+//                   written as computed (at or beyond 0 or 1) and the vanish
+//                   fold removes the phase.
+//    reflux_sliver: the reflux gave mass to a phase absent before it; the
+//                   mass is left at alpha_k = 0 for the fold to return.
+//    reflux_badrho: a pre-reflux phase density or the total volume was not
+//                   positive (an inadmissible input state); skipped.
 //  The reflux counters accumulate in post_timestep and appear on the
 //  following step's [PS-GUARD] line.
 // ---------------------------------------------------------------------
 #if !defined(AMREX_USE_GPU)
 inline void  count_flux_sanit()   { ++ps_counters().flux_sanit; }
-inline void  count_reflux_cap()   { ++ps_counters().reflux_cap; }
-inline void  count_reflux_clamp() { ++ps_counters().reflux_clamp; }
+inline void  count_reflux_absent() { ++ps_counters().reflux_absent; }
+inline void  count_reflux_sliver() { ++ps_counters().reflux_sliver; }
+inline void  count_reflux_badrho() { ++ps_counters().reflux_badrho; }
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_flux_sanit()   noexcept {}
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_cap()   noexcept {}
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_clamp() noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_absent() noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_sliver() noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_badrho() noexcept {}
 #endif
 
 // ---------------------------------------------------------------------
