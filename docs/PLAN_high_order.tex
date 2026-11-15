@@ -1283,10 +1283,20 @@ leaves the admissible set), as a new item before Stage 3; the
 still expands the pressure-jump tagging is a prediction for that item.
 The parked list in \S\ref{sec:parked} is updated accordingly.
 
-\paragraph{GPU check.}  Queued on peart behind the Stage 1 queue: XC2D 40
-steps single step under \code{cons} and \code{quartic} and under
-\code{rk\_order=3} with \code{quartic}, each to round-off against the Mac
-run; appended here when it reports.
+\paragraph{GPU check.  Held.}  peart, CUDA, at \code{51df02e5} (the
+branch tip with the Stage 2b build fix, see that record), each against
+the Mac run of the same commit: XC2D 40 steps single step under
+\code{quartic}, level 0 to $4.7\times10^{-12}$ of range on every field
+and level 1 to $9.4\times10^{-12}$; under \code{cons}, level 0 to
+$1.6\times10^{-13}$ and level 1 to $4.8\times10^{-9}$ on $\alpha_1$
+(the trace band, $1.2\times10^{-15}$ absolute) and below $10^{-9}$
+elsewhere.  The RK3 line was taken under \code{quartic\_limited} in
+Stage 2b, \code{quartic} being refuted by then.  Run time 25.9\,s under
+\code{quartic} against 21.5\,s under \code{cons} (launch-bound, as in
+Stage 1).  The queue that first carried this check ran at the Stage 1
+commit (the bundle fetch into the checked-out branch was refused), and
+its successor ran a stale binary (the build failure below); the figures
+here are from the third queue.
 
 
 \subsection{Stage 2b: the limited quartic interpolant (15 November 2026, Mac \code{llvm}; commit \code{891825ff})}
@@ -1367,10 +1377,36 @@ below 0.63\,\%.  The first pass of this run aborted at initialisation on
 the unaligned fine region, which is how the second change above entered.
 
 \paragraph{Predictions 1, 6 and 7.}  Controls held (bitwise).  Cost held
-(XC2D 2.1\,s against 2.4\,s, T-Blowdown 27.7 against 28.8).  GPU queued
-on peart behind the Stage 2 queue: XC2D 40 steps single step and RK3
-under \code{quartic\_limited}, to round-off against the Mac; appended
-when it reports.
+(XC2D 2.1\,s against 2.4\,s, T-Blowdown 27.7 against 28.8).
+
+\paragraph{GPU check.  Held, after a build fix.}  The first GPU queue
+for this stage reported every run as finished with exit code 0, but
+the build line it logged carried make's exit code 2: \src{CFInterp.cpp}
+did not compile under nvcc.  The kernel was a device-only lambda, and the
+CPU fallback path calls it from the host loop, which nvcc refuses as a
+cross-execution-space call; the \code{llvm} build never sees the
+distinction.  Every GPU run of that queue (and of the Stage 2d queue
+behind it) used the binary left by an earlier build and is void.
+Commit \code{51df02e5} writes the kernel body once as an
+\code{AMREX\_GPU\_HOST\_DEVICE} function called from a device lambda
+on the GPU launch and a plain lambda on the CPU loop, as AMReX's own
+\code{AMREX\_HOST\_DEVICE\_PARALLEL\_FOR} macros do; the CPU result is
+bitwise unchanged (XC2D under \code{quartic\_limited} and the old
+limiter rule against the Stage 2b Mac plotfile, both levels).  The
+replacement queue deletes the binary before each make and stops when
+make fails, so a stale binary cannot run again.
+
+At \code{51df02e5}, each against the Mac run of the same commit: XC2D 40
+steps single step under \code{quartic\_limited}, level 0 to
+$2.0\times10^{-13}$ of range on every field, level 1 to
+$4.8\times10^{-9}$ on $\alpha_1$ (the trace band) and below $10^{-9}$
+elsewhere; under \code{rk\_order=3}, $1.7\times10^{-12}$ and
+$6.2\times10^{-9}$.  Two GPU runs of the single-step case differ from
+each other by $8\times10^{-14}$ and $1.8\times10^{-9}$, so the GPU
+agrees with the Mac at its own run-to-run level.  Run time 21.5\,s
+under \code{quartic\_limited} against 21.5\,s under \code{cons} on the
+same device (the first run after the build took 47\,s, a cold start
+that a repeat did not reproduce).
 
 \paragraph{Decisions this stage leaves to Marc.}
 \label{sec:stage2bdecide}
@@ -1592,7 +1628,23 @@ $\varepsilon R_n$ is excluded from the inner product (counted
       corrections is not something this metric can say; the
       independent instruments (battery, XC2D against the uniform
       reference) do not move.
-\item Cost: held.  GPU: queued.
+\item Cost: held.  GPU: held, at \code{51df02e5} (the build fix of the
+      Stage 2b record), each against the Mac run of the same commit.
+      XC2D 40 steps single step: new rule level 0 to
+      $1.6\times10^{-13}$ of range and level 1 to $4.8\times10^{-9}$ on
+      $\alpha_1$ (trace band); old rule $1.4\times10^{-13}$ and
+      $4.4\times10^{-9}$.  Seeded tube (\code{vy\_pert} $=10^{-8}$,
+      100 steps): under the new rule $\max|\rho v|$ is
+      $3.28\times10^{-6}$ at step 50 and $9.80\times10^{-7}$ at step
+      100 on both machines, every field with a physical range agreeing
+      to $3\times10^{-13}$ and the seed-level transverse fields to
+      $5\times10^{-10}$ absolute ($3\times10^{-4}$ of their own
+      $2\times10^{-6}$ range); under the old rule the GPU saturates as
+      the Mac does (43.8 at step 50 and 40.2 at step 100 against 33.7
+      and 44.9), in a different realisation, the switch acting on each
+      machine's own round-off.  So the instability and its fix are both
+      present on the GPU.  Tube run time 10.5\,s against 5.5\,s on one
+      Mac rank.
 \end{enumerate}
 
 \paragraph{State and the decision it leaves.}  The rule is landed with
