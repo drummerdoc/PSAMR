@@ -76,9 +76,13 @@ PSAMR_initdata( int i, int j, int k,
     // want the clean colour-advection, hence a single branch.
     amrex::Real rho_1, e_1;
     EOS::PYT2RE_liquid(prob_parm.P0, Y, prob_parm.T1, rho_1, e_1);
-    const amrex::Real rho_2 = rho_1;
-    const amrex::Real e_2   = e_1;
-    amrex::ignore_unused(prob_parm.T2);
+    //  Phase 2 on its own (vapour) branch at the same P0: the EOS is
+    //  branch-locked, so a phase-2 slot holding the liquid state evaluates
+    //  to a different pressure (6.37 MPa against 8 MPa, measured 15 Nov
+    //  2026) and the mixture pressure then varies with alpha_1, which
+    //  launches acoustic waves and voids the translated-IC exact solution.
+    amrex::Real rho_2, e_2;
+    EOS::PYT2RE_vapor(prob_parm.P0, Y, prob_parm.T2, rho_2, e_2);
 
     const amrex::Real m_1 = alpha_1 * rho_1;
     const amrex::Real m_2 = alpha_2 * rho_2;
