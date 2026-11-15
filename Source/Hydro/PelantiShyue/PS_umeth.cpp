@@ -47,6 +47,7 @@
 #include "PS_dials.H"
 
 #include <AMReX_ParmParse.H>
+#include <limits>
 
 using namespace amrex;
 
@@ -744,14 +745,19 @@ PS_umeth(const Box& bx,
                             //  information and is skipped; if the wave is
                             //  non-zero there (phase birth) it is scaled by
                             //  its own magnitude.
+                            //  A scale below the smallest normal number is
+                            //  not inverted (its reciprocal is infinite and
+                            //  phi would be NaN): it is treated as the zero
+                            //  case and counted.  docs/DESIGN_DECISIONS.md O-31.
                             Real inv = Real(1.0);
                             {
+                                constexpr Real tiny = std::numeric_limits<Real>::min();
                                 const Real sc =
                                     std::abs(uin_arr(i-oi, j-oj, k-ok2, n))
                                   + std::abs(uin_arr(i,    j,    k,    n));
-                                if (sc > Real(0.0))            inv = Real(1.0) / sc;
-                                else if (std::abs(Wf) > Real(0.0))
-                                                               inv = Real(1.0) / std::abs(Wf);
+                                if (sc > Real(0.0) && sc < tiny) ps_guard::count_lim_slot_denorm();
+                                if (sc >= tiny)                inv = Real(1.0) / sc;
+                                else if (std::abs(Wf) >= tiny) inv = Real(1.0) / std::abs(Wf);
                                 else                           continue;
                             }
                             const Real wf = Wf * inv, wu = Wup * inv;
@@ -759,12 +765,19 @@ PS_umeth(const Box& bx,
                             wdotu += wf * wu;
                         }
                         //  A zero-strength wave contributes nothing whatever phi
-                        //  is; leave it at 1 rather than dividing by zero.
-                        if (wdotw > Real(0.0)) {
+                        //  is; leave it at 1 rather than dividing by zero.  A
+                        //  wave whose theta is not finite enters at first
+                        //  order, phi = 0, counted (O-31).
+                        if (wdotw != Real(0.0)) {
                             const Real theta = wdotu / wdotw;
-                            //  van Leer, phi = (theta+|theta|)/(1+|theta|).
-                            const Real at = std::abs(theta);
-                            phi = (theta + at) / (Real(1.0) + at);
+                            if (std::isfinite(theta)) {
+                                //  van Leer, phi = (theta+|theta|)/(1+|theta|).
+                                const Real at = std::abs(theta);
+                                phi = (theta + at) / (Real(1.0) + at);
+                            } else {
+                                phi = Real(0.0);
+                                ps_guard::count_lim_wave_drop();
+                            }
                         }
                     }
                     for (int n = 0; n < NVAR; ++n) {
@@ -777,15 +790,31 @@ PS_umeth(const Box& bx,
                 //  the assignments still act on the unlimited path.
                 Ft[URHO]  = Ft[UM1RHO1] + Ft[UM2RHO2];
                 Ft[UEDEN] = Ft[UE1] + Ft[UE2];
+                //  A correction with a non-finite component is dropped whole
+                //  at this face (every component together, so the wave
+                //  direction is kept) and the first-order flux is left as it
+                //  is; counted (O-31).  This replaces the ps_finite_or on
+                //  flx + F̃, which zeroed the whole face flux silently.
+                {
+                    bool finite = true;
+                    for (int n = 0; n < NVAR; ++n) {
+                        if (n == UTEMP) continue;
+                        if (!std::isfinite(Ft[n])) { finite = false; break; }
+                    }
+                    if (!finite) {
+                        for (int n = 0; n < NVAR; ++n) Ft[n] = Real(0.0);
+                        ps_guard::count_lim_face_drop();
+                    }
+                }
                 // Conserved slots: add F̃ to the recovered flux.
                 for (int n = 0; n < NVAR; ++n) {
                     if (n==UTEMP || n==UALPHA1 || n==UE1 || n==UE2) continue;
-                    flx(i,j,k,n) = ps_finite_or(flx(i,j,k,n) + Ft[n], Real(0.0));
+                    flx(i,j,k,n) += Ft[n];
                 }
                 // Non-conserved slots: stash F̃ for the deposit.
-                ft(i,j,k,0) = ps_finite_or(Ft[UALPHA1], Real(0.0));
-                ft(i,j,k,1) = ps_finite_or(Ft[UE1],     Real(0.0));
-                ft(i,j,k,2) = ps_finite_or(Ft[UE2],     Real(0.0));
+                ft(i,j,k,0) = Ft[UALPHA1];
+                ft(i,j,k,1) = Ft[UE1];
+                ft(i,j,k,2) = Ft[UE2];
             };
             amrex::ParallelFor(xfbx, [=] AMREX_GPU_DEVICE (int i,int j,int k) noexcept {
                 correct(0, i,j,k, wxbx, flx1, wp_wave_x, wp_ft_x, dx[0]); });

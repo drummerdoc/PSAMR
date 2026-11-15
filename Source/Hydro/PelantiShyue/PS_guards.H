@@ -133,6 +133,15 @@ amrex::Real clamp_phase_density(amrex::Real rho,
 //                   sanitiser.  Every input is already finite-guarded, so
 //                   a hit means the arithmetic itself produced inf*0 or
 //                   the like, a class the input guards cannot see.
+//    lim_slot_denorm, lim_wave_drop, lim_face_drop (PS_umeth.cpp, the
+//                   second-order limiter, docs/DESIGN_DECISIONS.md O-31):
+//                   a slot scale below the smallest normal number, which is
+//                   not inverted (its reciprocal would be infinite); a wave
+//                   whose theta is not finite, taken at first order; a face
+//                   whose summed correction is not finite, the correction
+//                   dropped whole with the first-order flux untouched.  The
+//                   first is expected wherever round-off products reach the
+//                   denormals; the other two are expected to read zero.
 //    reflux_absent: the reflux alpha_1 co-move (PSAMR::reflux) found a
 //                   present phase whose refluxed mass is <= 0; alpha_1 is
 //                   written as computed (at or beyond 0 or 1) and the vanish
@@ -146,11 +155,17 @@ amrex::Real clamp_phase_density(amrex::Real rho,
 // ---------------------------------------------------------------------
 #if !defined(AMREX_USE_GPU)
 inline void  count_flux_sanit()   { ++ps_counters().flux_sanit; }
+inline void  count_lim_slot_denorm() { ++ps_counters().lim_slot_denorm; }
+inline void  count_lim_wave_drop()   { ++ps_counters().lim_wave_drop; }
+inline void  count_lim_face_drop()   { ++ps_counters().lim_face_drop; }
 inline void  count_reflux_absent() { ++ps_counters().reflux_absent; }
 inline void  count_reflux_sliver() { ++ps_counters().reflux_sliver; }
 inline void  count_reflux_badrho() { ++ps_counters().reflux_badrho; }
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_flux_sanit()   noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_slot_denorm() noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_wave_drop()   noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_face_drop()   noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_absent() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_sliver() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_badrho() noexcept {}
