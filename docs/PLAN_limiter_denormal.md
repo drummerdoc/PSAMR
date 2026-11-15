@@ -161,8 +161,50 @@ control alike, carry `PSAMR.ps_diag_mass=1`.
 
 ## 6. Results
 
-To be written after the runs. The question the handover left open, why the Mac run carries
-the 1e-11 wall noise while the GPU run is exactly 0 there, is answered in §1: contraction.
-The contraction-free Mac run (plotfiles `plt_nc_*`, binary `PSAMR2d.llvm.TPROF.MPI.NC.ex`)
-is a second control for prediction 2: with the fix in place the default Mac build must still
-differ from it only at round-off, and the kick must be gone.
+Mac, llvm, 15 Nov 2026, code commit `b823aa43`; the controls are the 15 Nov 02:3x binaries of
+the same directories, copied aside as `*.main980117c2` before the rebuilds, run with the same
+commands. The question the handover left open, why the Mac run carries the 1e-11 wall noise
+while the GPU run is exactly 0 there, is answered in §1: contraction.
+
+1. Battery, PR, contraction-free build as the record (`characterize.py record limiter_denormal
+   --defaults`, `EXE=` named): 21/21 IDENTICAL to `reflux_comove`. A second pass with
+   `PROBE_OV=PSAMR.ps_diag_mass=1`, again 21/21 identical: over 17 616 `[PS-GUARD]` lines
+   `flux_sanit`, `lim_slot_denorm`, `lim_wave_drop`, `lim_face_drop` all 0. HELD.
+2. XC2D, 4 ranks, both binaries with `PSAMR.ps_diag_mass=1` (`plt_fix_*`, `plt_ctl_*`; the
+   control reproduces the 02:36 `plt_step_00040` bit for bit):
+   - steps 0 to 39 bitwise identical on both levels: HELD;
+   - step 40 against the control: level 1 identical; level 0 differs in the three wall cells
+     (0,90), (0,91), (1,91) and nowhere else, by 4587 in x- and y-momentum (the kick, gone),
+     and by one ulp in density (1.1e-13) and total energy (1.5e-8) in two of them, with the
+     derived pressure and temperature following. HELD in the cells; the prediction's "momentum
+     only" missed the one-ulp mass and energy flux the zeroed first-order flux also carried;
+   - step 40 against `plt_gpu_00040`: level 0 worst 1.3e-13 of range, momentum 1.3e-13 (0.385
+     before); level 1 as before (momentum 3e-13; worst 4.4e-9 is $\alpha_1$ at 1.1e-15 absolute
+     over a 2.5e-7 range). HELD. Against the contraction-free run: 1.8e-13 on level 0;
+   - counters: `flux_sanit`, `lim_wave_drop`, `lim_face_drop` 0 on every line (720 lines);
+     `lim_slot_denorm` 0 through the step that produced step 39 and 8 during the step that
+     produced step 40 (the x-momentum slot of the faces that see (0,91), summed over the waves
+     evaluated), 0 after. HELD.
+3. T-Blowdown `inputs-x-amr`, 300 steps, `PSAMR.ps_diag_mass=1`, new against control
+   (`runs_o31/new`, `runs_o31/ctl`): plotfiles at steps 100, 200 and 299 bitwise identical on
+   both levels, and bitwise identical to the 15 Nov record `runs_reflux/new`; all four counters
+   0 over the run; `[PS-MASS]` drift 2.1e-16. HELD.
+4. GPU (peart, gnu 13.4, CUDA 13.4 from `/usr/local/cuda`; the handover's "CUDA 12.0" is the
+   12.4 toolkit in `/usr/bin`, which cannot target this GPU and which a non-interactive shell
+   finds first on the path; commit `b823aa43`; `plt_gpufix_00040`, copied to `Exec/CO2_XC2D`).
+   Against the new Mac run `plt_fix_00040`: level 0 worst 1.3e-13 of range, momentum 1.3e-13;
+   level 1 momentum 3.1e-13, worst 4.4e-9 ($\alpha_1$ at 1.1e-15 absolute). HELD. Against
+   `plt_gpu_00040`: not bitwise; 1.0e-13 of range on level 0, 2.2e-9 on level 1 ($\alpha_1$ at
+   5e-16 absolute). That clause of the prediction was ILL-POSED: the control binary of 12:36,
+   run again on the same machine (`plt_gpuctl_00040`), reproduces its own 12:39 file only to
+   9.3e-14 of range on level 0 and 2.6e-9 on level 1, in 3363 of the 16384 coarse cells spread
+   over the whole domain. A GPU run of this deck is therefore not bitwise reproducible run to
+   run (atomic accumulation in the AMReX flux register and the device's reduction order are the
+   likely cause; not traced here), and the new binary against the control's rerun differs by
+   1.0e-13, the same level. GPU comparisons are read at round-off, never bitwise. The counters
+   are compiled out of the GPU build and give no reading there.
+5. Pipe-break windows and the 3-D jet: not re-run, as stated.
+
+In sum: predictions 1, 2 and 3 held; 4 held against the host and was ill-posed in its bitwise
+clause; the one detail missed is the one-ulp change of density and total energy in two of the
+three kicked cells, which the zeroed first-order flux also carried.
