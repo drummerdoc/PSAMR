@@ -25,6 +25,11 @@ struct ProbParmDevice
     amrex::Real T0    = 300.0;    // K    initial CO₂ temperature
     amrex::Real u0    = 0.0;      // m/s  initial CO₂ velocity
     amrex::Real p_amb = 1.0e5;    // Pa   ambient outside the vent
+    // Transverse-velocity seed [m/s], default 0 (deck bitwise unchanged):
+    // v = vy_pert * ((-1)^j + sin(2 pi y / L_y)), a grid-scale and a smooth
+    // mode together, the instrument of the transverse-instability study
+    // (docs/PLAN_high_order.pdf, Stage 2c).  Nothing else depends on it.
+    amrex::Real vy_pert = 0.0;
 };
 
 struct ProbParmHost

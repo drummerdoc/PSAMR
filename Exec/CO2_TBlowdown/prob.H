@@ -34,6 +34,7 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
+#include <cmath>
 
 #include "IndexDefines.H"
 #include "prob_parm.H"
@@ -45,7 +46,7 @@ AMREX_FORCE_INLINE
 void
 PSAMR_initdata( int i, int j, int k,
                amrex::Array4<amrex::Real> const& state,
-               amrex::GeometryData const& /*geomdata*/,
+               amrex::GeometryData const& geomdata,
                ProbParmDevice const& prob_parm)
 {
     // Pure-CO₂ mass fractions.
@@ -59,14 +60,26 @@ PSAMR_initdata( int i, int j, int k,
 
     state(i,j,k, URHO) = rho0;
     state(i,j,k, UMX)  = rho0 * prob_parm.u0;
+    amrex::Real v0 = amrex::Real(0.0);
 #if (AMREX_SPACEDIM >= 2)
-    state(i,j,k, UMY)  = amrex::Real(0.0);
+    if (prob_parm.vy_pert != amrex::Real(0.0)) {
+        const amrex::Real* prob_lo = geomdata.ProbLo();
+        const amrex::Real* prob_hi = geomdata.ProbHi();
+        const amrex::Real* dx      = geomdata.CellSize();
+        const amrex::Real y  = prob_lo[1] + (amrex::Real(j) + amrex::Real(0.5)) * dx[1];
+        const amrex::Real Ly = prob_hi[1] - prob_lo[1];
+        const amrex::Real sgn = (j % 2 == 0) ? amrex::Real(1.0) : amrex::Real(-1.0);
+        v0 = prob_parm.vy_pert * (sgn + std::sin(amrex::Real(6.283185307179586) * (y - prob_lo[1]) / Ly));
+    }
+    state(i,j,k, UMY)  = rho0 * v0;
+#else
+    amrex::ignore_unused(geomdata);
 #endif
 #if (AMREX_SPACEDIM == 3)
     state(i,j,k, UMZ)  = amrex::Real(0.0);
 #endif
 
-    const amrex::Real ke = amrex::Real(0.5) * rho0 * prob_parm.u0 * prob_parm.u0;
+    const amrex::Real ke = amrex::Real(0.5) * rho0 * (prob_parm.u0 * prob_parm.u0 + v0 * v0);
     state(i,j,k, UEINT) = rho0 * e0;
     state(i,j,k, UEDEN) = rho0 * e0 + ke;
     state(i,j,k, UTEMP) = prob_parm.T0;
