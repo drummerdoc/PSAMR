@@ -1184,4 +1184,103 @@ steps single step under \code{cons} and \code{quartic} and under
 \code{rk\_order=3} with \code{quartic}, each to round-off against the Mac
 run; appended here when it reports.
 
+
+\subsection{Stage 2b: the limited quartic interpolant (15 November 2026, Mac \code{llvm}; commit \code{891825ff})}
+\label{sec:stage2b}
+
+\code{CFInterpQuarticLimited} in \src{Source/Utils/CFInterp.H,.cpp}, as
+planned, with one change made during the stage: the stencil is evaluated
+in deviation form (each pair $q_c \mp d$ with $d$ from the four
+off-centre differences), because the first pass, which called AMReX's
+\code{ccquartic\_interp} and bounded its values, refuted prediction 4
+(below) through a round-off asymmetry of that evaluation, not through
+the interpolant.  A second change: fine regions not aligned to coarse
+cells occur (AMReX's \code{derive} for tagging fills one ghost cell, and
+the first pass aborted on the pipe-break at initialisation), so every
+coarse cell touching the region is evaluated in full and only the cells
+inside are written.  Controls: \code{cons} bitwise unchanged on XC2D,
+T-Blowdown and the fine box; AMReX's \code{quartic} bitwise unchanged on
+the fine box.
+
+\paragraph{Prediction 2 (fine box).  Held.}  Conservation to
+$10^{-15}$; composite $L_1(\alpha_1)$ $1.4010\times10^{-2}$ as the
+others; the bound active in 0 of the 80 ghost-band coarse cells over
+every field (predicted below 5\,\%): the resolved sine never puts a fine
+average outside its coarse neighbours' range.  The deviation-form stencil
+differs from AMReX's quartic by $5\times10^{-14}$ of range on this deck.
+
+\paragraph{Prediction 3 (XC2D).  Held, two numbers at the band edge.}
+Fine-covered ray range $[0.3125, 0.4375]$, 28 cells, as \code{cons}
+under both time schemes: the tag expansion of Stage 2 was the undershoot.
+Fold census against \code{cons}: single step vanish 20080/20752
+($-3\,\%$), vacuum 3392/3447; RK3 vanish 57493/57266 ($+0.4\,\%$), vacuum
+11759/10554 ($+11\,\%$, the band was 10), \code{edeg} 1 against 33,
+\code{cdeg} 7 against 0.  Post-reflux $\alpha_1$ minimum $9.65\times10^{-7}$
+(single step, identical to \code{cons}) and $9.24\times10^{-7}$ (RK3,
+\code{cons} $9.06\times10^{-7}$): the trace kept.  Ray-diff against the
+uniform reference, single step: fine interior $6.2\times10^{-11}$ /
+$4.1\times10^{-6}$ / $1.1\times10^{-4}$, edge $2.1\times10^{-9}$ /
+$1.45\times10^{-4}$ / $4.0\times10^{-3}$ (\code{cons} $1.76\times10^{-9}$
+/ $1.21\times10^{-4}$ / $3.3\times10^{-3}$: within a factor 2, the energy
+gap 20\,\% larger where ``not larger'' was written), coarse elsewhere
+$4.1\times10^{-6}$ against $3.7\times10^{-6}$; RK3: edge
+$1.57\times10^{-9}$ / $1.22\times10^{-4}$ against $1.39\times10^{-9}$ /
+$1.08\times10^{-4}$.  Guard counters 0.  Run time 2.1\,s against 2.4\,s.
+
+\paragraph{Prediction 4 (T-Blowdown).  Refuted in the first pass,
+held in the second, and the refutation is a finding of its own.}
+First pass (AMReX's evaluation, bounded): $y$-momentum exactly 0 through
+step 40, $1.1\times10^{-11}$ at step 50, 22 at step 60, 42 at step 100,
+25 at step 299; the unlimited quartic 18 at step 10; \code{ps\_mu=2}
+does not damp it (52 at step 10, 59 at step 100).  The seed is round-off:
+AMReX's five-term sum on $y$-uniform data is not bitwise $y$-uniform, and
+the limiter cannot restore what the stencil broke.  Second pass (deviation
+form): $y$-momentum exactly 0 at every plotfile through step 300; fold
+census 96/32 equal to \code{cons}; coarse--fine $\alpha_1$ minimum
+0.45363 (\code{cons} 0.45363); the solution within $1.7\times10^{-4}$ of
+range of \code{cons} on every field; run time 27.7\,s against 28.8.
+
+\textbf{The finding.}  Between steps 50 and 60 the $y$-momentum grew from
+$10^{-11}$ to 22, a factor of 16 per step, in the wave region near the
+characteristic outflow face, column-wide with alternating sign, and
+saturated at 0.1 to 0.2\,\% of the $x$-momentum.  The two-dimensional
+scheme on this tube is linearly unstable to transverse perturbations and
+\code{cons}, whose zero slope is exact, hides it by never seeding one.
+Any operator that is not bitwise symmetric in $y$ will seed it: the
+Stage 3 reconstruction, a different rank decomposition, or AMReX's own
+quartic.  This is a decision item for Marc before Stage 3
+(\S\ref{sec:stage2bdecide}); the instrument is the 100-step
+\code{inputs-x-amr} run with \code{amr.plot\_int=10} and the
+$\max|\rho v|$ history.
+
+\paragraph{Prediction 5 (pipe-break).  Held, one number at the band edge.}
+Both runs to step 200, guard counters 0, no $\alpha_1$ print outside
+$[0,1]$; vanish, vacuum and \code{edeg} folds 0 on every level under
+\code{quartic\_limited}, as \code{cons} (the unlimited quartic had 1525);
+conserved fields against \code{cons}: density 0.30, 0.75, 1.13\,\% of
+range on levels 0, 1, 2, momentum and energy below 0.75\,\%, $\alpha_1$
+below 0.63\,\%.  The first pass of this run aborted at initialisation on
+the unaligned fine region, which is how the second change above entered.
+
+\paragraph{Predictions 1, 6 and 7.}  Controls held (bitwise).  Cost held
+(XC2D 2.1\,s against 2.4\,s, T-Blowdown 27.7 against 28.8).  GPU queued
+on peart behind the Stage 2 queue: XC2D 40 steps single step and RK3
+under \code{quartic\_limited}, to round-off against the Mac; appended
+when it reports.
+
+\paragraph{Decisions this stage leaves to Marc.}
+\label{sec:stage2bdecide}
+\begin{enumerate}[nosep]
+\item The transverse instability of the two-dimensional scheme on the
+      T-Blowdown tube (growth $\times16$ per step from a round-off seed
+      near the outflow face, undamped by \code{ps\_mu=2}).  It needs its
+      own investigation before Stage 3, whose reconstruction will seed
+      it: where it lives (the NSCBC outflow fan, the slip walls, the
+      coarse--fine layer, or the interior $y$-sweep), and whether the
+      pipe-break's shear-mode checkerboard (MODEL \S3.8) is the same
+      mode.
+\item \code{cf\_interp} default: \code{cons} until the Stage 3 record;
+      \code{quartic\_limited} is the Stage 3 interpolant.
+\end{enumerate}
+
 \end{document}
