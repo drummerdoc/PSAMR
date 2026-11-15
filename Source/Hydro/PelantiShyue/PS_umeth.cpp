@@ -555,6 +555,27 @@ PS_umeth(const Box& bx,
     amrex::ignore_unused(ps_wp_transverse_cached);
 #endif
 
+    // PSAMR.rk_order (2): under 3 (SSPRK(3,3), PSAMR_advance.cpp) the
+    // correction takes its method-of-lines form: no (1 - |s| dt/dx)
+    // factor, because a dt-dependent spatial operator is first order in dt
+    // inside any Runge-Kutta stage whatever the integrator's order
+    // (measured: docs/PLAN_high_order.pdf section 11, Stage 0 item 3), and
+    // no transverse term, because the stages supply the cross term.  Under
+    // rk_order=2 (Heun) and the single-step scheme the Lax-Wendroff form is
+    // unchanged.
+    auto ps_wp_mol_form_cached = []() -> int
+    {
+        static const int cached = []() -> int {
+            const int v = ps_dial_int("rk_order", 2);
+            return (v == 3) ? 1 : 0; }();
+        return cached;
+    };
+    const int wp_mol_form = ps_wp_mol_form_cached();
+    if (wp_mol_form != 0 && wp_transverse != 0) {
+        amrex::Abort("PSAMR.ps_wp_transverse must be 0 under rk_order=3 "
+                     "(the Runge-Kutta stages supply the cross term)");
+    }
+
     // PSAMR.ps_mu (0 = inviscid): dynamic viscosity [Pa s] for
     // ps_viscous_face; the pipe-break decks run an effective 2 Pa s.
     auto ps_mu_cached = []() -> amrex::Real {
@@ -717,7 +738,10 @@ PS_umeth(const Box& bx,
                     const int nk = k - ((idir==2) ? ((sl>Real(0.0))?1:-1) : 0);
                     if (!fbox.contains(amrex::IntVect(AMREX_D_DECL(ni,nj,nk)))) continue;
                     const Real asl   = std::abs(sl);
-                    const Real coef0 = Real(0.5) * asl * (Real(1.0) - asl * dtdx);
+                    //  Lax-Wendroff factor (1 - |s| dt/dx) in the single-step
+                    //  and Heun paths; none under rk_order=3 (method of lines).
+                    const Real coef0 = Real(0.5) * asl *
+                        ((wp_mol_form != 0) ? Real(1.0) : (Real(1.0) - asl * dtdx));
                     //  One scalar limiter per wave (LeVeque):
                     //      θ = <W_up, W_f>_D / <W_f, W_f>_D,   W̃ = φ(θ) W_f,
                     //  with <a,b>_D = Σ_n a_n b_n / (|U_L,n| + |U_R,n|)².

@@ -237,8 +237,14 @@ PSAMR::read_params()
   if (cfl <= 0.0 || cfl > 1.0) {
     amrex::Error("Invalid CFL factor; must be between zero and one.");
   }
-  if ((do_mol == 1) && (cfl > 0.3) && fixed_dt <= 0.0) {
+  if ((do_mol == 1) && (rk_order != 3) && (cfl > 0.3) && fixed_dt <= 0.0) {
     amrex::Error("Invalid CFL factor; must be <= 0.3 when using MOL hydro");
+  }
+  // Under rk_order=3 the SSP bound is the forward Euler bound of the unsplit
+  // operator in the per-direction dt definition, 1/DIM; measured on ADV2D
+  // and XC2D at cfl 0.45 in 2-D (docs/PLAN_high_order.pdf section 11).
+  if ((do_mol == 1) && (rk_order == 3) && (cfl > 1.0/AMREX_SPACEDIM) && fixed_dt <= 0.0) {
+    amrex::Error("Invalid CFL factor; must be <= 1/DIM under rk_order=3");
   }
   if (rk_order != 2 && rk_order != 3) {
     amrex::Error("PSAMR.rk_order must be 2 (Heun) or 3 (SSPRK(3,3))");
