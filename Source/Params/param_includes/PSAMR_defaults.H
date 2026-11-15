@@ -13,6 +13,7 @@ amrex::Real PSAMR::small_temp = 1.e2;
 amrex::Real PSAMR::small_pres = 1.e-200;
 int PSAMR::do_mol = 0;
 int PSAMR::rk_order = 2;
+std::string PSAMR::cf_interp = "cons";
 int PSAMR::ps_hydro = 0;
 int PSAMR::ps_bl_reflux = 1;
 int PSAMR::do_react = 0;

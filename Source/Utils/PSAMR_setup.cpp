@@ -137,11 +137,26 @@ PSAMR::variableSetUp()
 
     amrex::Interpolater* interp;
 
+    // PSAMR.cf_interp (cons): the coarse-to-fine interpolater for the state,
+    // used by FillPatch, the RK stage ghost fill (FillPatcher) and regrid.
+    // "quartic" is AMReX's CellConservativeQuartic: a fixed five-point
+    // tensor stencil, conservative, unlimited, refinement ratio 2 only
+    // (docs/PLAN_high_order.pdf section 4.4 and the Stage 2 record).
 #ifdef AMREX_USE_EB
+    if (cf_interp != "cons") {
+        amrex::Abort("PSAMR.cf_interp must be cons under embedded boundaries");
+    }
     interp = &amrex::eb_cell_cons_interp;
 #else
-    interp = &amrex::cell_cons_interp;
+    if (cf_interp == "cons") {
+        interp = &amrex::cell_cons_interp;
+    } else if (cf_interp == "quartic") {
+        interp = &amrex::quartic_interp;
+    } else {
+        amrex::Abort("PSAMR.cf_interp must be cons or quartic");
+    }
 #endif
+    ppc.add("cf_interp", cf_interp);   // resolved value -> job_info
 
     int ngrow_state = state_nghost;
     AMREX_ASSERT(ngrow_state >= 0);
