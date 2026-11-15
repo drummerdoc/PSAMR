@@ -95,4 +95,25 @@ No new dial, no new constant.
 
 ## 6. Results
 
-(filled after the runs)
+Mac, llvm, 15 Nov 2026 (code commit `5f098da6`); the old rule from a worktree at `51594f3a`, whose
+XC2D run reproduces the 14 Nov plotfile bit for bit.
+
+1. Battery, PR, 21/21 identical (`characterize.py compare BASE_nc_defaults reflux_comove`). HELD.
+   (A first record ran every case with the GERG executable, because the harness picks the newest
+   `PSAMR1d.*.ex` by file time and the GERG build was the later one; `EXE=` names it.)
+2. XC2D (VERIFICATION §7.3 has the table). Fine interior unchanged (4.05e-11, 2.67e-6): HELD.
+   Coarse–fine edge $|\Delta\alpha_1|$ 1.20e-6 → 1.76e-9, the energy and pressure unchanged:
+   HELD (better by 700, not worse). Contact cells: two of the three keep the trace; the third,
+   the coarse cell next to the contact cell, still loses it at the step it becomes a coarse cell,
+   with `reflux_absent` 0 throughout, so not through the co-move: PARTLY HELD, and the falsifier
+   reading applies to that cell (the loss is not in the α rule; consistent with O-27 at a contact
+   at coarse resolution). `reflux_absent` under 10: HELD (0). Mass total conserved to 1e-12:
+   ILL-POSED as written, the faces are open; old and new totals agree to 3e-9. No abort.
+3. T-Blowdown `inputs-x-amr`, 300 steps, old against new: no abort; `[PS-MASS]` drift 2e-16 in
+   both; density 1.65e-4 and pressure 1.02e-4 of the field range at the final time (the largest
+   differences inside the refined band, carried there by the fine ghost cells), volume fraction
+   5.4e-4, $\alpha_2\rho_2$ 1.5e-3. MISSED by a small margin (1e-4 predicted); the falsifier at
+   1e-3 in density and pressure not reached. The old rule's clamp fired 16 times in this run; the
+   new rule's three counts are 0.
+4. GPU: pending (peart).
+5. Pipe-break windows: not re-run, as stated.
