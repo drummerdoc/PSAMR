@@ -1196,10 +1196,19 @@ $5.8\times10^{-2}$ (0.43\,m/s on a range of 7.4, in the low-density
 cells).  The cost prediction of \S\ref{sec:gpu} therefore takes its
 lower branch.
 
-\paragraph{GPU check.}  Queued on peart (the detached queue
-\code{peart\_stage.sh}: XC2D 40 steps at \code{rk\_order=3}, ADV2D
-single step and \code{rk\_order=3} on the corrected deck, each against
-the Mac run to round-off); appended here when it reports.
+\paragraph{GPU check.  Held.}  peart, CUDA, at \code{a331f6c8}, each
+against the Mac run of the same commit and deck: XC2D 40 steps under
+\code{rk\_order=3}, level 0 to $4.9\times10^{-13}$ of range on every
+field, level 1 to $7.9\times10^{-9}$ on $\alpha_1$ ($2\times10^{-15}$
+absolute on a trace band whose range is $2.5\times10^{-7}$) and below
+$10^{-9}$ elsewhere; ADV2D single step and \code{rk\_order=3} on the
+corrected deck, every field with a physical range to $10^{-11}$ or
+better, the uniform velocity and pressure fields to $10^{-12}$\,m/s and
+$10^{-6}$\,Pa absolute (their relative-to-range figures are
+meaningless, the range being round-off).  The GPU XC2D run takes 48\,s
+against 3.5\,s on four Mac ranks, launch-bound as in Stage 0.  Queue
+note: a bundle fetched into the checked-out branch is refused by git;
+the later queues fetch and \code{checkout -B} from \code{FETCH\_HEAD}.
 
 
 \subsection{Stage 2: the quartic coarse-to-fine interpolant (15 November 2026, Mac \code{llvm}; commit \code{144beae3})}
