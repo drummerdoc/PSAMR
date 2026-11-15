@@ -123,7 +123,7 @@ XC2D run reproduces the 14 Nov plotfile bit for bit.
    where the Mac run carries $\pm4587$ in momentum and the GPU run exactly 0; outside them
    momentum agrees to 1.3e-13. MISSED by those three cells, and the falsifier reading does not
    apply to the co-move: the event is a Mac-side flux zeroing in the second-order correction,
-   found by this check and recorded as DESIGN O-28. Round-off noise of 1e-11 in momentum walks
+   found by this check and recorded as DESIGN O-31. Round-off noise of 1e-11 in momentum walks
    down the wall in the AMR run from step 36 (not in the GPU run by step 40); at step 39 the
    x-momentum of (0,91) is the denormal 2.4e-312; the limiter normalises each slot by the sum of
    the two cell values, whose reciprocal overflows to infinity for a denormal, the inner products
