@@ -115,5 +115,28 @@ XC2D run reproduces the 14 Nov plotfile bit for bit.
    5.4e-4, $\alpha_2\rho_2$ 1.5e-3. MISSED by a small margin (1e-4 predicted); the falsifier at
    1e-3 in density and pressure not reached. The old rule's clamp fired 16 times in this run; the
    new rule's three counts are 0.
-4. GPU: pending (peart).
+4. GPU (peart, gnu, CUDA 12.0, commit `63ddb59e`; `plt_gpu_00040` against the Mac `plt_new_00040`
+   with `pfdiff.py`): level 1 agrees at round-off in every field (worst 5.4e-13 of range;
+   $\alpha_1$ 1.1e-15 absolute over a range of 2.5e-7). Level 0: density, both partial masses,
+   both phase energies, total energy and $\alpha_1$ agree to 1e-14 of range; momentum differs by
+   0.385 of range, all of it in three cells at the $x$-low inflow wall, (0,90), (0,91), (1,91),
+   where the Mac run carries $\pm4587$ in momentum and the GPU run exactly 0; outside them
+   momentum agrees to 1.3e-13. MISSED by those three cells, and the falsifier reading does not
+   apply to the co-move: the event is a Mac-side flux zeroing in the second-order correction,
+   found by this check and recorded as DESIGN O-28. Round-off noise of 1e-11 in momentum walks
+   down the wall in the AMR run from step 36 (not in the GPU run by step 40); at step 39 the
+   x-momentum of (0,91) is the denormal 2.4e-312; the limiter normalises each slot by the sum of
+   the two cell values, whose reciprocal overflows to infinity for a denormal, the inner products
+   and the limiter factor become NaN, and `ps_finite_or` replaces the whole face flux by zero at
+   the three faces that see the cell. The missing pressure flux at 10 MPa kicks each neighbour by
+   $p\,\Delta t/\Delta x = 10^7 \times 3.5837\times10^{-6}/0.0078125 = 4587.2$, the number observed,
+   with density and total energy unchanged, as observed. Controls (Mac, 4 ranks unless stated):
+   the old binary with the co-move off does the same at step 38 (kick 4549, $p\,\Delta t/\Delta x$
+   at that step), bit-identical to the new binary with the co-move off; the old binary with the
+   old rule stays at noise (1.4e-10) to `stop_time`; a NaN-initialised run (`amrex.init_snan=1`)
+   reproduces the numbers, so no uninitialised read; one rank and `amr.max_grid_size=32`
+   reproduce them; single level 128 to `stop_time` shows the noise growing to 6e-7 with no kick.
+   After the kick the disturbance grows (pressure $\pm8\times10^5$ Pa in the wall cells five
+   steps later) and reaches 82 cells by `stop_time`. `flux_sanit` stays 0 throughout: the
+   correction path's `ps_finite_or` does not count.
 5. Pipe-break windows: not re-run, as stated.
