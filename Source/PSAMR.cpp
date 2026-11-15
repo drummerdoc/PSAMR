@@ -114,7 +114,8 @@ PSAMR::read_params()
                       "wave-propagation (USE_PS_HYDRO on, ps_hydro=1)\n";
 #endif
   } else if (do_mol != 0) {
-    amrex::Print() << "PSAMR: hydro solver = MOL (do_mol=1)\n";
+    amrex::Print() << "PSAMR: hydro solver = MOL (do_mol=1, rk_order="
+                   << rk_order << ")\n";
   } else {
     amrex::Print() << "PSAMR: hydro solver = Godunov"
 #ifdef USE_PS_HYDRO
@@ -238,6 +239,16 @@ PSAMR::read_params()
   }
   if ((do_mol == 1) && (cfl > 0.3) && fixed_dt <= 0.0) {
     amrex::Error("Invalid CFL factor; must be <= 0.3 when using MOL hydro");
+  }
+  if (rk_order != 2 && rk_order != 3) {
+    amrex::Error("PSAMR.rk_order must be 2 (Heun) or 3 (SSPRK(3,3))");
+  }
+  if (rk_order == 3 && do_mol == 0) {
+    amrex::Error("PSAMR.rk_order=3 needs do_mol=1 (the stages are the MOL hydro)");
+  }
+  {   // resolved value -> job_info, as the ps_* dials are
+    amrex::ParmParse ppr("PSAMR");
+    ppr.add("rk_order", rk_order);
   }
 
   // Check on PPM type
@@ -1872,4 +1883,61 @@ PSAMR::time_to_sum_integrated(amrex::Real time)
   } else {
       return false;
   }
+}
+
+// ---------------------------------------------------------------------
+//  SSPRK(3,3) coarse-fine plumbing (PSAMR.rk_order=3).  The state carries
+//  no ghost cells, so the stage states live in Sborder (numGrow() ghosts)
+//  and the FillPatcher is built with that width rather than the state's
+//  nExtra, which is what AmrLevel::RK would use.  Everything else is the
+//  AmrLevel::FillRKPatch / storeRKCoarseData sequence of AMReX.
+// ---------------------------------------------------------------------
+void
+PSAMR::rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
+                int iteration, int ncycle)
+{
+    BL_PROFILE("PSAMR::rk_fill()");
+    amrex::StateDataPhysBCFunct physbcf(state[State_Type], 0, geom);
+    if (level == 0) {
+        S.FillBoundary(geom.periodicity());
+        physbcf(S, 0, S.nComp(), S.nGrowVect(), t, 0);
+        return;
+    }
+    auto& fp = m_fillpatcher[State_Type];
+    if (fp == nullptr) {
+        // No stored coarse stages for this level (the first fine step after
+        // a regrid or a restart, before the coarse level has advanced under
+        // rk_order=3): the linear-in-time FillPatch, said once.
+        static int said = 0;
+        if (said++ == 0) {
+            amrex::Print() << "PSAMR::rk_fill: level " << level
+                           << " has no coarse RK stage data, FillPatch fallback"
+                           << " (stage " << stage << ")\n";
+        }
+        FillPatch(*this, S, S.nGrow(), t, State_Type, 0, NVAR, 0);
+        return;
+    }
+    PSAMR& crse = static_cast<PSAMR&>(parent->getLevel(level-1));
+    amrex::StateDataPhysBCFunct physbcf_crse(crse.state[State_Type], 0, crse.geom);
+    fp->fillRK(stage, iteration, ncycle, S, t, physbcf_crse, physbcf,
+               desc_lst[State_Type].getBCs());
+}
+
+void
+PSAMR::rk_store_coarse (amrex::Real time, amrex::Real dt,
+                        const amrex::MultiFab& S_old,
+                        amrex::Array<amrex::MultiFab,3> const& rkk)
+{
+    BL_PROFILE("PSAMR::rk_store_coarse()");
+    if (level == parent->finestLevel()) { return; }
+    const amrex::StateDescriptor& desc = desc_lst[State_Type];
+    PSAMR& fine = static_cast<PSAMR&>(parent->getLevel(level+1));
+    auto& fp = fine.m_fillpatcher[State_Type];
+    fp = std::make_unique<amrex::FillPatcher<amrex::MultiFab>>(
+        parent->boxArray(level+1), parent->DistributionMap(level+1),
+        parent->Geom(level+1),
+        parent->boxArray(level), parent->DistributionMap(level),
+        parent->Geom(level),
+        amrex::IntVect(numGrow()), desc.nComp(), desc.interp(0));
+    fp->storeRKCoarseData(time, dt, S_old, rkk);
 }

@@ -42,6 +42,13 @@ small_pres                   Real          1.e-200
 # uses MOL aapproach to timestep advection and diffusion
 do_mol                       int          0
 
+# time integrator under do_mol=1: 2 = Heun (two stages, second order);
+# 3 = SSPRK(3,3) Shu-Osher, three stages, coarse-fine ghost cells of each
+# stage from the coarse level's stored stages (AMReX FillPatcher::fillRK),
+# flux registers weighted 1/6, 1/6, 2/3.  Ignored under do_mol=0.
+# docs/PLAN_high_order.pdf section 4.
+rk_order                     int          2
+
 # use the Pelanti-Shyue six-equation wave-propagation solver
 # (docs/MODEL_AND_ALGORITHM.md §1).  Requires a build with
 # USE_PS_HYDRO = TRUE in the Exec GNUmakefile.

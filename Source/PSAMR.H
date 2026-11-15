@@ -151,6 +151,17 @@ public:
                                       amrex::Real time,
                                       amrex::Real dt);
 
+  // SSPRK(3,3) support (PSAMR.rk_order=3 under do_mol=1): fill the ghost
+  // cells of a stage state consistently with the coarse level's stored RK
+  // stages (AMReX FillPatcher::fillRK; level 0 fills from the state and the
+  // physical BCs), and store this level's stages for the next finer level.
+  // docs/PLAN_high_order.pdf section 4.4.
+  void rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
+                int iteration, int ncycle);
+  void rk_store_coarse (amrex::Real time, amrex::Real dt,
+                        const amrex::MultiFab& S_old,
+                        amrex::Array<amrex::MultiFab,3> const& rkk);
+
   //
   // Build the old-time source terms on the valid region plus ng ghost cells.
   // S must be a state with at least ng ghost cells filled (i.e. Sborder, not
@@ -393,6 +404,11 @@ protected:
   // Source term representing hydrodynamics update.
   amrex::MultiFab     hydro_source;
   amrex::MultiFab new_hydro_source;
+
+  // Per-stage weight on the flux registers under rk_order=3 (the Shu-Osher
+  // Butcher weights 1/6, 1/6, 2/3), set by the advance around each stage's
+  // construct_hydro_source; negative = the do_mol rule (0.5 MOL, 1.0 Godunov).
+  amrex::Real rk_reflux_fac = -1.0;
 
   // Non-hydro source terms.
   amrex::Vector<std::unique_ptr<amrex::MultiFab>> old_sources;

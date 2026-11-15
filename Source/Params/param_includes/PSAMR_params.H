@@ -12,6 +12,7 @@ static amrex::Real small_dens;
 static amrex::Real small_temp;
 static amrex::Real small_pres;
 static int do_mol;
+static int rk_order;
 static int ps_hydro;
 static int ps_bl_reflux;
 static int do_react;

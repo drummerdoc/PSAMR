@@ -36,7 +36,10 @@ PSAMR::construct_hydro_source (const MultiFab& S,
         }
     }
 
-    Real fac_for_reflux = (do_mol) ? Real(0.5) : Real(1.0);
+    // Per-stage weight under rk_order=3 (set by the advance), else the
+    // two-stage Heun half or the single-step whole.
+    Real fac_for_reflux = (rk_reflux_fac >= Real(0.0)) ? rk_reflux_fac
+                        : ((do_mol) ? Real(0.5) : Real(1.0));
 
     AMREX_ASSERT(S.nGrow() == numGrow());
 

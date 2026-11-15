@@ -12,6 +12,7 @@ pp.query("small_dens", small_dens);
 pp.query("small_temp", small_temp);
 pp.query("small_pres", small_pres);
 pp.query("do_mol", do_mol);
+pp.query("rk_order", rk_order);
 pp.query("ps_hydro", ps_hydro);
 pp.query("ps_bl_reflux", ps_bl_reflux);
 pp.query("do_react", do_react);

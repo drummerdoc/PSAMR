@@ -596,7 +596,64 @@ PSAMR::PSAMR_advance (Real time,
     //
     // Now build and add the hydro source term(s) to S_new
     //
-    if (do_mol) {
+    if (do_mol && rk_order == 3) {
+        // SSPRK(3,3), Shu-Osher form, on the method-of-lines hydro with the
+        // old-time sources rebuilt on every stage state (so the "new source"
+        // correction below does not apply).  Stage ghost cells come from
+        // rk_fill: the coarse level's stored stages through
+        // FillPatcher::fillRK, the physical BCs at the stage time.  The
+        // vanished-phase fold is applied to the stage states as the Heun
+        // path applies it to its intermediate.  docs/PLAN_high_order.pdf
+        // section 4.3.
+        amrex::Array<amrex::MultiFab,3> rkk;
+        for (auto& k : rkk) {
+            k.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+        }
+        const amrex::Real wgt[3] = { amrex::Real(1.0/6.0), amrex::Real(1.0/6.0),
+                                     amrex::Real(2.0/3.0) };
+        auto rhs = [&](int s, amrex::MultiFab& Sb, amrex::Real t) {
+            rk_reflux_fac = wgt[s-1];
+            construct_hydro_source(Sb, rkk[s-1], t, dt);
+            rk_reflux_fac = amrex::Real(-1.0);
+            for (int n = 0; n < src_list.size(); ++n) {
+                construct_old_source(src_list[n], Sb, t, dt, 0);
+                MultiFab::Add(rkk[s-1], *old_sources[src_list[n]], 0, 0, NVAR, 0);
+            }
+        };
+        auto fold = [&](amrex::MultiFab& S) {
+#ifdef USE_PS_HYDRO
+            if (ps_hydro != 0) { ps_apply_vanish_fold(S, 0); }
+#else
+            amrex::ignore_unused(S);
+#endif
+        };
+        // Stage 1 on the old state.  Sborder holds S_old with FillPatch
+        // ghosts; on a fine level replace the coarse-fine ghosts by the
+        // RK-consistent ones.
+        if (level > 0) { rk_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle); }
+        rhs(1, Sborder, prev_time);
+        MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
+        MultiFab::Saxpy(S_new, dt, rkk[0], 0, 0, NVAR, 0);           // S1 = S0 + dt k1
+        fold(S_new);
+        // Stage 2 at t + dt
+        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+        rk_fill(Sborder, prev_time + dt, 2, amr_iteration, amr_ncycle);
+        rhs(2, Sborder, prev_time + dt);
+        MultiFab::Saxpy(S_new, dt, rkk[1], 0, 0, NVAR, 0);           // S1 + dt k2
+        S_new.mult(amrex::Real(0.25), 0, NVAR, 0);
+        MultiFab::Saxpy(S_new, amrex::Real(0.75), S_old, 0, 0, NVAR, 0); // S2 = 3/4 S0 + 1/4 (S1 + dt k2)
+        fold(S_new);
+        // Stage 3 at t + dt/2
+        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+        rk_fill(Sborder, prev_time + amrex::Real(0.5)*dt, 3, amr_iteration, amr_ncycle);
+        rhs(3, Sborder, prev_time + amrex::Real(0.5)*dt);
+        MultiFab::Saxpy(S_new, dt, rkk[2], 0, 0, NVAR, 0);           // S2 + dt k3
+        S_new.mult(amrex::Real(2.0/3.0), 0, NVAR, 0);
+        MultiFab::Saxpy(S_new, amrex::Real(1.0/3.0), S_old, 0, 0, NVAR, 0); // S3 = 1/3 S0 + 2/3 (S2 + dt k3)
+        // The next finer level's stage ghosts come from these.
+        rk_store_coarse(prev_time, dt, S_old, rkk);
+
+    } else if (do_mol) {
         construct_hydro_source(Sborder, hydro_source, time, dt);
 
         // S^{n+1,*} = S^n + dt * dSdt^{n}
@@ -645,11 +702,14 @@ PSAMR::PSAMR_advance (Real time,
     clean_state(S_new, 0, false);   // intermediate: skip the UTEMP diagnostic sweep
 
 
-    // "new source" is actually the correction to the old source we've already added
-    for (int n = 0; n < src_list.size(); ++n) {
-        construct_new_source(src_list[n], time, dt);
-        MultiFab::Saxpy(S_new, dt, *new_sources[src_list[n]], 0, 0, NVAR, 0);
-        clean_state(S_new, 0);
+    // "new source" is actually the correction to the old source we've already
+    // added; under rk_order=3 the sources entered every stage, so none.
+    if (!(do_mol && rk_order == 3)) {
+        for (int n = 0; n < src_list.size(); ++n) {
+            construct_new_source(src_list[n], time, dt);
+            MultiFab::Saxpy(S_new, dt, *new_sources[src_list[n]], 0, 0, NVAR, 0);
+            clean_state(S_new, 0);
+        }
     }
 
 #ifdef USE_PS_HYDRO
