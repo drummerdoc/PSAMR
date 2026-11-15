@@ -671,6 +671,74 @@ persists.  (5) \code{rk\_order=3} does not remove it (a spatial
 instability).  Each run is recorded whatever it shows; the predictions
 that fail are the finding.
 
+\subsection*{Stage 2d: the slot weight in the limiter's inner product (Marc's decision, 15 November 2026: reference scales)}
+
+The rule.  In the one-scalar-per-wave limiter (MODEL \S3.3) the slot
+scale $sc_n = |U_{L,n}| + |U_{R,n}|$ that normalises slot $n$ in
+$\langle a,b\rangle_D$ is floored at a fraction of a physical reference
+for that slot,
+\[
+  sc_n \leftarrow \max\big(sc_n,\ \varepsilon\,R_n\big),\qquad
+  R_n = \begin{cases}
+    \bar\rho & \text{mass slots } (\rho, m_1, m_2, \rho Y)\\
+    \bar\rho\,(|s_1| + \bar c) & \text{momentum slots}\\
+    \bar\rho\,(|s_1| + \bar c)^2 & \text{energy slots } (\rho E, \rho e, \mathcal{E}_1, \mathcal{E}_2)\\
+    1 & \alpha_1
+  \end{cases}
+\]
+with $\bar\rho$ the face mean density, $s_1$ the contact speed and
+$\bar c = \max\big((s_2 - s_0)/2,\ 0\big)$ the half-spread of the acoustic
+speeds, all three already stored per face for the correction pass.  A
+slot whose local scale is below $\varepsilon R_n$ keeps its local scale
+replaced by the floor, so its normalised jump $W_{f,n}/sc_n$ is of order
+$|W_{f,n}|/(\varepsilon R_n)$, negligible when the slot is noise and
+unchanged when it is not; the exactly-zero skip and the O-31 denormal rule
+stay in front of it.  The derivation of $\varepsilon$: the state that
+feeds the limiter is produced by the EOS inversions of
+\src{hem\_pr\_state.H} at a relative tolerance of $10^{-9}$, so a slot
+below $10^{-9}$ of its reference is inside the noise of the state it is
+computed from and carries no information about smoothness;
+$\varepsilon = 10^{-8}$ is that bound with one order of margin, and it is
+a property of the arithmetic chain, not a model number.  Check: on the
+tube the seeded $y$-momentum, $\rho v \sim 4\times10^{-6}$, sits at
+$10^{-8}$ of $\bar\rho\bar c \sim 10^{5}$ and is floored; a transverse
+flow of 1\,m/s sits at $10^{-3}$ and is not; the battery's vapour trace at
+$\alpha = 10^{-6}$ puts $m_2$ at $10^{-6}\bar\rho$, two orders above the
+floor, and keeps its vote exactly as now.
+
+Implementation: \src{PS\_umeth.cpp}, the slot loop of the \code{correct}
+lambda; \code{PSAMR.ps\_lim\_ref\_eps} ($10^{-8}$ the decision, 0 the old
+rule for the A/B); the counter \code{lim\_noise\_slot} becomes
+\code{lim\_slot\_floor}, the number of slots on which the floor acted
+(an exact instrument, unlike its predecessor); \code{ps\_lim\_skip\_slot}
+retired (aborts when set).  MODEL \S3.3 and the guard table, DESIGN
+(O-31's declined option landed with its evidence), RUNNING.  Predictions:
+\begin{enumerate}[nosep]
+\item Battery, PR, 21 fingerprints identical to the current record and
+      \code{verify\_canonical} numbers identical: no 1-D slot sits below
+      the floor (the trace is two orders above it; exact zeros are
+      skipped first).  Falsifier: any change, which names a slot at noise
+      level in one dimension and is itself a finding.
+\item Seeded tube ($10^{-8}$\,m/s, 100 steps): $\max|\rho v|$ below
+      $10^{-4}$ throughout (the seed is $8.5\times10^{-6}$ and may drift);
+      \code{lim\_slot\_floor} positive from step 0.  Unseeded tube: bitwise
+      identical to the control (exact zeros never reach the floor).
+      Falsifiers: growth above $10^{-4}$; any difference unseeded.
+\item XC2D 40 steps: guard counters 0; fold census within 5\,\% of the
+      control; ray-diff zones within 10\,\% of the control's on every
+      entry (the floor acts only on noise-level slots, the quiet liquid's
+      $x$-momentum band of O-31 among them); \code{lim\_slot\_floor}
+      recorded.  Falsifier: an entry worse by more than 10\,\%.
+\item Pipe-break \code{inputs.satjet\_demo3} to step 50, 6 ranks, the
+      recorded metric (\code{d2alpha\_metric.py}, contact window
+      $\max|d^2\alpha_1|$ 1.16$\times10^{-3}$, 3 extrema under mode 5): not
+      larger than the control run of the same binary with
+      \code{ps\_lim\_ref\_eps=0}; the front window recorded.  Falsifier:
+      the contact-window metric larger by more than 10\,\%.
+\item Cost: within 3\,\% on XC2D.  GPU: queued per stage.
+\end{enumerate}
+Commits: this plan; the rule with its documents; the record.
+
 \subsection*{Stage 3: reconstructed faces and the in-cell term}
 
 \code{ps\_wp\_order=4}, \code{ps\_wp\_recon=weno5z}, on top of Stage 2.
