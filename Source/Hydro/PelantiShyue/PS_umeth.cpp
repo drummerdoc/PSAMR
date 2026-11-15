@@ -572,23 +572,29 @@ PS_umeth(const Box& bx,
     };
     const int wp_mol_form = ps_wp_mol_form_cached();
 
-    // PSAMR.ps_lim_skip_slot (-1 = none): an INVESTIGATION dial (Stage 2c,
-    // docs/PLAN_high_order.pdf): the state slot with this index is left out
-    // of the limiter's nondimensional inner product.  It exists to test the
-    // reading that a noise-level slot's full vote drives the transverse
-    // instability; it is not a scheme option and is to be retired with the
-    // decision that follows.
-    auto ps_lim_skip_slot_cached = []() -> int
+    // PSAMR.ps_lim_ref_eps (1e-8): the reference-scale floor on the slot
+    // weight of the limiter's nondimensional inner product (O-32, docs/
+    // PLAN_high_order.pdf Stage 2d).  A slot's local scale |U_L|+|U_R| is
+    // floored at eps times a physical reference for the slot (mass slots:
+    // rho_bar; momentum: rho_bar (|s_1| + c_bar); energy: rho_bar
+    // (|s_1| + c_bar)^2; alpha: 1), the acoustic eigenvector normalisation
+    // written as a floor, so that a slot at noise level cannot decide phi
+    // (measured on the T-Blowdown tube: the y-momentum at round-off drove
+    // a transverse instability; Stage 2c).  eps is 10x the EOS inversion
+    // tolerance of hem_pr_state.H (1e-9): a slot below that fraction of its
+    // reference is inside the noise of the state it is computed from.
+    // 0 = the old rule (the A/B control).
+    auto ps_lim_ref_eps_cached = []() -> amrex::Real
     {
-        static const int cached = []() -> int {
-            const int v = ps_dial_int("ps_lim_skip_slot", -1);
-            if (v < -1 || v >= NVAR) {
-                amrex::Abort("PSAMR.ps_lim_skip_slot must be -1 or a state slot index");
+        static const amrex::Real cached = []() -> amrex::Real {
+            const amrex::Real v = ps_dial_real("ps_lim_ref_eps", amrex::Real(1.0e-8));
+            if (v < amrex::Real(0.0)) {
+                amrex::Abort("PSAMR.ps_lim_ref_eps must be >= 0");
             }
             return v; }();
         return cached;
     };
-    const int lim_skip_slot = ps_lim_skip_slot_cached();
+    const amrex::Real lim_ref_eps = ps_lim_ref_eps_cached();
     if (wp_mol_form != 0 && wp_transverse != 0) {
         amrex::Abort("PSAMR.ps_wp_transverse must be 0 under rk_order=3 "
                      "(the Runge-Kutta stages supply the cross term)");
@@ -778,15 +784,19 @@ PS_umeth(const Box& bx,
                         const int oj = (idir == 1) ? 1 : 0;
                         const int ok2 = (idir == 2) ? 1 : 0;
                         Real wdotw = Real(0.0), wdotu = Real(0.0);
-                        //  Stage 2c instrument: the largest |term| of
-                        //  <W_up,W_f>_D, the slot scale it came from, the
-                        //  sum of |terms| and the largest slot scale on the
-                        //  face, for the noise-slot count below.
-                        Real term_max = Real(0.0), term_sum = Real(0.0);
-                        Real sc_of_max = Real(0.0), sc_max = Real(0.0);
+                        //  Reference scales for the floor (O-32): the face
+                        //  mean density, the contact speed and the half
+                        //  spread of the acoustic speeds, from the stored
+                        //  waves of this face.
+                        const Real rho_bar = Real(0.5) * (uin_arr(i-oi, j-oj, k-ok2, URHO)
+                                                         + uin_arr(i,    j,    k,    URHO));
+                        const Real s_c  = std::abs(wv(i,j,k, 3*NVAR + 1));
+                        const Real c_bar = amrex::max(Real(0.5) * (wv(i,j,k, 3*NVAR + 2)
+                                                                  - wv(i,j,k, 3*NVAR + 0)), Real(0.0));
+                        const Real vref = s_c + c_bar;
+                        int ndrop = 0;
                         for (int n = 0; n < NVAR; ++n) {
                             if (n == UTEMP) continue;   // not a wave component
-                            if (n == lim_skip_slot) continue;   // investigation dial
                             const Real Wf  = wv(i, j, k,  l*NVAR + n);
                             const Real Wup = wv(ni,nj,nk, l*NVAR + n);
                             //  A component identically zero in both cells
@@ -805,24 +815,53 @@ PS_umeth(const Box& bx,
                                     std::abs(uin_arr(i-oi, j-oj, k-ok2, n))
                                   + std::abs(uin_arr(i,    j,    k,    n));
                                 if (sc > Real(0.0) && sc < tiny) ps_guard::count_lim_slot_denorm();
-                                if (sc >= tiny)                inv = Real(1.0) / sc;
-                                else if (std::abs(Wf) >= tiny) inv = Real(1.0) / std::abs(Wf);
+                                Real scl = Real(0.0);
+                                if (sc >= tiny)                scl = sc;
+                                else if (std::abs(Wf) >= tiny) scl = std::abs(Wf);
                                 else                           continue;
+                                //  The reference-scale rule (O-32): mass
+                                //  slots by rho_bar, momentum by rho_bar
+                                //  (|s_1| + c_bar), energy by rho_bar
+                                //  (|s_1| + c_bar)^2, alpha by 1; a slot
+                                //  below eps times its reference is inside
+                                //  the noise of the state and drops out of
+                                //  the inner product, counted.  (Flooring
+                                //  its weight instead was measured not to
+                                //  help: in a sweep through a flow uniform
+                                //  along that direction every other slot's
+                                //  jump is round-off, so a floored slot
+                                //  still decides phi; Stage 2d record.)
+                                if (lim_ref_eps > Real(0.0)) {
+                                    Real ref = rho_bar;
+                                    if (n == UMX
+#if (AMREX_SPACEDIM >= 2)
+                                        || n == UMY
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                        || n == UMZ
+#endif
+                                        ) {
+                                        ref = rho_bar * vref;
+                                    } else if (n == UEDEN || n == UEINT || n == UE1 || n == UE2) {
+                                        ref = rho_bar * vref * vref;
+                                    } else if (n == UALPHA1) {
+                                        ref = Real(1.0);
+                                    }
+                                    const Real fl = lim_ref_eps * ref;
+                                    if (scl < fl) { ps_guard::count_lim_slot_floor(); ++ndrop; continue; }
+                                }
+                                inv = Real(1.0) / scl;
                             }
                             const Real wf = Wf * inv, wu = Wup * inv;
                             wdotw += wf * wf;
                             wdotu += wf * wu;
-                            {
-                                const Real sc_n = Real(1.0) / inv;
-                                const Real t = std::abs(wf * wu);
-                                term_sum += t;
-                                if (t > term_max) { term_max = t; sc_of_max = sc_n; }
-                                if (sc_n > sc_max) sc_max = sc_n;
-                            }
                         }
-                        if (term_sum > Real(0.0) && term_max > Real(0.5) * term_sum
-                            && sc_of_max < Real(1.0e-10) * sc_max) {
-                            ps_guard::count_lim_noise_slot();
+                        //  A wave every slot of which dropped out as noise
+                        //  carries no smoothness information: no correction
+                        //  (phi = 0), counted lim_wave_noise.
+                        if (ndrop > 0 && wdotw == Real(0.0)) {
+                            phi = Real(0.0);
+                            ps_guard::count_lim_wave_noise();
                         }
                         //  A zero-strength wave contributes nothing whatever phi
                         //  is; leave it at 1 rather than dividing by zero.  A

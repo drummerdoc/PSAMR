@@ -28,6 +28,7 @@ inline void ps_abort_on_retired_keys()
     struct RetiredKey { const char* key; const char* reason; };
     static const RetiredKey table[] = {
         { "ps_recon",          "reconstruction is not selectable; wp is the only interior scheme" },
+        { "ps_lim_skip_slot",  "the Stage 2c investigation dial; the reference-scale floor (ps_lim_ref_eps, O-32) replaced it" },
         { "ps_alpha_limiter",  "reconstruction is not selectable; wp is the only interior scheme" },
         { "ps_pk_energy_flux", "the mixture-pressure phase-energy flux is the only form" },
         { "ps_ctu",            "no CTU path" },

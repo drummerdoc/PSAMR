@@ -202,7 +202,8 @@ struct PsCounters {
     long   lim_slot_denorm   = 0;   // second-order limiter (O-31): a slot scale below the smallest normal number, not inverted
     long   lim_wave_drop     = 0;   //   a wave whose theta is not finite, taken at first order
     long   lim_face_drop     = 0;   //   a face whose summed correction is not finite, the correction dropped whole
-    long   lim_noise_slot    = 0;   //   a wave whose inner product is dominated (more than half of the summed |terms|) by one slot whose scale is below 1e-10 of the largest slot scale on the face (Stage 2c, docs/PLAN_high_order.pdf)
+    long   lim_slot_floor    = 0;   //   a slot whose local scale |U_L|+|U_R| is below eps * (its reference scale) and dropped out of the inner product (O-32, docs/PLAN_high_order.pdf Stage 2d)
+    long   lim_wave_noise    = 0;   //   a wave every slot of which dropped out: no correction, phi = 0 (O-32)
     long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
     long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
     long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
@@ -274,7 +275,7 @@ struct PsCounters {
         guard_seen = guard_reject_low = rho_clamp_lo = 0;
         ctop_seen = ctop_sub = ctop_host_floor = 0;
         flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
-        lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_noise_slot = 0;
+        lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;

@@ -305,15 +305,18 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long ld_ = pc.lim_slot_denorm;
             amrex::Long lw_ = pc.lim_wave_drop;
             amrex::Long lf_ = pc.lim_face_drop;
-            amrex::Long ln_ = pc.lim_noise_slot;
+            amrex::Long ln_ = pc.lim_slot_floor;
+            amrex::Long lz_ = pc.lim_wave_noise;
             amrex::ParallelDescriptor::ReduceLongSum(ln_);
+            amrex::ParallelDescriptor::ReduceLongSum(lz_);
             amrex::ParallelDescriptor::ReduceLongSum(ld_);
             amrex::ParallelDescriptor::ReduceLongSum(lw_);
             amrex::ParallelDescriptor::ReduceLongSum(lf_);
             amrex::Print() << " | lim_slot_denorm = " << ld_
                            << "  lim_wave_drop = " << lw_
                            << "  lim_face_drop = " << lf_
-                           << "  lim_noise_slot = " << ln_;
+                           << "  lim_slot_floor = " << ln_
+                           << "  lim_wave_noise = " << lz_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;
