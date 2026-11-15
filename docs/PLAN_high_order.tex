@@ -575,6 +575,75 @@ the A/C mean, from Stage 0 item 4.
 \item GPU: XC2D to round-off against the Mac, as in Stage 1.
 \end{enumerate}
 
+\subsection*{Stage 2b: the limited quartic coarse-to-fine interpolant (Marc's decision, 15 November 2026)}
+
+Stage 2 refuted the unlimited quartic; Marc chose the McCorquodale--Colella
+limited form over a positivity blend to \code{cons}.  The interpolant is
+the AMReX quartic stencil (the degree-four tensor polynomial whose average
+over every cell of the five-point stencil is that cell's value) with the
+limiter of McCorquodale and Colella (CAMCoS 6, 2011, \S3.2): for each
+coarse cell the $2^{\mathrm{DIM}}$ fine values are written as the coarse
+average plus deviations, which sum to zero by construction; the
+deviations are scaled by one factor $\theta\in[0,1]$ per coarse cell and
+component, the largest for which every fine value lies within the range of
+the coarse cell and its $3^{\mathrm{DIM}}-1$ neighbours.  A common factor
+on zero-mean deviations keeps conservation exactly; the bound keeps every
+fine value inside the convex hull of its coarse neighbourhood, so a
+non-negative field stays non-negative and a $y$-uniform field stays
+$y$-uniform.  Away from extrema of a smooth field the bound is inactive
+and the interpolant is the quartic; at an extremum it clips to the
+neighbour range, second order there, as the van Leer slope does in
+\code{cons}.  Per-component limiting leaves the mixture identities to the
+resyncs downstream, exactly as \code{cons} does.
+
+Implementation: a class \code{CFInterpQuarticLimited} deriving from
+\code{amrex::Interpolater} in \src{Source/Utils/CFInterp.H,.cpp},
+\code{CoarseBox} grown by 2 as for the quartic, \code{interp} as one
+\code{ParallelFor} over the coarse cells of the coarsened fine region
+calling AMReX's \code{ccquartic\_interp} for the fine values and applying
+the bound, refinement ratio 2 only, no embedded boundaries; selected by
+\code{PSAMR.cf\_interp = quartic\_limited}.  Device-capable by
+construction (the AMReX kernel is \code{AMREX\_GPU\_HOST\_DEVICE}); no
+host-only state.  Commits: this plan; the class, the dial value and the
+\code{RUNNING.md} row; the record.
+
+Predictions, before any run, every quartic-limited run with its
+\code{cons} twin from the same binary:
+\begin{enumerate}[nosep]
+\item Controls: \code{cons} bitwise unchanged on XC2D; \code{quartic}
+      bitwise unchanged on the fine box.
+\item Fine box (\code{inputs-fb-rk2}, \code{rk\_order=3}): conservation to
+      $10^{-15}$; the composite $L_1(\alpha_1)$ $1.4010\times10^{-2}$ as
+      under both others (insensitive, recorded); the run differs from the
+      unlimited quartic run only where the limiter clipped, measured as
+      the fraction of coarse cells with $\theta<1$ on the fine-box
+      boundary, predicted below 5\,\% (the extrema of the sine).
+\item XC2D 40 steps, single step and \code{rk\_order=3}: the fine-covered
+      ray range equal to \code{cons}'s ($[0.3125, 0.4375]$, 28 cells), so
+      the tagging does not expand (falsifier: more than 28 cells, which
+      says the tag trip was not the undershoot); the fold census within
+      10\,\% of \code{cons}'s on vanish and vacuum, \code{edeg} and
+      \code{cdeg} 0 (falsifier: \code{edeg} above 0); the post-reflux
+      $\alpha_1$ minimum on level 1 at $9\times10^{-7}$, the trace kept
+      (falsifier: exactly 0); the ray-diff zones of VERIFICATION \S7.3
+      then comparable: edge $|\Delta\alpha_1|$ within a factor 2 of
+      \code{cons}'s $1.76\times10^{-9}$ and the edge phase-energy gap
+      $1.21\times10^{-4}$ not larger; guard counters 0.
+\item T-Blowdown 300 steps, single step: $y$-momentum exactly 0
+      everywhere at every plotfile, as under \code{cons} (the unlimited
+      quartic seeded 25); counters 0; the coarse--fine $\alpha_1$ minimum
+      0.454 as \code{cons}.  Falsifier: any non-zero $y$-momentum.
+\item Pipe-break to step 200, single step, 6 ranks: vanish, vacuum and
+      \code{edeg} folds 0 on every level, as \code{cons} (falsifier: any);
+      guard counters 0; the solution at step 200 against \code{cons}
+      within 1\,\% of range in the conserved fields on every level (the
+      two interpolants agree where the field is smooth and the limiter
+      equals \code{cons}'s clipping where it is not), recorded.
+\item Cost: XC2D run time within 5\,\% of \code{cons}'s.
+\item GPU: queued per stage; XC2D 40 steps under \code{quartic\_limited}
+      to round-off against the Mac.
+\end{enumerate}
+
 \subsection*{Stage 3: reconstructed faces and the in-cell term}
 
 \code{ps\_wp\_order=4}, \code{ps\_wp\_recon=weno5z}, on top of Stage 2.
@@ -682,10 +751,8 @@ Then the defaults are decided by Marc on the record, not here.
       relaxation terms, for third order in the full step.
 \item SSPRK(4,3), with its own \code{FillPatcher} coefficients, for a third
       less work per simulated time.
-\item A limited fourth-order coarse-to-fine interpolant: Stage~2 showed
-      the unlimited one failing (negative partial masses and killed traces
-      at the coarse--fine layers of the pipe-break and XC2D), so this is now
-      a prerequisite of Stage 3, not a contingency.
+\item (Moved to Stage 2b: the McCorquodale--Colella limited quartic, by
+      Marc's decision after Stage 2.)
 \item Interface sharpening (THINC-type) for the contact, if the WENO5
       contact is measurably more smeared than the present tapered scheme on
       the pipe-break.
