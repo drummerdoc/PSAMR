@@ -1,0 +1,689 @@
+% =====================================================================
+%  PSAMR at fourth order in space and third order in time
+%
+%  Design note and staged plan, written before any code change.  The
+%  predictions and falsifiers of S8 are fixed here; results go to S10 as
+%  they are measured, refuted predictions recorded as such.  The prose
+%  companion documents are docs/MODEL_AND_ALGORITHM.md (the scheme as it
+%  stands) and docs/DESIGN_DECISIONS.md (the refuted list, which binds
+%  this plan too).  File names only; line numbers go stale.
+%
+%  Build:  pdflatex PLAN_high_order.tex   (twice, for references)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{xcolor}
+\usepackage{url}
+\urlstyle{tt}
+\tolerance=2000
+\emergencystretch=2em
+
+\newcommand{\dd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\DeclareUrlCommand\src{\def\UrlFont{\color{gray}\small\ttfamily}}
+\newcommand{\Dt}{\Delta t}
+\newcommand{\Dx}{\Delta x}
+\newcommand{\Ap}{\mathcal{A}^{+}}
+\newcommand{\Am}{\mathcal{A}^{-}}
+
+\title{PSAMR at fourth order in space and third order in time\\
+       \large Design note, staging and falsifiers}
+\author{Branch \code{high-order} off \code{main} at \code{e9eecf18}}
+\date{15 November 2026, written before any run}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+This note fixes the route by which the Pelanti--Shyue path of PSAMR is to
+reach fourth-order face reconstruction in space and third-order,
+strong-stability-preserving time integration, with the adaptive mesh
+coupling consistent at the same orders.  It states what the code already
+has, the options considered and the one chosen, the equations of the chosen
+scheme, the two places where the achievable order is bounded by something
+other than the scheme, the GPU design point, and a staged plan in which
+every stage carries its predictions and falsifiers before it is run.  The
+claim at the end of the plan is stated precisely in \S\ref{sec:claim},
+because ``fourth order'' means different things in one and in several
+dimensions.
+\end{abstract}
+
+\tableofcontents
+
+% =====================================================================
+\section{The claim this plan makes, and the one it does not}
+\label{sec:claim}
+% =====================================================================
+
+The plan delivers, on the Pelanti--Shyue path (\code{PSAMR.ps\_hydro=1},
+\code{ps\_flux=wp}):
+
+\begin{enumerate}[nosep]
+\item face states built by a fourth-order-accurate reconstruction of the
+      cell averages (WENO5-Z, dimension by dimension, on characteristic
+      fields), in place of the raw cell averages used now;
+\item the Shu--Osher three-stage strong-stability-preserving Runge--Kutta
+      method, SSPRK(3,3), in place of the single-step scheme (\code{do\_mol=0})
+      and the Heun method (\code{do\_mol=1});
+\item coarse-to-fine interpolation at fourth order in space and
+      ghost cells at third order in time across coarse--fine boundaries
+      under subcycling, with reflux carrying the Runge--Kutta stage
+      weights.
+\end{enumerate}
+
+Measured, this means: the design rate on the smooth two-dimensional
+advection test (\code{Exec/CO2\_ADV2D}) at or above four in space when the
+time step is driven down faster than the mesh, and three in time on a fixed
+grid; the one-dimensional battery passing its acceptance gate with errors
+against the exact references no worse than now; and the two-dimensional
+cases running to their stop times with the guards quiet.
+
+It does not deliver formal fourth order on smooth problems in two and three
+dimensions with nonlinear fluxes.  That needs the McCorquodale--Colella
+conversions between cell averages and point values (the $h^2/24$ Laplacian
+corrections on the states before the equation of state is queried, on the
+face fluxes, and on the sources).  Those touch \src{PS_ctoprim.H}, the
+relaxation operator and every source, which act on cell averages, and they
+are parked (\S\ref{sec:parked}).  For a flashing jet with shocks and a
+phase interface the difference is not measurable; the choice is recorded so
+that nobody reads the ADV2D rate as a claim about the pipe-break.
+
+Time integration is bounded separately by the operator splitting of the
+relaxation sources (\S\ref{sec:bounds}): the hydro step becomes third
+order, the full step with finite-rate relaxation is second order under
+Strang splitting and first under Lie, as now.  Raising that needs an
+implicit--explicit Runge--Kutta treatment of the rate terms, which is its
+own plan.
+
+% =====================================================================
+\section{Where the code stands}
+\label{sec:now}
+% =====================================================================
+
+\begin{itemize}[nosep]
+\item \textbf{Three hydro paths.}  The single-fluid Godunov path
+      (\src{Source/Hydro/Godunov}, PPM or PLM faces, characteristic
+      tracing, second order in time, unsplit); the single-fluid
+      method-of-lines path (\src{Source/Hydro/MOL}, PLM faces, Heun in
+      \src{PSAMR_advance.cpp}, \code{cfl} capped at 0.3); and the
+      Pelanti--Shyue wave-propagation path (\src{Source/Hydro/PelantiShyue},
+      Berger--LeVeque fluctuation form, HLLC decomposition, one scalar
+      van Leer limiter per wave on the Lax--Wendroff correction, face
+      states the raw cell averages by design, directionally split in two
+      and three dimensions by default, a contact-only transverse option).
+      The wave-propagation path runs under either time scheme; under
+      \code{do\_mol=1} the vanished-phase fold is applied to the stage-one
+      state as well.
+\item \textbf{AMR.}  AMReX \code{AmrLevel} with subcycling; coarse-to-fine
+      interpolation by \code{cell\_cons\_interp} (limited linear, second
+      order) in \src{PSAMR_setup.cpp}; fine ghost cells in time by linear
+      interpolation between the coarse old and new states; conserved slots
+      refluxed through the standard register; the volume fraction co-moved
+      in symmetric capacity form in \code{PSAMR::reflux} (MODEL \S4.9).
+      Ghost width \code{numGrow()} is 4 without embedded boundaries.
+\item \textbf{Sources.}  The coupled relaxation operator
+      (\code{ps\_relax\_mode=5}: mechanical equilibrium as a constraint,
+      finite-rate thermal relaxation, statistical-rate-theory mass
+      transfer, nucleation-only flash) applied once per step after the
+      hydro (Lie, \code{ps\_strang=0}) or in half steps around it
+      (Strang, \code{ps\_strang=1}).
+\item \textbf{What AMReX already provides} (checked in the checkout at
+      \code{../amrex}, \src{Src/Amr/AMReX_AmrLevel.H},
+      \src{Src/AmrCore/AMReX_FillPatcher.H},
+      \src{Src/AmrCore/AMReX_Interpolater.H}):
+      \code{AmrLevel::RK(order,\dots)} for orders 2, 3 and 4, where order 3
+      is SSPRK(3,3); \code{FillPatcher::fillRK}, which stores the coarse
+      level's Runge--Kutta stage values (\code{storeRKCoarseData}) and
+      fills fine ghost cells at each fine stage from a Taylor expansion of
+      those stages, so the coarse--fine ghost data are consistent with the
+      Runge--Kutta order under subcycling; and the interpolaters
+      \code{quartic\_interp} (\code{CellConservativeQuartic}) and
+      \code{cell\_quartic\_interp}.  The quartic interpolaters carry no
+      limiter; they are built for smooth data.  Stage~0 confirms this by
+      reading the source.
+\item \textbf{Instruments.}  The one-dimensional battery and its
+      fingerprints (\src{Exec/CO2_RiemannSuite/characterize.py},
+      \code{verify\_canonical.py}, \code{err\_vs\_analytic.py},
+      \code{gen\_convergence.py}); the smooth-advection order test
+      (\src{Exec/CO2_ADV2D/inputs}, with \code{inputs-fb-rk2} for reflux
+      conservation through a static fine box); the XC2D coarse--fine
+      ray-diff (VERIFICATION \S7.3); T-Blowdown (\S7.1); the
+      \code{[PS-GUARD]} counters and the \code{ps\_validate} realizability
+      checks.
+\end{itemize}
+
+% =====================================================================
+\section{Options considered}
+\label{sec:options}
+% =====================================================================
+
+\begin{center}
+\small
+\begin{tabular}{p{0.30\textwidth}p{0.30\textwidth}p{0.32\textwidth}}
+\toprule
+Route & For & Against \\
+\midrule
+Method of lines: fourth-order reconstruction at faces, HLLC fluctuations,
+SSPRK(3,3) \textbf{(chosen)} &
+Keeps the fluctuation form, the recovered fluxes, the per-cell deposits and
+the HLLC star state; AMReX supplies the time scheme and the coarse--fine
+coupling; the recipe of Johnsen--Colonius and Coralic--Colonius for
+non-conservative two-phase models, and of Ketcheson, Parsani and LeVeque
+for high-order wave propagation. &
+Three stage evaluations per step and the unsplit CFL bound; a new in-cell
+term for the non-conservative slots; formally second order in several
+dimensions without the point-value conversions (\S\ref{sec:claim}). \\
+\addlinespace
+Method of lines with the PPM interpolant of \src{Godunov/PPM.cpp} &
+Lowest effort; the interpolant is in the tree; sharper on contacts than
+WENO5. &
+The limiter degrades to second order at every extremum; fourth order only
+in the unlimited smooth regime.  Kept as the fallback reconstruction if
+WENO5 fails a Stage~3 falsifier. \\
+\addlinespace
+ADER with path-conservative WENO (Dumbser--Toro) &
+Single step, so no stage ghost fills; stiff sources inside the local
+space-time predictor at full order. &
+A different code: a local space-time predictor with many equation-of-state
+evaluations per cell per step, on a code whose measured cost item is the
+equation of state (FUTURE\_WORK \S11); not an AMReX pattern. \\
+\addlinespace
+Two-stage fourth-order Lax--Wendroff on a generalised Riemann solver
+(Li--Du) &
+Two stages for fourth order in time. &
+Needs a generalised Riemann solver for the six-equation model with a
+real-fluid equation of state.  Research. \\
+\addlinespace
+Discontinuous Galerkin; finite-difference WENO &
+Formal order on any mesh (DG); cheap point-value fluxes (FD). &
+DG needs subcell limiting for flashing jets and has no AMReX support; FD
+WENO is not conservative at coarse--fine faces without special treatment,
+and the reflux machinery is built for finite volumes. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Why strong stability preserving.}
+Each stage of an SSP Runge--Kutta method is a convex combination of forward
+Euler steps.  Any property the forward Euler step preserves under its CFL
+bound is therefore preserved by the full step under that bound times the
+SSP coefficient.  Here the forward Euler step is the first-order
+wave-propagation update that the floors, folds and guards already protect,
+and the properties that matter are positivity of the partial masses,
+$\alpha_1\in[0,1]$, phase energies inside the equation-of-state domain,
+and the bound of the limited correction.  A third-order scheme that is not
+SSP gives no such guarantee on its intermediate states, and in this code an
+intermediate state that leaves the domain is a refused face or an aborted
+run, counted by the guards.  SSPRK(3,3) has SSP coefficient 1, so its CFL
+bound is the forward Euler bound exactly, and it runs in two registers in
+Shu--Osher form.  SSPRK(4,3) does a third less work per unit of simulated
+time (four stages at coefficient 2) and is the natural second step; it is
+not in AMReX, so it needs its own Taylor coefficients in
+\code{FillPatcher}, and it is deferred until SSPRK(3,3) is measured.  No
+four-stage fourth-order SSP scheme with positive coefficients exists; the
+target here is third order in time, so that barrier is not met.
+
+% =====================================================================
+\section{The scheme}
+\label{sec:scheme}
+% =====================================================================
+
+\subsection{Semi-discretisation in fluctuation form}
+
+With $Q_i$ the vector of cell averages of the Pelanti--Shyue state (MODEL
+\S1) and $q^{L}_{i+1/2}, q^{R}_{i+1/2}$ the reconstructed states on the two
+sides of face $i+1/2$, the method-of-lines update along one direction is
+\begin{equation}
+\label{eq:mol}
+\frac{dQ_i}{dt} = -\frac{1}{\Dx}\Big(\Ap\Delta q_{i-1/2} + \Am\Delta q_{i+1/2}\Big)
+                  -\frac{1}{\Dx}\int_{x_{i-1/2}}^{x_{i+1/2}} A\big(q_i(x)\big)\,\dd{q_i}{x}\,dx ,
+\end{equation}
+where $\Ap\Delta q$ and $\Am\Delta q$ are the right- and left-going
+fluctuations of the HLLC decomposition of the jump $q^{R}-q^{L}$ at the
+face, as now (\src{PS_hllc.H}, \src{PS_umeth.cpp}), and $q_i(x)$ is the
+reconstruction polynomial inside cell $i$.  The second term is new: with
+raw cell averages at the faces it vanishes, because $q_i(x)$ is constant.
+On the conserved slots it is $f(q^{L}_{i+1/2})-f(q^{R}_{i-1/2})$ exactly,
+so together with the fluctuations the update telescopes to the recovered
+flux form that \src{Hydro_consup.cpp} already differences.  On the
+non-conserved slots ($\alpha_1$, the two phase energies) it is the
+integral of the non-conservative product across the cell, evaluated by
+quadrature on the reconstruction polynomial with the velocity taken from
+the same polynomial, and deposited per cell as the correction term is
+deposited now (MODEL \S3.3).  This is the Ketcheson--Parsani--LeVeque form
+of high-order wave propagation; for the $\alpha$ equation it is the
+Johnsen--Colonius treatment of $u\,\partial_x\alpha$, and the face
+contribution keeps the advective split
+$\bar u\,\Delta\alpha$ of MODEL \S3.6, not $\Delta(\alpha u)$.
+
+The limited Lax--Wendroff correction of the present scheme
+(\code{ps\_wp\_order=2}) is not applied under the new path: its role, to
+raise the order above one, is taken by the reconstruction.  The
+contact-wave taper (MODEL \S3.4) has no counterpart yet; whether a
+high-order contact needs one is a Stage~3 measurement.
+
+\subsection{Reconstruction}
+
+WENO5-Z reconstruction of the cell averages to the two face values, on
+the characteristic fields of the frozen six-equation system projected at
+each face with the Roe-averaged or arithmetic-mean state (two acoustic
+fields $u\pm c$, five contact fields at $u$; the eigenvectors of
+\src{PS_wavespeed.H} and \src{PS_hllc.H}).  Characteristic-wise
+reconstruction is the high-order analogue of the one-scalar-per-wave
+limiter: the DESIGN\_DECISIONS record that any per-slot limiting bends the
+wave (the rejected $\phi=\min(\phi_1,\phi_2)$ entry, MODEL \S3.3) binds
+here, and reconstructing the slots independently is not an option.  The
+variables reconstructed are $\alpha_1$, $m_1$, $m_2$, the momenta and the
+two phase energies; the mixture slots are formed as sums at the face so the
+identities $m_1+m_2=\rho$ and $\mathcal{E}_1+\mathcal{E}_2=\rho E$ hold at
+the face by construction.  Five cells enter each face value; the ghost
+width of 4 covers it.  Reconstruction near a vanished or corridor phase is
+the delicate point and the reason the present scheme uses raw averages:
+the presence classifier (\src{PS_presence.H}) runs on the reconstructed
+face states, and a face whose reconstruction leaves a present phase's
+$\alpha_k$ or $m_k$ outside the admissible set falls back to the raw
+averages at that face and is counted (\code{recon\_fallback} in
+\src{PS_counters.H}).  Whether that fallback fires anywhere in the
+battery or the two-dimensional cases is a Stage~3 prediction.
+
+The PPM interpolant of \src{Godunov/PPM.cpp} is the fallback reconstruction
+if WENO5-Z fails a Stage~3 falsifier, with the same characteristic
+projection.
+
+\subsection{Time integration}
+
+SSPRK(3,3) in Shu--Osher form, with $L$ the right-hand side of
+\eqref{eq:mol} summed over directions and $\Pi$ the per-stage
+post-processing described below:
+\begin{align}
+Q^{(1)} &= \Pi\big[Q^n + \Dt\,L(Q^n)\big], \\
+Q^{(2)} &= \Pi\big[\tfrac34 Q^n + \tfrac14\big(Q^{(1)} + \Dt\,L(Q^{(1)})\big)\big], \\
+Q^{n+1} &= \Pi\big[\tfrac13 Q^n + \tfrac23\big(Q^{(2)} + \Dt\,L(Q^{(2)})\big)\big].
+\end{align}
+$\Pi$ is the vanished-phase fold already applied to the stage-one state
+under \code{do\_mol=1}, the mixture-mass resync, and the mechanical
+equilibrium projection of the relaxation operator (the constraint part of
+mode 5, applied without its finite-rate parts).  Each is a map of
+admissible states to admissible states, so each stage remains a convex
+combination of admissible forward Euler steps and the SSP property is
+kept.  The finite-rate thermal relaxation, mass transfer and the flash
+stay outside the stages: Strang halves around the three-stage step under
+\code{ps\_strang=1}, one Lie step after it under \code{ps\_strang=0}.
+
+The time step keeps the per-direction definition of \src{Timestep.H},
+$\Dt = \code{cfl}\cdot\min_d \Dx_d/\lambda_d$.  The forward Euler bound of
+the unsplit operator \eqref{eq:mol} in that definition is
+$\code{cfl}\le 1/\mathrm{DIM}$; the present MOL cap of 0.3 in
+\src{PSAMR.cpp} is kept as the default and its relaxation to $1/\mathrm{DIM}$
+is a Stage~1 measurement, not a change made on trust.  The battery runs
+at \code{cfl=0.25}.  Under the new scheme \code{ps\_wp\_transverse} must be
+0: the method of lines is unsplit by construction and the transverse term
+belongs to the split single-step form.
+
+\subsection{AMR coupling}
+
+\begin{itemize}[nosep]
+\item \textbf{Time.}  The level advance calls \code{AmrLevel::RK(3,\dots)}
+      instead of the hand-written Heun.  The coarse level stores its three
+      stage values; each fine stage fills its ghost cells through
+      \code{FillRKPatch}, which evaluates the coarse Taylor expansion at
+      the fine stage time.  The hand-written Heun path remains as
+      \code{PSAMR.rk\_order=2}, the default until the record is in.
+\item \textbf{Space.}  \code{quartic\_interp} replaces
+      \code{cell\_cons\_interp} for the state under
+      \code{PSAMR.cf\_interp=quartic} (default \code{cons}, the present
+      behaviour).  It is unlimited; the post-interpolation presence guards
+      of \src{PSAMR.cpp} (the ``post-C-F-interp'' range print and the
+      sliver handling after regrid) are the instrument that says whether a
+      limited fourth-order interpolation is needed, and Stage~2 decides on
+      that measurement.
+\item \textbf{Reflux.}  The flux register accumulates the stage fluxes with
+      the Shu--Osher weights ($\tfrac16,\tfrac16,\tfrac23$ on the
+      stage fluxes in Butcher form), so the refluxed flux is the one the
+      step used.  The volume-fraction co-move is unchanged in form: it acts
+      on the refluxed masses at the pre-reflux phase densities, whatever
+      produced them.
+\item \textbf{Average-down} is exact on cell averages and does not change.
+\item \textbf{Boundaries.}  The NSCBC outflow ghosts (\src{PS_nscbc.H}) are
+      built per stage from the stage state.  Embedded-boundary builds are
+      out of scope: the CO$_2$ decks build with \code{USE\_EB=FALSE}, and a
+      cut cell would stay second order whatever the interior does.
+\end{itemize}
+
+% =====================================================================
+\section{What bounds the order}
+\label{sec:bounds}
+% =====================================================================
+
+\begin{enumerate}[nosep]
+\item \textbf{The relaxation split.}  With the rate terms outside the
+      stages the full step is second order in time at best.  An
+      implicit--explicit scheme (Pareschi--Russo, or ARS(4,4,3)) with the
+      rate terms implicit would give third order and asymptotic
+      preservation; the implicit SSP coefficients of such schemes are small,
+      so what they buy is positivity and the correct stiff limit, not an
+      SSP bound.  The mechanical constraint is a projection and goes inside
+      the stages at no cost to the order.  The flash is event-like and is
+      low order by nature.  Stage~4 measures the temporal order of the full
+      step and records it; the implicit--explicit treatment is its own plan.
+\item \textbf{Averages against point values.}  \S\ref{sec:claim}.  For
+      the constant-velocity advection of ADV2D the dimension-by-dimension
+      scheme is exact at the design order, because averaging commutes with
+      a linear flux; that is why ADV2D can measure the reconstruction order
+      while the pipe-break cannot.
+\item \textbf{Shocks and the interface.}  Behind a shock the observed order
+      is one, as it is now (VERIFICATION \S6.4), and the limiter in the
+      WENO weights reduces the rate at extrema.  The battery measures
+      errors against exact references, not rates, and the prediction is
+      ``no worse'', not ``fourth order''.
+\end{enumerate}
+
+% =====================================================================
+\section{The GPU design point}
+\label{sec:gpu}
+% =====================================================================
+
+No new mechanism.  Each stage is the present set of \code{ParallelFor}
+launches (reconstruction, face decomposition, deposit, consup) once more,
+so launches per step triple and the equation-of-state calls per cell per
+step triple with them; the two-register Shu--Osher form adds one state-sized
+\code{MultiFab} over the Heun path; the coarse level holds three stage
+\code{MultiFab}s per state for \code{fillRK}.  The characteristic
+projection is a per-face $7\times7$ product in registers.  The new counter
+is host-only and compiles to a no-op on the device, as \code{flux\_sanit}
+does.  Predicted cost per unit of simulated time against the present split
+single-step scheme at \code{cfl=0.9}: three stages at \code{cfl=0.3}
+against one stage at 0.9 gives a factor of about 9 on the hydro, less on
+the whole step because the relaxation operator runs once per step either
+way; with the cap relaxed to $1/\mathrm{DIM}$ in two dimensions, about 5.
+The equation-of-state call count is the thing to watch (FUTURE\_WORK
+\S11).  GPU runs are not bitwise reproducible run to run, so GPU
+predictions are stated to round-off, never bitwise.
+
+% =====================================================================
+\section{Dials}
+\label{sec:dials}
+% =====================================================================
+
+All new keys default to the present behaviour, so an unchanged deck runs
+unchanged.
+\begin{center}
+\small
+\begin{tabular}{llp{0.55\textwidth}}
+\toprule
+Key & Default & Meaning \\
+\midrule
+\code{PSAMR.rk\_order} & 2 & Under \code{do\_mol=1}: 2 = the hand-written Heun step; 3 = \code{AmrLevel::RK(3)}, SSPRK(3,3) with \code{fillRK} ghosts. Any other value aborts. \\
+\code{PSAMR.cf\_interp} & \code{cons} & Coarse-to-fine interpolater for the state: \code{cons} = \code{cell\_cons\_interp}; \code{quartic} = \code{quartic\_interp}. \\
+\code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
+\code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+\code{ps\_wp\_order=4} with \code{ps\_wp\_transverse} nonzero aborts.
+\code{ps\_wp\_order=4} with \code{do\_mol=0} aborts: the reconstructed
+faces are a method-of-lines operator and have no characteristic-tracing
+half step.
+
+% =====================================================================
+\section{Staging, with predictions and falsifiers}
+\label{sec:stages}
+% =====================================================================
+
+Every stage builds on the Mac (\code{COMP=llvm}) and, before it is called
+done, on peart (\code{COMP=gnu}, CUDA).  Comparisons use
+\path{~/src/PSAMR-trial/bench_nov14/pfdiff.py} (per level,
+max $|$difference$|$/range per field).  Control binaries are copied aside
+before each rebuild.  Every two-dimensional run, new and control, carries
+\code{PSAMR.ps\_diag\_mass=1} so the \code{[PS-GUARD]} line prints.  The
+battery is run with \code{EXE=} named explicitly.  Where a prediction
+fails, the failure is recorded in \S\ref{sec:results} before anything is
+changed.
+
+\subsection*{Stage 0: controls, no code change}
+
+\begin{enumerate}[nosep]
+\item Read \code{CellConservativeQuartic} in the AMReX checkout and record
+      whether it limits.  Prediction: it does not.
+\item ADV2D at $32^2, 64^2, 128^2$, \code{do\_mol=0}, \code{ps\_wp\_limiter=none}:
+      record $L_1(\alpha)$ and the rate.  Prediction: rate $2.0\pm0.1$,
+      $L_1=6.80\times10^{-4}$ at $64^2$ as VERIFICATION \S7.2 records.
+\item ADV2D at $64^2$ under \code{do\_mol=1} (Heun, \code{ps\_wp\_order=2})
+      at \code{cfl} 0.3, 0.15, 0.075: record the self-convergence ratio in
+      $\Dt$.  Prediction: $\log_2$ of the ratio $2.0\pm0.2$ (Heun is second
+      order).  Falsifier: below 1.8, which would mean the Heun path is not
+      the second-order step it is documented as, and Stage~1 compares
+      against a wrong control.
+\item Battery under \code{do\_mol=1} Heun: record the \code{verify\_canonical}
+      PASS set and the \code{err\_vs\_analytic} errors.  These are the
+      Stage~1 and Stage~3 controls; no prediction, a record.
+\item Wall time per step and \code{[PS-GUARD]} counters for XC2D (40
+      steps) and T-Blowdown (\code{inputs-x-amr}, 300 steps) under
+      \code{do\_mol=0} and under \code{do\_mol=1} Heun.  Record.
+\end{enumerate}
+
+\subsection*{Stage 1: SSPRK(3,3) through \code{AmrLevel::RK}, spatial operator unchanged}
+
+\code{rk\_order=3}, \code{ps\_wp\_order=2}, \code{cf\_interp=cons}.  The
+hydro right-hand side is the present one; only the time scheme and the
+ghost filling change.
+
+\begin{enumerate}[nosep]
+\item ADV2D $64^2$, \code{cfl} 0.3, 0.15, 0.075: $\log_2$ of the
+      self-convergence ratio in $\Dt$ is $3.0\pm0.3$.  Falsifier: below 2.5
+      (then the stage weights or the ghost filling are wrong, and no
+      further stage runs until it is found).
+\item ADV2D $32^2$ to $128^2$ at fixed \code{cfl}: rate $2.0\pm0.1$, and
+      $L_1$ at $64^2$ within 5\,\% of the Heun value (the spatial error
+      dominates at second order).  Falsifier: rate below 1.9.
+\item ADV2D \code{inputs-fb-rk2} (static fine box, periodic): total mass and
+      $\rho E$ conserved to round-off across the \code{sum\_interval=20}
+      totals (below $10^{-13}$ relative).  Falsifier: a drift above that,
+      which means the reflux register is not carrying the stage weights
+      the step used.
+\item Battery: the \code{verify\_canonical} PASS set equal to the Heun
+      control's; every \code{err\_vs\_analytic} error within 2\,\% of the
+      Heun control's (the battery is shock-limited and the spatial operator
+      is unchanged).  Falsifier: a check that passed under Heun and fails
+      here, or an error moved by more than 10\,\%.
+\item XC2D, 40 steps, level 1: runs to step 40; \code{flux\_sanit} and the
+      three limiter counters 0; the \code{reflux\_*} counters equal to the
+      Heun control's.  Falsifier: an abort, or a limiter counter above 0.
+\item T-Blowdown 300 steps: runs; counters 0; final plotfile against the
+      Heun control within $10^{-3}$ of range on every field (a different
+      second-order-in-time error, not a different solution).  Falsifier:
+      above $10^{-2}$ anywhere.
+\item CFL cap: ADV2D and XC2D at \code{cfl=0.45} under \code{rk\_order=3}:
+      stable, counters 0.  Prediction: stable (the forward Euler bound in
+      two dimensions is 0.5).  Falsifier: an abort or a counter above 0,
+      in which case the cap stays at 0.3 and the cost prediction of
+      \S\ref{sec:gpu} is the factor 9, not 5.
+\item GPU (peart): XC2D 40 steps against the Mac run, every field to
+      round-off (below $10^{-12}$ of range on both levels).
+\end{enumerate}
+
+\subsection*{Stage 2: fourth-order coarse-to-fine interpolation}
+
+\code{cf\_interp=quartic} on top of Stage 1.
+
+\begin{enumerate}[nosep]
+\item ADV2D \code{inputs-fb-rk2}: conservation to round-off as in Stage 1
+      (the quartic interpolater is conservative).  The $L_1(\alpha)$
+      against the translated initial condition at the stop time is no
+      larger than under \code{cons}.  Falsifier: larger by more than 10\,\%.
+\item XC2D 40 steps, the coarse--fine ray-diff of VERIFICATION \S7.3
+      against the uniform reference: the contact gap $|\Delta\alpha_1|$
+      (now $8.5\times10^{-8}$) and the relative phase-energy gap in the
+      coarse--fine band (now $1.9\times10^{-4}$) do not grow.  Prediction:
+      both fall.  Falsifier: either grows by more than a factor 2.
+\item The post-C-F-interp range print of \src{PSAMR.cpp} on XC2D and
+      T-Blowdown: $\alpha_1$ after interpolation stays in $[0,1]$ and the
+      sliver counters after regrid equal the \code{cons} control's.
+      Prediction: the unlimited quartic interpolant produces no
+      out-of-range $\alpha_1$ on these two cases, because both carry a
+      resolved contact.  Falsifier: an out-of-range value, which decides
+      that a limited fourth-order interpolant (the McCorquodale--Colella
+      limited quartic) is needed before Stage 3, and that is recorded as a
+      refuted prediction and a new item.
+\item Pipe-break \code{inputs.satjet\_demo2} to step 200 (the flashing jet
+      is where an unlimited interpolant will show if it shows anywhere):
+      runs; the post-C-F-interp print never reports $\alpha_1$ outside
+      $[0,1]$; \code{reflux\_*} counters within a factor 2 of the control's.
+      Falsifier: an out-of-range $\alpha_1$, same decision as item 3.
+\item GPU: XC2D to round-off against the Mac, as in Stage 1.
+\end{enumerate}
+
+\subsection*{Stage 3: reconstructed faces and the in-cell term}
+
+\code{ps\_wp\_order=4}, \code{ps\_wp\_recon=weno5z}, on top of Stage 2.
+
+\begin{enumerate}[nosep]
+\item ADV2D space: $32^2, 64^2, 128^2$ with \code{cfl} scaled as
+      $(32/N)^{2/3}$ (so $\Dt\propto h^{5/3}$ and the third-order temporal
+      error falls faster than $h^4$), \code{ps\_wp\_limiter=none} has no
+      meaning here and is not set: rate at or above $4.0$ in
+      $L_1(\alpha)$.  Prediction: $4.5\pm0.5$ (WENO5-Z is fifth order on
+      smooth data; the nonlinear weights cost a little).  Falsifier: below
+      3.5, in which case the reconstruction, the characteristic projection
+      or the in-cell term is wrong, and the PPM fallback
+      (\code{ps\_wp\_recon=ppm}) is run to tell which: PPM at or above 3.5
+      with WENO below it points at the WENO weights; both below it point
+      at the in-cell term or the projection.
+\item ADV2D time: $64^2$, \code{cfl} 0.3, 0.15, 0.075: $\log_2$ ratio
+      $3.0\pm0.3$ as in Stage 1 (the spatial error is now small enough
+      that the temporal one shows).  Falsifier: below 2.5.
+\item ADV2D conservation (\code{inputs-fb-rk2}) to round-off, as before.
+\item The in-cell term in one dimension: a uniform-velocity, uniform-pressure
+      advected contact in $\alpha_1$ (battery case B11's configuration with
+      relaxation off, \code{ps\_do\_relax=0}) keeps $u$ and $P$ uniform to
+      round-off ($10^{-12}$ relative) for the whole run.  This is the
+      Abgrall--Saurel condition; a wrong in-cell term for $\alpha$ or the
+      phase energies breaks it in the first step.  Falsifier: a pressure or
+      velocity disturbance above $10^{-10}$ at the contact.
+\item Battery: \code{verify\_canonical} PASS set equal to the Stage~1
+      set; every \code{err\_vs\_analytic} error no larger than the Stage~1
+      value, and the errors on the smooth parts of the fans smaller.
+      Realizability (\code{ps\_validate} V2, V3, V6, V7) with zero
+      violations; \code{energyid} on B9 no larger than now
+      ($2.9\times10^{-3}$); wall reflection on B8 and B12 mirror-exact to
+      round-off (the characteristic projection and WENO weights are
+      symmetric under $x\to-x$ if written so; a broken mirror is a coding
+      error, not a scheme property).  \code{recon\_fallback} 0 on every
+      case except those with a vanished phase present (B7, B9), where it is
+      recorded, not predicted.  Falsifiers: a check lost, an error larger
+      than Stage~1, a realizability violation, a broken mirror.
+\item Self-convergence (\code{gen\_convergence.py}, N = 128, 256, 512): the
+      observed order on the shocked cases stays near 1 and on the smooth
+      cases rises above 2.  Record; no hard falsifier, the battery errors
+      are the gate.
+\item XC2D 40 steps: runs; the coarse--fine gaps of Stage 2 do not grow;
+      counters as Stage 2 plus \code{recon\_fallback}, recorded.
+      T-Blowdown 300 steps: runs; counters 0 or recorded; the orientation
+      suite of VERIFICATION \S7.1 still agrees across orientations to
+      round-off.  Falsifier: an abort, or an orientation asymmetry.
+\item Pipe-break to step 200: runs; centreline symmetry to round-off; the
+      near-orifice shear-mode checkerboard of MODEL \S3.8 is recorded
+      (amplitude at the same station as the record), with no prediction
+      that it is smaller.  Falsifier: an abort, or broken centreline
+      symmetry.
+\item GPU: battery fingerprints are host-only; XC2D and T-Blowdown to
+      round-off against the Mac.  Wall time per step on peart against the
+      Stage~0 control: within a factor 4 of \code{do\_mol=1} Heun per step
+      (three stages against two, plus the reconstruction).  Falsifier:
+      above 6, which means a launch-count or equation-of-state call
+      problem to find before the stage is done.
+\end{enumerate}
+
+\subsection*{Stage 4: the relaxation placement}
+
+On top of Stage 3.  Mechanical projection inside the stages; rate terms
+outside under \code{ps\_strang=1}.
+
+\begin{enumerate}[nosep]
+\item A smooth finite-rate case (B11 with \code{ps\_relax\_mode=2}, the
+      finite-rate control closure, at a $\tau$ comparable to the step): the
+      $\log_2$ self-convergence ratio in $\Dt$ on a fixed grid is
+      $2.0\pm0.3$ under Strang and $1.0\pm0.3$ under Lie.  This is the
+      record of the bound of \S\ref{sec:bounds}, item 1.  Falsifier for
+      the scheme: Strang below 1.7, which would mean the projection inside
+      the stages interferes with the halves (then the projection is moved
+      out and the measurement repeated).
+\item Battery under mode 5 with Strang against mode 5 with Lie: the PASS
+      set equal; errors recorded.
+\item Pipe-break to step 200 under Strang: runs; the mode-5 evidence
+      quantities of VERIFICATION \S7.6 recorded at the same stations.
+\item GPU as before.
+\end{enumerate}
+
+\subsection*{Stage 5: the record}
+
+\code{VERIFICATION.md} \S7.2 gains the spatial and temporal rates and their
+run lines; \S6 gains the Abgrall--Saurel contact check; \code{MODEL\_AND\_ALGORITHM.md}
+\S3 gains the reconstructed-face operator, the in-cell term and the
+characteristic projection, with the raw-average scheme kept as
+\code{ps\_wp\_order=2}; \code{DESIGN\_DECISIONS.md} gains one entry per
+decision taken here (SSP over non-SSP; characteristic-wise over slot-wise
+reconstruction; the unlimited quartic interpolant kept or replaced on the
+Stage~2 measurement; the CFL cap); \code{RUNNING.md} gains the four dials.
+Then the defaults are decided by Marc on the record, not here.
+
+% =====================================================================
+\section{Parked}
+\label{sec:parked}
+% =====================================================================
+
+\begin{itemize}[nosep]
+\item The McCorquodale--Colella average-to-point conversions for formal
+      multi-dimensional fourth order, including the equation of state and
+      the sources at point values.
+\item The implicit--explicit Runge--Kutta treatment of the finite-rate
+      relaxation terms, for third order in the full step.
+\item SSPRK(4,3), with its own \code{FillPatcher} coefficients, for a third
+      less work per simulated time.
+\item A limited fourth-order coarse-to-fine interpolant, if Stage~2 shows
+      the unlimited one failing.
+\item Interface sharpening (THINC-type) for the contact, if the WENO5
+      contact is measurably more smeared than the present tapered scheme on
+      the pipe-break.
+\item Embedded boundaries at any order above two.
+\end{itemize}
+
+% =====================================================================
+\section{Commits}
+\label{sec:commits}
+% =====================================================================
+
+One item per commit, on \code{high-order} off \code{main} at
+\code{e9eecf18}; nothing pushed without Marc's word.
+
+\begin{enumerate}[nosep]
+\item This plan, and its row in \code{docs/README.md}.
+\item Stage 0 controls appended to \S\ref{sec:results}.
+\item Stage 1 code: \code{PSAMR.rk\_order}, the \code{AmrLevel::RK(3)}
+      call in \src{PSAMR_advance.cpp}, the stage-weighted flux register,
+      \code{RUNNING.md} row; then its record.
+\item Stage 2 code: \code{PSAMR.cf\_interp} in \src{PSAMR_setup.cpp};
+      then its record.
+\item Stage 3 code: the reconstruction, the projection and the in-cell term
+      in \src{PS_umeth.cpp} and a new \src{PS_recon.H}, the counter,
+      the dials; then its record.
+\item Stage 4: the projection placement in the stages; then its record.
+\item Stage 5: the documents.
+\end{enumerate}
+
+% =====================================================================
+\section{Results}
+\label{sec:results}
+% =====================================================================
+
+Empty at the time of writing.  Each stage appends its measured numbers
+against the predictions above, with refuted predictions marked as such.
+
+\end{document}
