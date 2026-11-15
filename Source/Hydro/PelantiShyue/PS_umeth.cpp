@@ -571,6 +571,24 @@ PS_umeth(const Box& bx,
         return cached;
     };
     const int wp_mol_form = ps_wp_mol_form_cached();
+
+    // PSAMR.ps_lim_skip_slot (-1 = none): an INVESTIGATION dial (Stage 2c,
+    // docs/PLAN_high_order.pdf): the state slot with this index is left out
+    // of the limiter's nondimensional inner product.  It exists to test the
+    // reading that a noise-level slot's full vote drives the transverse
+    // instability; it is not a scheme option and is to be retired with the
+    // decision that follows.
+    auto ps_lim_skip_slot_cached = []() -> int
+    {
+        static const int cached = []() -> int {
+            const int v = ps_dial_int("ps_lim_skip_slot", -1);
+            if (v < -1 || v >= NVAR) {
+                amrex::Abort("PSAMR.ps_lim_skip_slot must be -1 or a state slot index");
+            }
+            return v; }();
+        return cached;
+    };
+    const int lim_skip_slot = ps_lim_skip_slot_cached();
     if (wp_mol_form != 0 && wp_transverse != 0) {
         amrex::Abort("PSAMR.ps_wp_transverse must be 0 under rk_order=3 "
                      "(the Runge-Kutta stages supply the cross term)");
@@ -760,8 +778,15 @@ PS_umeth(const Box& bx,
                         const int oj = (idir == 1) ? 1 : 0;
                         const int ok2 = (idir == 2) ? 1 : 0;
                         Real wdotw = Real(0.0), wdotu = Real(0.0);
+                        //  Stage 2c instrument: the largest |term| of
+                        //  <W_up,W_f>_D, the slot scale it came from, the
+                        //  sum of |terms| and the largest slot scale on the
+                        //  face, for the noise-slot count below.
+                        Real term_max = Real(0.0), term_sum = Real(0.0);
+                        Real sc_of_max = Real(0.0), sc_max = Real(0.0);
                         for (int n = 0; n < NVAR; ++n) {
                             if (n == UTEMP) continue;   // not a wave component
+                            if (n == lim_skip_slot) continue;   // investigation dial
                             const Real Wf  = wv(i, j, k,  l*NVAR + n);
                             const Real Wup = wv(ni,nj,nk, l*NVAR + n);
                             //  A component identically zero in both cells
@@ -787,6 +812,17 @@ PS_umeth(const Box& bx,
                             const Real wf = Wf * inv, wu = Wup * inv;
                             wdotw += wf * wf;
                             wdotu += wf * wu;
+                            {
+                                const Real sc_n = Real(1.0) / inv;
+                                const Real t = std::abs(wf * wu);
+                                term_sum += t;
+                                if (t > term_max) { term_max = t; sc_of_max = sc_n; }
+                                if (sc_n > sc_max) sc_max = sc_n;
+                            }
+                        }
+                        if (term_sum > Real(0.0) && term_max > Real(0.5) * term_sum
+                            && sc_of_max < Real(1.0e-10) * sc_max) {
+                            ps_guard::count_lim_noise_slot();
                         }
                         //  A zero-strength wave contributes nothing whatever phi
                         //  is; leave it at 1 rather than dividing by zero.  A
