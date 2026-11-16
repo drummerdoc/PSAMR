@@ -5,6 +5,7 @@
 
 #include <AMReX_Vector.H>
 #include <AMReX_TagBox.H>
+#include <AMReX_FillPatchUtil.H>   // FillPatchTwoLevels (rk4_fill)
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -243,8 +244,16 @@ PSAMR::read_params()
   // Under rk_order=3 the SSP bound is the forward Euler bound of the unsplit
   // operator in the per-direction dt definition, 1/DIM; measured on ADV2D
   // and XC2D at cfl 0.45 in 2-D (docs/PLAN_high_order.pdf section 11).
-  if ((do_mol == 1) && (rk_order == 3) && (cfl > 1.0/AMREX_SPACEDIM) && fixed_dt <= 0.0) {
-    amrex::Error("Invalid CFL factor; must be <= 1/DIM under rk_order=3");
+  // PSAMR.rk_stages (3): under rk_order=3, 3 = SSPRK(3,3); 4 = SSPRK(4,3)
+  // (Spiteri-Ruuth: stage times 0, 1/2, 1, 1/2, weights 1/6, 1/6, 1/6,
+  // 1/2, SSP coefficient 2), whose bound is twice the forward Euler one.
+  // docs/PLAN_high_order.pdf follow-up 6.
+  const int rk_stages = ps_dial_int("rk_stages", 3);
+  if (rk_stages != 3 && rk_stages != 4) {
+    amrex::Error("PSAMR.rk_stages must be 3 (SSPRK(3,3)) or 4 (SSPRK(4,3))");
+  }
+  if ((do_mol == 1) && (rk_order == 3) && (cfl > (rk_stages == 4 ? 2.0 : 1.0)/AMREX_SPACEDIM) && fixed_dt <= 0.0) {
+    amrex::Error("Invalid CFL factor; must be <= 1/DIM under rk_order=3 (2/DIM under rk_stages=4)");
   }
   if (rk_order != 2 && rk_order != 3) {
     amrex::Error("PSAMR.rk_order must be 2 (Heun) or 3 (SSPRK(3,3))");
@@ -1946,4 +1955,88 @@ PSAMR::rk_store_coarse (amrex::Real time, amrex::Real dt,
         parent->Geom(level),
         amrex::IntVect(numGrow()), desc.nComp(), desc.interp(0));
     fp->storeRKCoarseData(time, dt, S_old, rkk);
+}
+
+// ---------------------------------------------------------------------
+//  SSPRK(4,3) coarse-fine plumbing (PSAMR.rk_stages=4).  The coarse level
+//  hands the next finer level its old state and four stage derivatives;
+//  the fine level builds, for each of its stages, the coarse state the
+//  stage's Taylor form needs from the quadratic dense output of the
+//  four-stage scheme (b_i(xsi) = xsi - 5/6 xsi^2, xsi^2/6, xsi^2/6,
+//  xsi^2/2, which sum to xsi, match the weights at xsi = 1 and the
+//  second-order condition sum b_i c_i = xsi^2/2 for c = 0, 1/2, 1, 1/2),
+//  then fills its ghost cells through FillPatchTwoLevels with the
+//  state's interpolater, exactly as AMReX's fillRK does for its own
+//  three- and four-stage sets.  The stage forms: stage 2 is
+//  u + (dt/2) u', stage 3 is u + dt u' + (dt^2/4) u'', stage 4 is
+//  u + (dt/2) u' + (dt^2/4) u'', with dt the fine step r dtc.
+// ---------------------------------------------------------------------
+void
+PSAMR::rk4_store_coarse (amrex::Real dt, const amrex::MultiFab& S_old,
+                         amrex::Array<amrex::MultiFab,4> const& rkk)
+{
+    BL_PROFILE("PSAMR::rk4_store_coarse()");
+    if (level == parent->finestLevel()) { return; }
+    PSAMR& fine = static_cast<PSAMR&>(parent->getLevel(level+1));
+    fine.rk4_u0.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+    amrex::MultiFab::Copy(fine.rk4_u0, S_old, 0, 0, NVAR, 0);
+    for (int s = 0; s < 4; ++s) {
+        fine.rk4_k[s].define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+        amrex::MultiFab::Copy(fine.rk4_k[s], rkk[s], 0, 0, NVAR, 0);
+    }
+    fine.rk4_dtc = dt;
+    fine.rk4_have = true;
+}
+
+void
+PSAMR::rk4_fill (amrex::MultiFab& S, amrex::Real t, int stage,
+                 int iteration, int ncycle)
+{
+    BL_PROFILE("PSAMR::rk4_fill()");
+    using amrex::Real;
+    amrex::StateDataPhysBCFunct physbcf(state[State_Type], 0, geom);
+    if (level == 0) {
+        S.FillBoundary(geom.periodicity());
+        physbcf(S, 0, S.nComp(), S.nGrowVect(), t, 0);
+        return;
+    }
+    PSAMR& crse = static_cast<PSAMR&>(parent->getLevel(level-1));
+    if (!rk4_have || rk4_u0.boxArray() != crse.grids
+        || rk4_u0.DistributionMap() != crse.dmap) {
+        static int said = 0;
+        if (said++ == 0) {
+            amrex::Print() << "PSAMR::rk4_fill: level " << level
+                           << " has no coarse RK stage data, FillPatch fallback"
+                           << " (stage " << stage << ")\n";
+        }
+        FillPatch(*this, S, S.nGrow(), t, State_Type, 0, NVAR, 0);
+        return;
+    }
+    const Real xsi = Real(iteration - 1) / Real(ncycle);
+    const Real r   = Real(1.0) / Real(ncycle);
+    const Real b[4] = { xsi - Real(5.0/6.0)*xsi*xsi, xsi*xsi/Real(6.0),
+                        xsi*xsi/Real(6.0), Real(0.5)*xsi*xsi };
+    const Real c[4] = { Real(1.0) - Real(5.0/3.0)*xsi, xsi/Real(3.0),
+                        xsi/Real(3.0), xsi };
+    const Real d[4] = { Real(-5.0/3.0), Real(1.0/3.0), Real(1.0/3.0), Real(1.0) };
+    Real a1 = Real(0.0), a2 = Real(0.0);     // on r u' and r^2 u''
+    if      (stage == 2) { a1 = Real(0.5); }
+    else if (stage == 3) { a1 = Real(1.0); a2 = Real(0.25); }
+    else if (stage == 4) { a1 = Real(0.5); a2 = Real(0.25); }
+    amrex::MultiFab uc(crse.grids, crse.dmap, NVAR, 0, amrex::MFInfo(), crse.Factory());
+    amrex::MultiFab::Copy(uc, rk4_u0, 0, 0, NVAR, 0);
+    for (int s = 0; s < 4; ++s) {
+        const Real w = rk4_dtc * (b[s] + a1*r*c[s] + a2*r*r*d[s]);
+        if (w != Real(0.0)) { amrex::MultiFab::Saxpy(uc, w, rk4_k[s], 0, 0, NVAR, 0); }
+    }
+    amrex::MultiFab Sv(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+    amrex::MultiFab::Copy(Sv, S, 0, 0, NVAR, 0);
+    amrex::StateDataPhysBCFunct physbcf_crse(crse.state[State_Type], 0, crse.geom);
+    amrex::Vector<amrex::MultiFab*> cmf{&uc}, fmf{&Sv};
+    amrex::Vector<Real> ct{t}, ft{t};
+    const amrex::StateDescriptor& desc = desc_lst[State_Type];
+    amrex::FillPatchTwoLevels(S, S.nGrowVect(), t, cmf, ct, fmf, ft, 0, 0, NVAR,
+                              crse.geom, geom, physbcf_crse, 0, physbcf, 0,
+                              parent->refRatio(level-1), desc.interp(0),
+                              desc.getBCs(), 0);
 }

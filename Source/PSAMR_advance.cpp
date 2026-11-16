@@ -643,7 +643,11 @@ PSAMR::PSAMR_advance (Real time,
     //
     // Now build and add the hydro source term(s) to S_new
     //
-    if (do_mol && rk_order == 3) {
+    //   PSAMR.rk_stages (3): 4 = SSPRK(4,3) in place of SSPRK(3,3) under
+    //     rk_order=3 (PSAMR.cpp validates; docs/PLAN_high_order.pdf
+    //     follow-up 6).
+    static const int rk_stages_cached = ps_dial_int("rk_stages", 3);
+    if (do_mol && rk_order == 3 && rk_stages_cached == 3) {
         // SSPRK(3,3), Shu-Osher form, on the method-of-lines hydro with the
         // old-time sources rebuilt on every stage state (so the "new source"
         // correction below does not apply).  Stage ghost cells come from
@@ -709,6 +713,64 @@ PSAMR::PSAMR_advance (Real time,
         MultiFab::Saxpy(S_new, amrex::Real(1.0/3.0), S_old, 0, 0, NVAR, 0); // S3 = 1/3 S0 + 2/3 (S2 + dt k3)
         // The next finer level's stage ghosts come from these.
         rk_store_coarse(prev_time, dt, S_old, rkk);
+
+    } else if (do_mol && rk_order == 3) {
+        // SSPRK(4,3) (Spiteri-Ruuth), the four-stage third-order scheme
+        // with SSP coefficient 2: stages at t, t + dt/2, t + dt, t + dt/2,
+        // flux-register weights 1/6, 1/6, 1/6, 1/2.  Same operator, same
+        // per-stage fold and projection as above; the coarse-fine stage
+        // ghosts from rk4_fill.  docs/PLAN_high_order.pdf follow-up 6.
+        amrex::Array<amrex::MultiFab,4> rkk;
+        for (auto& k : rkk) {
+            k.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+        }
+        const amrex::Real wgt[4] = { amrex::Real(1.0/6.0), amrex::Real(1.0/6.0),
+                                     amrex::Real(1.0/6.0), amrex::Real(0.5) };
+        auto rhs = [&](int s, amrex::MultiFab& Sb, amrex::Real t) {
+            rk_reflux_fac = wgt[s-1];
+            construct_hydro_source(Sb, rkk[s-1], t, dt);
+            rk_reflux_fac = amrex::Real(-1.0);
+            for (int n = 0; n < src_list.size(); ++n) {
+                construct_old_source(src_list[n], Sb, t, dt, 0);
+                MultiFab::Add(rkk[s-1], *old_sources[src_list[n]], 0, 0, NVAR, 0);
+            }
+        };
+        auto fold = [&](amrex::MultiFab& S) {
+#ifdef USE_PS_HYDRO
+            if (ps_hydro != 0) {
+                ps_apply_vanish_fold(S, 0);
+                if (ps_rk_project_cached != 0) {
+                    ps_resync_mixture_mass(S, 0);
+                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);
+                }
+            }
+#else
+            amrex::ignore_unused(S);
+#endif
+        };
+        const amrex::Real hdt = amrex::Real(0.5) * dt;
+        if (level > 0) { rk4_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle); }
+        rhs(1, Sborder, prev_time);
+        MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
+        MultiFab::Saxpy(S_new, hdt, rkk[0], 0, 0, NVAR, 0);          // S1 = S0 + dt/2 k1
+        fold(S_new);
+        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+        rk4_fill(Sborder, prev_time + hdt, 2, amr_iteration, amr_ncycle);
+        rhs(2, Sborder, prev_time + hdt);
+        MultiFab::Saxpy(S_new, hdt, rkk[1], 0, 0, NVAR, 0);          // S2 = S1 + dt/2 k2
+        fold(S_new);
+        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+        rk4_fill(Sborder, prev_time + dt, 3, amr_iteration, amr_ncycle);
+        rhs(3, Sborder, prev_time + dt);
+        MultiFab::Saxpy(S_new, hdt, rkk[2], 0, 0, NVAR, 0);          // S2 + dt/2 k3
+        S_new.mult(amrex::Real(1.0/3.0), 0, NVAR, 0);
+        MultiFab::Saxpy(S_new, amrex::Real(2.0/3.0), S_old, 0, 0, NVAR, 0); // S3 = 2/3 S0 + 1/3 (S2 + dt/2 k3)
+        fold(S_new);
+        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+        rk4_fill(Sborder, prev_time + hdt, 4, amr_iteration, amr_ncycle);
+        rhs(4, Sborder, prev_time + hdt);
+        MultiFab::Saxpy(S_new, hdt, rkk[3], 0, 0, NVAR, 0);          // S4 = S3 + dt/2 k4
+        rk4_store_coarse(dt, S_old, rkk);
 
     } else if (do_mol) {
         construct_hydro_source(Sborder, hydro_source, time, dt);

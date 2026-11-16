@@ -161,6 +161,21 @@ public:
   void rk_store_coarse (amrex::Real time, amrex::Real dt,
                         const amrex::MultiFab& S_old,
                         amrex::Array<amrex::MultiFab,3> const& rkk);
+  // SSPRK(4,3) (PSAMR.rk_stages=4 under rk_order=3): the coarse level's
+  // old state and its four stage derivatives, held by the fine level on
+  // the coarse grids, and the stage ghost fill from their dense output
+  // through the two-level FillPatch with this level's interpolater.
+  // AMReX's fillRK keys its coefficients to the stage count and would
+  // apply the classical RK4 set to four stages, so the four-stage scheme
+  // carries its own.  docs/PLAN_high_order.pdf follow-up 6.
+  void rk4_fill (amrex::MultiFab& S, amrex::Real t, int stage,
+                 int iteration, int ncycle);
+  void rk4_store_coarse (amrex::Real dt, const amrex::MultiFab& S_old,
+                         amrex::Array<amrex::MultiFab,4> const& rkk);
+  amrex::MultiFab rk4_u0;
+  amrex::Array<amrex::MultiFab,4> rk4_k;
+  amrex::Real rk4_dtc = 0.0;
+  bool rk4_have = false;
 
   //
   // Build the old-time source terms on the valid region plus ng ghost cells.
