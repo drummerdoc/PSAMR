@@ -504,6 +504,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
 \code{PSAMR.ps\_rk\_project} & 0 (1 under \code{ps\_wp\_order=4}) & Under \code{rk\_order=3}: 1 = each stage state is folded, mass-resynced and projected onto mechanical equilibrium (the mode-0 kernel) before it feeds the next stage; 0 = the fold only (Stages 1--3). With \code{ps\_strang=1} the default of the order-4 path (Marc's decision on the Stage~4 record). Stage~4. \\
 \code{PSAMR.ps\_rk\_project\_tol} & $10^{-10}$ & The stage projection's Newton tolerance on $|P_1-P_2|/\max(P_1,P_2)$: the X3F residual tolerance by default (follow-up 1); $10^{-4}$ = the mode-0 kernel's own, the Stage~4 behaviour, for A/B. \\
+\code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \bottomrule
 \end{tabular}
@@ -987,6 +988,36 @@ per stage.  Predictions, each with its falsifier:
       tolerance is an argument); no queue for this item, the next peart
       queue carries it.
 \end{enumerate}
+
+\subsection*{Follow-up 2: the weak-shock width, first option (planned 16 November 2026)}
+
+Item 2 of \code{FUTURE\_WORK.md} \S13 names two options: WENO-Z with
+the higher power on $\tau/\beta_k$, and a sensor that drops to the TVD
+face at a weak jump.  The sensor needs a threshold on the jump, which
+nothing yet derives, so it is a design question for Marc; the power is
+one dial (\code{PSAMR.ps\_wp\_weno\_power}, 1 or 2, 1 bitwise the
+Borges weight) and is tested first, at low cost, as the plan's reading
+of the mechanism predicts it does nothing: the weak vapour shock of B4
+is eight cells wide because, once spread, its profile is smooth on the
+five-cell stencil, $\tau \ll \beta_k$ there, the weights are the linear
+ones whatever the power, and the fifth-order linear scheme has too
+little dissipation to compress it back; a power acts only where
+$\tau/\beta_k$ is of order one, at a sharp jump.  Predictions:
+\begin{enumerate}[nosep]
+\item The 21-case-table B4 and B10 velocity errors at 64 cells under
+      the order-4 default with the mode-5 probe move by less than
+      2\,\% between powers 1 and 2 (B4 $u$ 0.154).  Falsifier: B4 $u$
+      at or below 0.14, toward the 0.132 of rk3 order 2, in which case
+      the power is a candidate and the 256-cell and ADV2D checks decide.
+\item At 256 cells the same within 2\,\%.
+\item ADV2D at amplitude 0.0025 (\code{cfl} 0.189 and 0.119 on $64^2$
+      and $128^2$): $L_1(\alpha_1)$ within 5\,\% of the power-1 values
+      ($2.00\times10^{-10}$, $6.27\times10^{-12}$) and the rate 5.0.
+\item GPU: none (an argument of an inline host-device function).
+\end{enumerate}
+If prediction 1 holds the option is refuted and recorded, the dial stays
+as the A/B instrument, and the sensor is put to Marc with the threshold
+question stated.
 
 % =====================================================================
 \section{Parked}
