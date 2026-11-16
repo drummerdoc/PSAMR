@@ -981,7 +981,7 @@ One item per commit, on \code{high-order} off \code{main} at
       in \src{PS_umeth.cpp} and a new \src{PS_recon.H}, the counter,
       the dials; then its record.
 \item Stage 4: the projection placement in the stages; then its record.
-\item Stage 5: the documents.
+\item Stage 5: the documents, one commit per document (\S\ref{sec:stage5}).
 \end{enumerate}
 
 % =====================================================================
@@ -2101,7 +2101,47 @@ may be set to 0 explicitly, and the resolved values go to
 \code{job\_info}; the order-2 path is untouched, so no deck changes.
 Checked on the tube (300 steps): \code{ps\_wp\_order=4} alone
 reproduces the Stage~4 run bitwise, the explicit zeros reproduce the
-Stage~3 run bitwise, and rk3 order 2 is bitwise the Stage~3 twin.  Then
-Stage~5, the record.
+Stage~3 run bitwise, and rk3 order 2 is bitwise the Stage~3 twin
+(commit \code{84a43d40}).
+
+\subsection{Stage 5: the record (16 November 2026; commits \code{f28f3828} to \code{8e6db268})}
+\label{sec:stage5}
+
+The documents as \S\ref{sec:stages} prescribed, one commit each, with
+two departures from the prescription.  \code{VERIFICATION.md}: \S7.2
+gains the spatial and temporal rates of the fourth-order path with their
+run lines (the table of the four schemes, the $\Delta t$ sweep, the
+conservation and CFL-cap lines); \S6 gains the Abgrall--Saurel contact
+check as \S6.6, in both its forms, the one-dimensional one recorded as
+an instrument-limited bound (the corridor substitution sets $10^{-4}$ of
+$P$ for every scheme) and the two-dimensional uniform-field check as the
+discriminating one; \S7.1, \S7.3 and \S7.5 gain the tube, the XC2D
+ray-diff table and the demo3 metrics under the path; \S4 says why the
+gate's fingerprints are order-2 records; \S9 lists the four known gaps
+(the weak-shock width, the mirror growth, the unmeasurable full-step
+order, the Heun mass drift) and the scope of the order claim.
+\code{MODEL\_AND\_ALGORITHM.md}: \S3.8 was written at Stages 3 and 4;
+Stage 5 adds \S3.9, the time integrator, the coarse-to-fine interpolant
+and what bounds the order, with the dial rows of \S3.7 and the \S4.9
+cross-reference.  The first departure: the characteristic projection the
+prescription named is not in \S3, because it was not built (H-7 records
+why and keeps it as the follow-up).  \code{DESIGN\_DECISIONS.md}: H-7
+and H-8 were written at their stages; Stage 5 adds H-9 (SSP over
+non-SSP, the method-of-lines correction form, the CFL cap, the Heun
+finding) and A-3 (the limited quartic interpolant, with the unlimited
+one in its rejected list); the component-wise-over-characteristic-wise
+decision is in H-7, so no entry of its own.  \code{RUNNING.md}: the dial
+rows were written at their stages; Stage 5 adds the fourth-order
+configuration as a third named configuration in \S2 and the order-4
+run lines to the ADV2D, T-Blowdown and XC2D decks.  Second departure,
+beyond the prescription: \code{FUTURE\_WORK.md} \S13 holds the
+follow-ups with the measurement that would justify each;
+\code{docs/README.md} says the plan carries the record; the
+\code{psamr\_ps\_model.tex} option table and the ADV2D README carry
+the new rows and the order-4 recipe.  The defaults were decided by Marc
+on the records, as the prescription said: the taper off (Stage 3), the
+projection with Strang (Stage 4), \code{ps\_wp\_order=2} unchanged as
+the code default.  Outstanding on the GPU side: the Stage 4 XC2D and
+tube lines, appended to the Stage~4 record when the peart queue reports.
 
 \end{document}
