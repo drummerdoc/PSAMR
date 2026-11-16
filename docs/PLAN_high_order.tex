@@ -426,6 +426,13 @@ belongs to the split single-step form.
       the stages at no cost to the order.  The flash is event-like and is
       low order by nature.  Stage~4 measures the temporal order of the full
       step and records it; the implicit--explicit treatment is its own plan.
+      Measured (Stage~4): with the finite-rate thermal closure (mode 2)
+      at $\theta\approx\Dt$ the self-convergence of the full step is
+      below first order under both splittings, Strang's differences
+      1.3--6 times Lie's smaller; the projection inside the stages lowers
+      the step sensitivity 40--70 times and then floors at its own Newton
+      tolerance.  The temporal order of the full step is bounded by the
+      finite-rate operator's per-step error, not by the splitting.
 \item \textbf{Averages against point values.}  \S\ref{sec:claim}.  For
       the constant-velocity advection of ADV2D the dimension-by-dimension
       scheme is exact at the design order, because averaging commutes with
@@ -495,6 +502,7 @@ Key & Default & Meaning \\
 \code{PSAMR.cf\_interp} & \code{cons} & Coarse-to-fine interpolater for the state: \code{cons} = \code{cell\_cons\_interp}; \code{quartic} = \code{quartic\_interp}. \\
 \code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
+\code{PSAMR.ps\_rk\_project} & 0 & Under \code{rk\_order=3}: 1 = each stage state is folded, mass-resynced and projected onto mechanical equilibrium (the mode-0 kernel) before it feeds the next stage; 0 = the fold only (Stages 1--3). Stage~4. \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \bottomrule
 \end{tabular}
@@ -1941,9 +1949,20 @@ settings, the control is the same deck under \code{ps\_wp\_order=2}
       front rather than a wiggle, which the metric cannot tell from a
       worse one.  Cost (six ranks, nothing else running): 9.65\,s against
       8.18\,s for rk3 order 2 and 7.40\,s for Heun.
-\item GPU: queued on peart (\code{peart\_stage3.sh}: XC2D under both
-      options, rk3 order 2 and Heun; the tube under option 1 and the two
-      controls; ADV2D $64^2$ under both options), appended when it
+\item GPU (peart, CUDA, at \code{18cb8dc9}, each against the Mac run of
+      the same configuration).  XC2D 40 steps: option 1, level 0 to
+      $5.4\times10^{-11}$ of range and level 1 to $1.2\times10^{-8}$ on
+      $\alpha_1$ (trace band); option 0, $8.4\times10^{-11}$ and
+      $9.8\times10^{-9}$; the rk3 order-2 twin $1.7\times10^{-12}$ and
+      $6.2\times10^{-9}$.  The order-4 figures are fifty times the
+      order-2 ones at level 0 (velocities, $10^{-9}$\,m/s absolute on a
+      range of 10): the reconstruction's weights amplify the two
+      machines' rounding differences more than the correction does;
+      still round-off.  Run time 43.4\,s (option 1), 42.1\,s (option 0)
+      against 47.3\,s for rk3 order 2 and 36.4\,s for Heun on the same
+      device: within the factor 4 of Heun per step, held; on the GPU the
+      reconstruction costs nothing measurable and the third stage costs
+      a fifth.  The tube and ADV2D lines are appended when the queue
       reports.
 \end{enumerate}
 
@@ -1958,12 +1977,110 @@ and the cleanest B11 contact, a steeper demo3 front, 304 vacuum folds on
 the AMR tube, and B2 slightly worse.  \textbf{Marc's decision (16
 November 2026): the taper is off}, \code{ps\_wp\_contact\_taper=0} is
 the default under order 4, and the vacuum folds on the AMR tube are the
-thing to watch when the path is run in production.  Still open: (ii)
-whether the weak-shock width of WENO5 at 64 cells (B4, B10) is accepted
-as the price of the order or a shock-aware weight is built; (iii) the
+thing to watch when the path is run in production.  (ii) The weak-shock
+width of WENO5 at 64 cells (B4, B10): \textbf{accepted as the price of the
+order} (Marc, 16 November 2026, on starting Stage~4); a shock-aware
+weight stays a named follow-up.  Still open: (iii) the
 characteristic projection on the primitive set stays the follow-up if
 production shows the post-shock noise component-wise reconstruction is
 known for; the battery did not.  Then Stage~4 (the relaxation placement,
 \S\ref{sec:stages}).
+
+
+\subsection{Stage 4: the relaxation placement (16 November 2026, Mac \code{llvm}; commit \code{3d5294e9})}
+\label{sec:stage4}
+
+Implementation: \code{ps\_apply\_mechanical\_projection} in
+\src{PS_relax.H}, the constraint part of the relaxation operator alone
+(the mode-0 kernel \code{ps\_mechanical\_relax\_cell} past its entry
+gate) over the valid cells; under \code{rk\_order=3} and
+\code{PSAMR.ps\_rk\_project=1} each stage state is folded, mass-resynced
+and projected before it feeds the next stage, the finite-rate legs
+staying in the reaction step (\code{ps\_strang} halves or one Lie
+step).  Default 0.  Every run below is on top of Stage~3 (order 4, the
+taper off, \code{quartic\_limited}, rk3).
+
+\begin{enumerate}[nosep]
+\item The time order of the full step (mode 2, $\theta = 2\times10^{-6}$\,s,
+      256 cells, mass transfer and flash off; differences between
+      successive \code{cfl} halvings, $L_1$).  On B5 (both phases
+      everywhere; \code{cfl} 0.25 to 0.03125, $\Dt/\theta$ from 1.5 to
+      0.2): without the projection Strang gives orders 0.59 and 0.76 in
+      $\rho$, 1.55 and 1.12 in $P$, differences $8.8\times10^{-1}$,
+      $5.9\times10^{-1}$, $3.5\times10^{-1}$ in $\rho$; Lie 0.28 and 0.59
+      in $\rho$, 0.41 and 0.25 in $P$, differences 1.07, 0.88, 0.59.
+      With the projection the differences are forty to seventy times
+      smaller ($2.0\times10^{-2}$, $1.2\times10^{-2}$, $1.2\times10^{-2}$
+      under Strang; $2.6\times10^{-2}$, $1.2\times10^{-2}$,
+      $8.0\times10^{-3}$ under Lie) and Strang's stop falling at the
+      third level.  On B11 (the advected contact, three levels): without
+      the projection Strang 2.5 ($\rho$), 2.2 ($\rho u$), 1.2 ($P$),
+      Lie 2.1, 1.4, 0.4, Strang's differences two to six times Lie's
+      smaller; with the projection the differences stagnate at
+      $7\times10^{-3}$ in $\rho$ and $9\times10^{2}$\,Pa, both
+      splittings.  \textbf{Refuted both ways.}  With the projection the
+      self-convergence floors at the projection's own Newton tolerance
+      (\code{tol\_P\_rel} $=10^{-4}$: the floor sits at
+      $3\times10^{-5}$ of $P$), so the plan's prescription was followed
+      and the projection taken out; without it the orders stay below the
+      $2.0\pm0.3$ and $1.0\pm0.3$ bands, because the mode-2 operator
+      (three Picard sweeps per step) carries a per-step error of its own
+      that the splitting order cannot be seen through at
+      $\theta\approx\Dt$.  What the measurement does say: Strang is the
+      more accurate splitting at every step, and the stage projection
+      removes most of the step sensitivity.  A Newton tolerance tied to
+      $\Dt$ is the follow-up that would let the projection stay inside
+      the stages without a floor; the run at the smallest \code{cfl}
+      (0.015625) wrote no final plotfile (the periodic plot at
+      \code{stop\_time} is missed at that step) and is not used.
+\item Battery under mode 5 with the projection, Strang against Lie:
+      identical PASS/FAIL sets (10 passes each); the 21-case table
+      differs by at most 0.4\,\% (B2 $u$ 0.776 against 0.778, B7 0.692
+      against 0.696, B9 0.746 against 0.748): \textbf{held}.  Two
+      findings on the way.  (a) The B12 mirror check fails under mode 5
+      ($1.7\times10^{5}$ and $6.3\times10^{5}$\,Pa), and that is mode 5
+      itself, not this stage: at mode 5 with nothing of Stage~4 on the
+      asymmetry is $7.5\times10^{5}$\,Pa, under the single-step order-2
+      scheme at mode 5 $5.8\times10^{5}$\,Pa, under mode 6 (the code
+      default, which the gate uses) $3.8\times10^{-5}$\,Pa.  Mode 5 is
+      the control closure, not the default, and the gate's own run is at
+      mode 6; recorded as a finding on mode 5.  (b) Strang without the
+      stage projection breaks the B12 mirror at mode 6 by
+      $6.2\times10^{3}$\,Pa ($10^{-3}$ of $P$); with the projection
+      $1.1\times10^{-2}$\,Pa, Lie with the projection
+      $3.9\times10^{-2}$\,Pa: the projection is what makes the Strang
+      step mirror-symmetric.  The frozen-B5 failure under the probe is
+      an artefact of forcing mode 5 onto the frozen check.
+\item Pipe-break under the projection with Strang: demo3 step 50 contact
+      window $8.81\times10^{-5}$ / 1, front $7.76\times10^{-3}$ / 1
+      (Stage~3: $8.77\times10^{-5}$, $7.72\times10^{-3}$), symmetry
+      $6.5\times10^{-7}$\,Pa; step 200 symmetry 106\,Pa (Stage~3 under
+      Lie: 127\,Pa): \textbf{held}.  Counters 0, no folds.  Cost 11.7\,s
+      under Strang and 10.4\,s under Lie against 9.65\,s (six ranks).
+      The tube: clean, validator 0 under both, 57.8\,s (Strang) and
+      43.8\,s (Lie) against 47.8\,s (the Strang reaction runs twice per
+      step).  XC2D under Strang: runs, counters 0; fine interior
+      $|\Delta P|/P$ $1.34\times10^{-2}$ against the uniform reference
+      ($1.26\times10^{-2}$ under Lie), the coarse contact band
+      $4.1\times10^{-2}$ against $8.2\times10^{-3}$: the pre-hydro half
+      step applies the whole reaction with the flash to the old state, a
+      different splitting of the same deck, and the reference was made
+      under Lie, so this is a difference, not an error.  ADV2D $64^2$
+      with the projection in the stages: the $L_1$ errors to six digits,
+      the field at $10^{-15}$.
+\item GPU: queued on peart behind the Stage~3 queue (XC2D and the tube
+      under the projection with Strang), appended when it reports.
+\end{enumerate}
+
+\paragraph{State and the decision it leaves.}  The projection is landed
+as an option with \code{ps\_rk\_project=0} and \code{ps\_strang=0} as
+the defaults, the Stage 1--3 behaviour, so no deck changes.  What it
+gives: forty to seventy times less step sensitivity on the two-phase
+cases, a mirror-symmetric Strang step, the same interface metrics and
+symmetry on demo3.  What it costs: 8--20\,\% run time, and a Newton
+tolerance floor in the self-convergence until the tolerance is tied to
+$\Dt$.  For Marc: whether \code{ps\_rk\_project=1} with
+\code{ps\_strang=1} becomes the default of the order-4 path.  Then
+Stage~5, the record.
 
 \end{document}
