@@ -2162,8 +2162,23 @@ taper off, \code{quartic\_limited}, rk3).
       under Lie, so this is a difference, not an error.  ADV2D $64^2$
       with the projection in the stages: the $L_1$ errors to six digits,
       the field at $10^{-15}$.
-\item GPU: queued on peart behind the Stage~3 queue (XC2D and the tube
-      under the projection with Strang), appended when it reports.
+\item GPU (peart, CUDA, at \code{3d5294e9}, the projection with
+      Strang under order 4, each against the Mac run of the same
+      configuration rerun at the tip, which reproduces the Stage~4 Mac
+      run bitwise).  XC2D 40 steps: level 0 to $2.6\times10^{-10}$ of
+      range (velocities), level 1 to $9.8\times10^{-9}$ on $\alpha_1$
+      (the trace band, $2.6\times10^{-15}$ absolute); the tube 300
+      steps to $4.6\times10^{-9}$ of range at the worst slot
+      ($\alpha_2\rho_2$), $1.2\times10^{-9}$ on $\alpha_1$.  Twenty
+      times the Stage~3 order-4 tube figure: the projection's
+      tolerance-terminated Newton may stop one iteration apart on the
+      two machines, so their difference is at the tolerance's residual
+      rather than at round-off; still nothing physical, and the
+      tolerance is now $10^{-10}$ (follow-up 1), which the next queue
+      carries.  Run time 42.9\,s on XC2D ($+2\,\%$ over order 4 without
+      the projection on the same device) and 201.9\,s on the tube
+      ($+27\,\%$ over 159.5; the Mac pays $+21\,\%$), with the host
+      under a load of about 30 from other work.
 \end{enumerate}
 
 \paragraph{State and the decision.}  The projection was landed as an
@@ -2220,8 +2235,9 @@ follow-ups with the measurement that would justify each;
 the new rows and the order-4 recipe.  The defaults were decided by Marc
 on the records, as the prescription said: the taper off (Stage 3), the
 projection with Strang (Stage 4), \code{ps\_wp\_order=2} unchanged as
-the code default.  Outstanding on the GPU side: the Stage 4 XC2D and
-tube lines, appended to the Stage~4 record when the peart queue reports.
+the code default.  The Stage~4 GPU lines were
+appended when the peart queue reported, closing the GPU side of every
+stage.
 
 \subsection{Follow-up 1: the stage projection converged to the production tolerance (16 November 2026, Mac \code{llvm})}
 \label{sec:fu1}
