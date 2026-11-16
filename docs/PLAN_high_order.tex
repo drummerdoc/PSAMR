@@ -503,6 +503,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
 \code{PSAMR.ps\_rk\_project} & 0 (1 under \code{ps\_wp\_order=4}) & Under \code{rk\_order=3}: 1 = each stage state is folded, mass-resynced and projected onto mechanical equilibrium (the mode-0 kernel) before it feeds the next stage; 0 = the fold only (Stages 1--3). With \code{ps\_strang=1} the default of the order-4 path (Marc's decision on the Stage~4 record). Stage~4. \\
+\code{PSAMR.ps\_rk\_project\_tol} & $10^{-10}$ & The stage projection's Newton tolerance on $|P_1-P_2|/\max(P_1,P_2)$: the X3F residual tolerance by default (follow-up 1); $10^{-4}$ = the mode-0 kernel's own, the Stage~4 behaviour, for A/B. \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \bottomrule
 \end{tabular}
@@ -939,6 +940,53 @@ decision taken here (SSP over non-SSP; characteristic-wise over slot-wise
 reconstruction; the unlimited quartic interpolant kept or replaced on the
 Stage~2 measurement; the CFL cap); \code{RUNNING.md} gains the four dials.
 Then the defaults are decided by Marc on the record, not here.
+
+\subsection*{Follow-up 1: the stage projection converged to the production tolerance (planned 16 November 2026)}
+
+The first item of \code{FUTURE\_WORK.md} \S13, taken up on Marc's word
+after Stage 5.  The Stage~4 self-convergence with the projection inside
+the stages floored at $3\times10^{-5}$ of $P$, the mode-0 kernel's own
+Newton tolerance (\code{tol\_P\_rel} $=10^{-4}$) being reached in one
+or two iterations and left there.  The prescription named a tolerance
+tied to $\Dt$; that needs a constant relating the projection error to
+the truncation error, which nothing derives, so it is not built.  What
+is built: the stage projection converges the constraint to the
+tolerance the production operator already uses for it, the X3F residual
+tolerance $10^{-10}$ (\code{hem\_relax\_x3f.H}), through a new dial
+\code{PSAMR.ps\_rk\_project\_tol} with $10^{-4}$ as the A/B value;
+the kernel, the mode-0 path and the reaction step are untouched (the
+tolerance is a trailing argument with the old default).  The Newton's
+slope is a central finite difference with a probe of $10^{-4}$ of
+$\min(\alpha, 1-\alpha)$, so its convergence is linear at a rate of
+order the slope error, $10^{-8}$: two to three iterations more per cell
+per stage.  Predictions, each with its falsifier:
+\begin{enumerate}[nosep]
+\item B5 (mode 2, $\theta = 2\times10^{-6}$\,s, 256 cells, Strang, the
+      projection; \code{cfl} 0.25 to 0.015625): the successive
+      differences fall below the Stage~4 floor ($2.0$, $1.2$,
+      $1.2\times10^{-2}$ in $\rho$) at every level, and the observed
+      orders in $\rho$ and $P$ lie in $2.0\pm0.3$ over the last two
+      pairs.  Falsifier A: the differences are unchanged, so the floor
+      was not the tolerance.  Falsifier B: they fall but the order stays
+      below 1.7 with no floor: the mode-2 operator's own per-step error
+      bounds the splitting order, the Stage~4 reading, and the item
+      closes as ``tolerance removed, order bounded by the operator''.
+\item B11 (the advected contact, three levels): the stagnation at
+      $7\times10^{-3}$ in $\rho$ and $9\times10^{2}$\,Pa lifts and the
+      order in $\rho$ is within $2.0\pm0.5$, as without the projection
+      (2.5).
+\item Cost: the tube under the order-4 default within 5\,\% of its
+      run time at $10^{-4}$, measured back to back on one rank; demo3 to
+      step 50 within 5\,\% of 11.7\,s on six ranks.  Falsifier: above
+      10\,\%.
+\item Battery under the order-4 default, mode 5 as in Stage~4: the
+      PASS set identical, the 21-case table within 0.5\,\% per entry.
+      demo3 step-50 metrics within 10\,\% of $8.81\times10^{-5}$ / 1
+      and $7.76\times10^{-3}$ / 1, symmetry at round-off, counters 0.
+\item GPU: no device change (the kernel body is unchanged, the
+      tolerance is an argument); no queue for this item, the next peart
+      queue carries it.
+\end{enumerate}
 
 % =====================================================================
 \section{Parked}
