@@ -121,10 +121,14 @@ PSAMR::PSAMR_advance (Real time,
     //     (ps_apply_relaxation, the whole mechanical/thermal/mass-transfer
     //     kernel selected by ps_relax_mode); 0 = frozen, for no-relaxation
     //     tests.
-    //   PSAMR.ps_strang (0): 0 = Lie (full-step reaction after hydro, first
-    //     order in time); 1 = Strang (half steps before and after hydro,
-    //     second order; needed to keep do_mol=1 second order with
-    //     relaxation/sources on).
+    //   PSAMR.ps_strang (0; 1 under ps_wp_order=4): 0 = Lie (full-step
+    //     reaction after hydro, first order in time); 1 = Strang (half
+    //     steps before and after hydro, second order; needed to keep
+    //     do_mol=1 second order with relaxation/sources on).  The
+    //     order-4 path defaults to Strang with the stage projection
+    //     (Marc's decision, 16 Nov 2026; docs/PLAN_high_order.pdf
+    //     Stage 4): Strang is the more accurate splitting at every step
+    //     and mirror-symmetric only with the projection.
     //   PSAMR.ps_class_compact (1): the launch form of the reaction step's
     //     per-cell operators (PS_classes.H): 1 = one class pass and one
     //     compact launch per operator over the admitted cells only; 0 = the
@@ -150,8 +154,14 @@ PSAMR::PSAMR_advance (Real time,
 #endif
         return v;
     }();
-    static const int ps_strang_cached = ps_dial_int("ps_strang", 0);
-    //   PSAMR.ps_rk_project (0): under rk_order=3, 1 = each Runge-Kutta
+    //   The order-4 default of the two splitting dials: read without
+    //   adding back, PS_umeth.cpp owns and validates ps_wp_order.
+    static const int ps_order4_default = []() -> int {
+        int wpo = 2; amrex::ParmParse("PSAMR").query("ps_wp_order", wpo);
+        return (wpo == 4) ? 1 : 0; }();
+    static const int ps_strang_cached = ps_dial_int("ps_strang", ps_order4_default);
+    //   PSAMR.ps_rk_project (0; 1 under ps_wp_order=4): under rk_order=3,
+    //     1 = each Runge-Kutta
     //     stage state is folded, mass-resynced and projected onto
     //     mechanical equilibrium (ps_apply_mechanical_projection, the
     //     constraint part of the relaxation operator) before it feeds the
@@ -159,9 +169,11 @@ PSAMR::PSAMR_advance (Real time,
     //     admissible forward Euler steps (docs/PLAN_high_order.pdf section
     //     4.3, Stage 4); the finite-rate legs stay in the reaction step
     //     (Strang halves under ps_strang=1, one Lie step under 0).  0 = the
-    //     stages carry the fold only (the Stage 1-3 behaviour).
+    //     stages carry the fold only (the Stage 1-3 behaviour).  Default 1
+    //     with ps_strang under ps_wp_order=4 (see ps_strang above); set
+    //     either to 0 explicitly to recover the Stage 1-3 behaviour.
     static const int ps_rk_project_cached = []() -> int {
-        const int v = ps_dial_int("ps_rk_project", 0);
+        const int v = ps_dial_int("ps_rk_project", ps_order4_default);
         if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project must be 0 or 1"); }
         return v; }();
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
