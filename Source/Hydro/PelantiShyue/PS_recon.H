@@ -40,7 +40,8 @@
 //  state on that face's side: V_edge = V_bar + w (V_recon - V_bar), so
 //  at w = 0 the face sees the raw averages, the present first-order
 //  behaviour at a material interface.  0 = the reconstruction's own
-//  smoothness measure is the only interface treatment.
+//  smoothness measure is the only interface treatment (the default,
+//  Marc's decision on the Stage 3 record).
 //
 //  Device-safe: no statics, no ParmParse, no EOS calls (the primitive
 //  set needs none; the EOS enters at the face through ps_wp_face as

@@ -21,7 +21,7 @@
 //  ps_wp_order (2), ps_wp_limiter (vanleer), ps_wp_transverse (0),
 //  ps_mu (0), ps_lim_ref_eps (1e-8); under ps_wp_order=4 (reconstructed
 //  faces and the in-cell term, PS_recon.H, docs/PLAN_high_order.pdf
-//  Stage 3): ps_wp_recon (weno5z), ps_wp_contact_taper (1).
+//  Stage 3): ps_wp_recon (weno5z), ps_wp_contact_taper (0).
 // =====================================================================
 
 #include "PS_umeth.H"
@@ -614,17 +614,19 @@ PS_umeth(const Box& bx,
     };
     const int wp_recon = ps_wp_recon_cached();
 
-    // PSAMR.ps_wp_contact_taper (1): under ps_wp_order=4, 1 = the H-5
+    // PSAMR.ps_wp_contact_taper (0): under ps_wp_order=4, 1 = the H-5
     // keep-weight of the face (MODEL section 3.4, on the raw alpha jump)
     // scales the whole high-order increment of the edge states on that
     // face, so a material interface sees the raw averages as it does on
     // the correction path; 0 = the reconstruction's own smoothness measure
-    // is the only interface treatment.  Both are Stage 3 measurements;
-    // the default is set on that record.
+    // is the only interface treatment.  Default 0 (Marc, 16 Nov 2026, on
+    // the Stage 3 record): the weight caps every smooth alpha variation
+    // at third order, 0 gives the design order and the cleanest jet edge;
+    // its cost, vacuum folds on the AMR tube, is the thing to watch.
     auto ps_wp_contact_taper_cached = []() -> int
     {
         static const int cached = []() -> int {
-            const int v = ps_dial_int("ps_wp_contact_taper", 1);
+            const int v = ps_dial_int("ps_wp_contact_taper", 0);
             if (v != 0 && v != 1) {
                 amrex::Abort("PSAMR.ps_wp_contact_taper must be 0 or 1");
             }

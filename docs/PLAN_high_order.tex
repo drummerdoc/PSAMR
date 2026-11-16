@@ -495,7 +495,7 @@ Key & Default & Meaning \\
 \code{PSAMR.cf\_interp} & \code{cons} & Coarse-to-fine interpolater for the state: \code{cons} = \code{cell\_cons\_interp}; \code{quartic} = \code{quartic\_interp}. \\
 \code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
-\code{PSAMR.ps\_wp\_contact\_taper} & 1 & Under \code{ps\_wp\_order=4}: 1 = the H-5 jump weight on the high-order increment of the contact characteristic fields (the present interface behaviour carried forward); 0 = the reconstruction's smoothness measure alone. Both measured in Stage~3; the default is set on its record. \\
+\code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1812,7 +1812,11 @@ settings, the control is the same deck under \code{ps\_wp\_order=2}
       1.84 and 1.97: the Colella--Woodward limiter flattens the smooth
       extrema (second order, as a limited interpolant is), so the plan's
       PPM-against-WENO diagnosis is read the other way round, and was not
-      needed.
+      needed.  (The ADV2D sweeps of items 1--5 were taken before the
+      Kapila term landed; it acts on the round-off noise of the
+      reconstructed velocity here and moves $\alpha_1$ by $10^{-14}$,
+      the $L_1$ errors in their fifth digit, checked on the $64^2$ run
+      at the shipped default.)
 \item ADV2D space at amplitude 0.25.  Option 1: $1.15\times10^{-2}$ /
       $5.40\times10^{-3}$ / $1.47\times10^{-3}$, rates 1.09 and 1.88, the
       Stage~0 and Stage~1 figures to three digits (the taper governs):
@@ -1944,18 +1948,22 @@ settings, the control is the same deck under \code{ps\_wp\_order=2}
 \end{enumerate}
 
 \paragraph{State and the decisions it leaves.}  \code{ps\_wp\_order=4} is
-landed with \code{weno5z} and \code{ps\_wp\_contact\_taper=1} as its
-defaults and \code{ps\_wp\_order=2} still the code default, so no deck
-changes.  For Marc: (i) the contact-taper default under order 4.  Option
+landed with \code{weno5z} as its reconstruction and \code{ps\_wp\_order=2}
+still the code default, so no deck changes.  The contact-taper default
+under order 4 was put to Marc with the two options side by side: option
 1 keeps the present interface behaviour and the present rates on steep
 $\alpha$ (first order) but caps every smooth $\alpha$ variation at third
 order; option 0 gives the design order everywhere, the cleanest jet edge
 and the cleanest B11 contact, a steeper demo3 front, 304 vacuum folds on
-the AMR tube, and B2 slightly worse.  (ii) Whether the weak-shock width
-of WENO5 at 64 cells (B4, B10) is accepted as the price of the order or
-a shock-aware weight is built.  (iii) The characteristic projection on
-the primitive set stays the follow-up if production shows the post-shock
-noise component-wise reconstruction is known for; the battery did not.
-Then Stage~4 (the relaxation placement, \S\ref{sec:stages}).
+the AMR tube, and B2 slightly worse.  \textbf{Marc's decision (16
+November 2026): the taper is off}, \code{ps\_wp\_contact\_taper=0} is
+the default under order 4, and the vacuum folds on the AMR tube are the
+thing to watch when the path is run in production.  Still open: (ii)
+whether the weak-shock width of WENO5 at 64 cells (B4, B10) is accepted
+as the price of the order or a shock-aware weight is built; (iii) the
+characteristic projection on the primitive set stays the follow-up if
+production shows the post-shock noise component-wise reconstruction is
+known for; the battery did not.  Then Stage~4 (the relaxation placement,
+\S\ref{sec:stages}).
 
 \end{document}
