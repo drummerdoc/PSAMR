@@ -2239,6 +2239,50 @@ the code default.  The Stage~4 GPU lines were
 appended when the peart queue reported, closing the GPU side of every
 stage.
 
+\subsection{Item 8: the two findings located (16 November 2026, Mac \code{llvm}, no code change)}
+\label{sec:fu8}
+
+\paragraph{The vacuum folds on the AMR tube.}  The 304 vacuum folds of
+the taper-off default on \code{inputs-x-amr} (Stage~3) are read off the
+fold census of that run: one line of 16 cells on level 0 at coarse step
+3 and nine lines of 32 cells on level 1 at coarse steps 6 to 13, every
+one at the post-hydro site, every one a full column across the tube
+(the deck is 16 and 32 cells wide on the two levels), and none in the
+remaining 287 coarse steps; no vanish, floor or degeneracy fold anywhere
+in the run; the tapered run and the order-2 run take none.  So the
+folds are the start-up of the rarefaction head at the diaphragm: for
+ten coarse steps the reconstruction of the vapour trace ($10^{-6}$)
+across the opening head overshoots to a negative partial mass in the
+head's column, which the vacuum fold repairs, and once the head is
+resolved it stops.  The folded mass sums to 53 units of partial density
+as the census counts it.  Watched, as Marc asked; nothing in production
+to act on.
+
+\paragraph{The Heun ``mass drift''.}  The $9\times10^{-12}$ on
+\code{inputs-fb-rk2} (Stage~1) is not a loss of mass.  Rerun with the
+composite totals per slot: under Heun the density total moves
+$+9.0\times10^{-12}$ while both partial masses, the momentum and the
+energy hold at $10^{-16}$; under the single-step production scheme the
+density total moves $+2.9\times10^{-10}$ with the same exact partial
+masses; under rk3 every slot is at $10^{-15}$.  The identity
+$\rho = m_1 + m_2$ is intact at every diagnostic site inside the step
+and on the fine level at the end, and broken on the coarse level in
+the final plotfile, by up to $3.9\times10^{-9}$ (Heun) and
+$1.1\times10^{-7}$ (single step) relative per cell, $5.9\times10^{-11}$
+under rk3; the \code{[PS-MASS]} diagnostic reads the same per-step
+magnitude at the next step's entry (Heun $2.2\times10^{-7}$, single
+step $1.1\times10^{-7}$, the coarse cells next to the fine box) and
+zero after the resync.  So the reflux correction to \code{URHO} and to
+the partial masses are not the same flux to round-off on the Heun and
+single-step register paths, while the stage-weighted rk3 register is;
+the next step's \code{ps\_resync\_mixture\_mass} re-derives \code{URHO}
+from the phase pair, the trusted copy (MODEL \S8.3), nothing
+accumulates, and a plotfile written after the reflux shows one step's
+mismatch, which is what the Stage~1 total read.  With the $\alpha$
+co-move off the mismatch is thirty times larger.  Located to the
+register fill of the two older paths; which flux copy they store for
+\code{URHO} is the named remainder, of no consequence to conservation.
+
 \subsection{Follow-up 1: the stage projection converged to the production tolerance (16 November 2026, Mac \code{llvm})}
 \label{sec:fu1}
 
