@@ -160,6 +160,7 @@ inline void  count_lim_wave_drop()   { ++ps_counters().lim_wave_drop; }
 inline void  count_lim_face_drop()   { ++ps_counters().lim_face_drop; }
 inline void  count_lim_slot_floor()  { ++ps_counters().lim_slot_floor; }
 inline void  count_lim_wave_noise()  { ++ps_counters().lim_wave_noise; }
+inline void  count_recon_fallback()  { ++ps_counters().recon_fallback; }
 inline void  count_reflux_absent() { ++ps_counters().reflux_absent; }
 inline void  count_reflux_sliver() { ++ps_counters().reflux_sliver; }
 inline void  count_reflux_badrho() { ++ps_counters().reflux_badrho; }
@@ -170,6 +171,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_wave_drop()   noexcept {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_face_drop()   noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_slot_floor()  noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_wave_noise()  noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_fallback()  noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_absent() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_sliver() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_badrho() noexcept {}

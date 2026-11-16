@@ -19,6 +19,7 @@ CEXE_headers += PS_diag.H
 CEXE_headers += PS_harvest.H
 CEXE_headers += PS_sources.H
 CEXE_headers += PS_hllc.H
+CEXE_headers += PS_recon.H
 CEXE_headers += PS_validate.H
 CEXE_headers += PS_presence.H
 CEXE_headers += PS_promote.H
