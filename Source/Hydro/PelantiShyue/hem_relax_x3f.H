@@ -35,6 +35,20 @@
 //  state.  Sub-stepping, the dm box, the predictor and the band-exit
 //  policy follow X3.
 //
+//  The sub-step is backward Euler (order = 1) or Alexander's two-stage
+//  SDIRK with gamma = 1 - 1/sqrt(2) (order = 2; L-stable, stiffly
+//  accurate): stage 1 is backward Euler over gamma dt from the base;
+//  stage 2 is the same Newton over gamma dt from the same base with the
+//  offsets (1 - gamma)/gamma (q_1, dm_1) as constants in F_4, F_5, so
+//  the unknowns stay the total transfers from the base and the
+//  bookkeeping of F_2, F_3 is unchanged; the committed state is stage 2.
+//  The extrapolated stage-2 base is never formed as a state: the line
+//  search and the dm box act on the total transfer, and a stage-2 Newton
+//  that cannot converge halves the sub-step as any Newton failure does.
+//  The coexistence band is asked of the base at entry and of the
+//  committed state between sub-steps, never of stage 1
+//  (docs/PLAN_high_order.pdf follow-up 4, step A).
+//
 //  The Jacobian is analytic by default (PsX3fParams::jac = 0): the forward
 //  query returns (dP/drho)_T, (dP/dT)_rho, (de/drho)_T and c_v, the Gibbs
 //  derivatives follow from dg = -s dT + v dP, and the rate derivatives
@@ -78,6 +92,10 @@ struct PsX3fParams {
     //  1 forward differences (n extra residual evaluations per iteration).
     int    jac        = 0;
     int    coexist_action = 0;
+    //  Order of the sub-step: 1 backward Euler; 2 the two-stage SDIRK
+    //  (PSAMR.ps_x3f_order).  The step-doubling control below applies
+    //  to either.
+    int    order      = 1;
     //  Temporal accuracy of a sub-step (B12 decision, 2026-10-27): a step
     //  that moves alpha_1 by more than step_tol_a or a phase energy by more
     //  than step_tol_e (relative to the energy scale) is re-taken as two
@@ -192,6 +210,9 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     };
     //  Residual at z for the base b over dtl; n = 3 (mechanical only) or 5.
     //  Fills the forward states of the trial (for the rates and the commit).
+    //  q_off, dm_off: the second SDIRK stage's offsets (zero otherwise),
+    //  constants in F_4 and F_5; the Jacobian does not see them.
+    double q_off = 0.0, dm_off = 0.0;
     struct Trial { PsPhase p1, p2; double m1, m2; bool ok; };
     auto residual = [&](const Base& b, double dtl, int n, const double z[5],
                         double F[5], Trial& t) -> bool {
@@ -231,8 +252,8 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
                              * (t.p1.g - t.p2.g);
             if (!std::isfinite(rT) || !std::isfinite(rM)) return false;
             const double T_s = std::max(b.T1, b.T2);
-            F[3] = joint_pt ? (T1 - T2) / T_s : (q - dtl * rT) / E_s;
-            F[4] = (dm - dtl * rM) / rho_mix;
+            F[3] = joint_pt ? (T1 - T2) / T_s : (q - q_off - dtl * rT) / E_s;
+            F[4] = (dm - dm_off - dtl * rM) / rho_mix;
         }
         for (int i = 0; i < n; ++i) if (!std::isfinite(F[i])) return false;
         t.ok = true;
@@ -499,11 +520,39 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
             if (!std::isfinite(rT0) || !std::isfinite(rM0)) return 3;
         }
         if (std::abs(dtl * rT0) < tol_q && std::abs(dtl * rM0) < tol_m) { out = bb; return 4; }
+        if (xp.order != 2) {
+            double z[5] = { bb.a, bb.T1, bb.T2,
+                            joint_pt ? 0.0 : dtl * rT0 / (1.0 + dtl / xp.theta),
+                            dtl * rM0 };
+            int nit = 0; Trial t{};
+            const int rc = newton(bb, dtl, 5, z, t, nit);
+            if (rc != 0) return rc;
+            out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
+            return out.adm ? 0 : 1;
+        }
+        //  Two-stage SDIRK: both stages over gamma dtl from the base bb.
+        constexpr double gam = 0.29289321881345243;   // 1 - 1/sqrt(2)
+        const double dtg = gam * dtl;
         double z[5] = { bb.a, bb.T1, bb.T2,
-                        joint_pt ? 0.0 : dtl * rT0 / (1.0 + dtl / xp.theta),
-                        dtl * rM0 };
+                        joint_pt ? 0.0 : dtg * rT0 / (1.0 + dtg / xp.theta),
+                        dtg * rM0 };
         int nit = 0; Trial t{};
-        const int rc = newton(bb, dtl, 5, z, t, nit);
+        q_off = 0.0; dm_off = 0.0;
+        int rc = newton(bb, dtg, 5, z, t, nit);
+        if (rc != 0) return rc;
+        out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
+        if (!out.adm) return 1;
+        //  The band gate is asked of the base at entry and of the committed
+        //  state between sub-steps, as at order 1; not of stage 1, which is
+        //  an iterate of the sub-step, not a state (a gate there is a third
+        //  switch site and broke the B12 mirror; docs/PLAN_high_order.pdf
+        //  follow-up 4).
+        q_off  = ((1.0 - gam) / gam) * z[3];
+        dm_off = ((1.0 - gam) / gam) * z[4];
+        z[3] = joint_pt ? 0.0 : (q_off + dtg * rT0) / (1.0 + dtg / xp.theta);
+        z[4] = dm_off + dtg * rM0;
+        rc = newton(bb, dtg, 5, z, t, nit);
+        q_off = 0.0; dm_off = 0.0;
         if (rc != 0) return rc;
         out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
         return out.adm ? 0 : 1;

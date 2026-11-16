@@ -459,6 +459,10 @@ ps_x3_params_from_dials()
 //    PSAMR.ps_x3f_max_newton (25), PSAMR.ps_x3f_tol (1e-10)
 //    PSAMR.ps_x3f_step_tol_a (1e-3), PSAMR.ps_x3f_step_tol_e (1e-4), PSAMR.ps_x3f_step_rtol (0.1):
 //      the step-doubling error control of the sub-step ladder (tol_a <= 0 disables)
+//    PSAMR.ps_x3f_order (1): the sub-step's order; 1 = backward Euler,
+//      2 = the two-stage SDIRK (second order in the rate terms, so the
+//      full Strang step is second order; docs/PLAN_high_order.pdf
+//      follow-up 4, step A).  Any other value aborts.
 //  Shared with the replay bench (PS_zerod_test.H).
 // -----------------------------------------------------------------
 inline hem::PsX3fParams
@@ -475,8 +479,13 @@ ps_x3f_params_from_dials()
     static const double tola  = double(ps_dial_real("ps_x3f_step_tol_a", amrex::Real(1.0e-3)));   // <= 0: no step control
     static const double tole  = double(ps_dial_real("ps_x3f_step_tol_e", amrex::Real(1.0e-4)));
     static const double rtol  = double(ps_dial_real("ps_x3f_step_rtol",  amrex::Real(0.1)));
+    static const int    order = []() -> int {
+        const int v = ps_dial_int("ps_x3f_order", 1);
+        if (v != 1 && v != 2) { amrex::Abort("PSAMR.ps_x3f_order must be 1 (backward Euler) or 2 (two-stage SDIRK)"); }
+        return v; }();
     xf.jac = jac; xf.fixed_newton = fixed; xf.max_newton = maxn; xf.tol = tol;
     xf.step_tol_a = tola; xf.step_tol_e = tole; xf.step_rtol = rtol;
+    xf.order = order;
     return xf;
 }
 
