@@ -613,6 +613,19 @@ PS_umeth(const Box& bx,
         return cached;
     };
     const int wp_recon = ps_wp_recon_cached();
+    // PSAMR.ps_wp_weno_power (1): under ps_wp_recon=weno5z, the power on
+    // the ratio tau/beta_k in the Borges weights; 2 pushes a marginal
+    // stencil harder toward ENO (docs/PLAN_high_order.pdf follow-up 2,
+    // the first-named option against the weak-shock width).  1 or 2.
+    auto ps_wp_weno_power_cached = []() -> int
+    {
+        static const int cached = []() -> int {
+            const int v = ps_dial_int("ps_wp_weno_power", 1);
+            if (v != 1 && v != 2) { amrex::Abort("PSAMR.ps_wp_weno_power must be 1 or 2"); }
+            return v; }();
+        return cached;
+    };
+    const int wp_wpow = ps_wp_weno_power_cached();
 
     // PSAMR.ps_wp_contact_taper (0): under ps_wp_order=4, 1 = the H-5
     // keep-weight of the face (MODEL section 3.4, on the raw alpha jump)
@@ -800,6 +813,7 @@ PS_umeth(const Box& bx,
         const Real dt_l = dt;
         const int  recon_l = wp_recon;
         const int  taper_l = wp_contact_taper;
+        const int  wpow_l  = wp_wpow;
 
         // Per-face store of the non-conserved fluctuations A⁻/A⁺ (comps
         // 0/1 UALPHA1, 2/3 UE1, 4/5 UE2).  The wave store is grown by one
@@ -858,20 +872,20 @@ PS_umeth(const Box& bx,
             BL_PROFILE_VAR("PS::wp_recon_edges()", ps_wp_recon_prof);
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, l_pres))
+                if (PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, l_pres, wpow_l))
                     ps_guard::count_recon_fallback();
             });
 #if (AMREX_SPACEDIM >= 2)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, l_pres))
+                if (PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, l_pres, wpow_l))
                     ps_guard::count_recon_fallback();
             });
 #endif
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, l_pres))
+                if (PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, l_pres, wpow_l))
                     ps_guard::count_recon_fallback();
             });
 #endif

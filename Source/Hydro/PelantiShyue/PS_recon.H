@@ -77,10 +77,13 @@ constexpr int IA1 = 0, IR1 = 1, IR2 = 2, IE1 = 3, IE2 = 4, IU = 5;
 //  result is c plus the weighted deviation, so uniform data give c
 //  bitwise.  eps is 1e-40, below any smoothness indicator the data can
 //  carry, so the weights are scale-invariant (the same weights for
-//  alpha and for an energy with the same shape).
+//  alpha and for an energy with the same shape).  wpow is the power on
+//  the ratio tau/beta_k (PSAMR.ps_wp_weno_power: 1 = Borges, 2 = the
+//  higher power that pushes a marginal stencil harder toward ENO;
+//  docs/PLAN_high_order.pdf follow-up 2); 1 is bitwise the plain ratio.
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real weno5z_right (Real a, Real b, Real c, Real d, Real e) noexcept
+Real weno5z_right (Real a, Real b, Real c, Real d, Real e, int wpow = 1) noexcept
 {
     const Real da = a - c, db = b - c, dd = d - c, de = e - c;
     // the three candidate values, as deviations from c
@@ -100,9 +103,11 @@ Real weno5z_right (Real a, Real b, Real c, Real d, Real e) noexcept
     const Real beta2 = k13 * s2 * s2 + Real(0.25) * t2 * t2;
     const Real tau = std::abs(beta0 - beta2);
     constexpr Real eps = Real(1.0e-40);
-    const Real w0 = Real(0.1) * (Real(1.0) + tau / (beta0 + eps));
-    const Real w1 = Real(0.6) * (Real(1.0) + tau / (beta1 + eps));
-    const Real w2 = Real(0.3) * (Real(1.0) + tau / (beta2 + eps));
+    Real r0 = tau / (beta0 + eps), r1 = tau / (beta1 + eps), r2 = tau / (beta2 + eps);
+    if (wpow == 2) { r0 *= r0; r1 *= r1; r2 *= r2; }
+    const Real w0 = Real(0.1) * (Real(1.0) + r0);
+    const Real w1 = Real(0.6) * (Real(1.0) + r1);
+    const Real w2 = Real(0.3) * (Real(1.0) + r2);
     const Real ws = w0 + w1 + w2;
     return c + (w0 * q0 + w1 * q1 + w2 * q2) / ws;
 }
@@ -110,9 +115,9 @@ Real weno5z_right (Real a, Real b, Real c, Real d, Real e) noexcept
 //  Left-edge value of the centre cell: the right-edge formula on the
 //  reversed stencil (mirror-exact).
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real weno5z_left (Real a, Real b, Real c, Real d, Real e) noexcept
+Real weno5z_left (Real a, Real b, Real c, Real d, Real e, int wpow = 1) noexcept
 {
-    return weno5z_right(e, d, c, b, a);
+    return weno5z_right(e, d, c, b, a, wpow);
 }
 
 // ---------------------------------------------------------------------
@@ -266,7 +271,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool cell_edges (int idir, int i, int j, int k,
                  amrex::Array4<const Real> const& uin,
                  amrex::Array4<Real> const& rq,
-                 int recon, int taper, const PsPres& pr) noexcept
+                 int recon, int taper, const PsPres& pr, int wpow = 1) noexcept
 {
     const int oi = (idir == 0), oj = (idir == 1), ok = (idir == 2);
     PsPrim P[5];
@@ -302,8 +307,8 @@ bool cell_edges (int idir, int i, int j, int k,
             if (recon == 1) {
                 ppm_edges(a, b, c, d, e, vl[m], vr[m]);
             } else {
-                vl[m] = weno5z_left (a, b, c, d, e);
-                vr[m] = weno5z_right(a, b, c, d, e);
+                vl[m] = weno5z_left (a, b, c, d, e, wpow);
+                vr[m] = weno5z_right(a, b, c, d, e, wpow);
             }
         }
         if (taper != 0) {
