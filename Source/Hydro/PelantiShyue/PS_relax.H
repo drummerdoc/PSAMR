@@ -554,6 +554,35 @@ ps_x3f_grid_relax_cell(int i, int j, int k,
 }
 
 // -----------------------------------------------------------------
+//  ps_apply_mechanical_projection — the constraint part of the
+//  relaxation operator alone (instantaneous P1 = P2 by the mode-0 kernel
+//  ps_mechanical_relax_cell, past the same entry gate), on every cell of
+//  the box grown by nghost.  Used inside the Runge-Kutta stages under
+//  PSAMR.ps_rk_project=1 (docs/PLAN_high_order.pdf section 4.3, Stage 4):
+//  the stage state is projected back onto the mechanical-equilibrium
+//  manifold so that every stage is a convex combination of admissible
+//  forward Euler steps; the finite-rate legs (thermal, mass transfer,
+//  flash) and the corridor projection stay in the reaction step outside
+//  the stages.  No reports, no counter resets: the stage sweep leaves the
+//  reaction step's census alone.
+// -----------------------------------------------------------------
+inline void
+ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0)
+{
+    BL_PROFILE("PS::ps_apply_mechanical_projection()");
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
+    const PsPres l_pres = ps_presence_params();
+    for (amrex::MFIter mfi(S); mfi.isValid(); ++mfi) {
+        const amrex::Box bx = mfi.growntilebox(nghost);
+        amrex::Array4<amrex::Real> const& U = S.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            ps_mechanical_relax_cell(i, j, k, U, eos, l_pres);
+        });
+    }
+}
+
+// -----------------------------------------------------------------
 //  ps_apply_relaxation — the relaxation sweep.  Builds the EOS callback
 //  once, resets the per-sweep counters, dispatches every cell to the
 //  kernel for ps_relax_mode, then prints the gated reports ([PS-PRES],

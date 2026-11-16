@@ -151,6 +151,19 @@ PSAMR::PSAMR_advance (Real time,
         return v;
     }();
     static const int ps_strang_cached = ps_dial_int("ps_strang", 0);
+    //   PSAMR.ps_rk_project (0): under rk_order=3, 1 = each Runge-Kutta
+    //     stage state is folded, mass-resynced and projected onto
+    //     mechanical equilibrium (ps_apply_mechanical_projection, the
+    //     constraint part of the relaxation operator) before it feeds the
+    //     next stage, so every stage is a convex combination of
+    //     admissible forward Euler steps (docs/PLAN_high_order.pdf section
+    //     4.3, Stage 4); the finite-rate legs stay in the reaction step
+    //     (Strang halves under ps_strang=1, one Lie step under 0).  0 = the
+    //     stages carry the fold only (the Stage 1-3 behaviour).
+    static const int ps_rk_project_cached = []() -> int {
+        const int v = ps_dial_int("ps_rk_project", 0);
+        if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project must be 0 or 1"); }
+        return v; }();
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
@@ -629,9 +642,19 @@ PSAMR::PSAMR_advance (Real time,
                 MultiFab::Add(rkk[s-1], *old_sources[src_list[n]], 0, 0, NVAR, 0);
             }
         };
+        //  The per-stage post-processing Pi: the vanished-phase fold, and
+        //  under ps_rk_project=1 the mixture-mass resync and the mechanical
+        //  equilibrium projection (the final stage is left to the reaction
+        //  step, which applies the whole operator).
         auto fold = [&](amrex::MultiFab& S) {
 #ifdef USE_PS_HYDRO
-            if (ps_hydro != 0) { ps_apply_vanish_fold(S, 0); }
+            if (ps_hydro != 0) {
+                ps_apply_vanish_fold(S, 0);
+                if (ps_rk_project_cached != 0) {
+                    ps_resync_mixture_mass(S, 0);
+                    ps_apply_mechanical_projection(S, 0);
+                }
+            }
 #else
             amrex::ignore_unused(S);
 #endif
