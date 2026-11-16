@@ -43,6 +43,10 @@ They differ for a reason, not by accident. The 1-D battery is the correctness in
 
 Since 2026-10-27 the pipe-break decks run the code default, mode 6 (O-29); mode 2 is restored with `PSAMR.ps_relax_mode=2`. Mode 5 had completed the production deck (demo2 to 2.5 ms, both restart windows) at the cost of mode 2 and with a cleaner first window; two closure-level questions remain open — a bulk liquid expanded past its spinodal in the second window, and the condensation shell at the jet head ([DECIDE-32]) — so mode 2 is retained as the finite-rate control closure while they are settled, and the 2-D decks still pin it. Modes 1 and 4 are retired.
 
+### The fourth-order configuration
+
+`docs/PLAN_high_order.pdf` (Stages 1–4, 15–16 Nov 2026) adds a third named configuration, an option on either of the above, not a default: `PSAMR.do_mol=1 PSAMR.rk_order=3 PSAMR.ps_wp_order=4 PSAMR.cf_interp=quartic_limited`. Under it the face states are WENO5-Z edge values on the primitive set with the in-cell term (MODEL §3.8), the time integrator is SSPRK(3,3) with the CFL cap 1/DIM (MODEL §3.9), the coarse–fine ghost cells are fourth order in space and third in time, and `ps_rk_project` and `ps_strang` read 1 unless set (the stage projection with Strang splitting, Marc's decision on the Stage 4 record); `ps_wp_contact_taper` reads 0 and `ps_wp_transverse` must be 0. What it gives and costs is measured in `VERIFICATION.md` §6.6, §7.1–7.3 and §7.5 and MODEL §3.8: the design rate on smooth advection (5.0 against 2.0), the pipe-break centreline symmetric to round-off where the second-order scheme is off by $10^3$ Pa, every single-phase battery error smaller, XC2D three times closer to its fine reference; weak shocks eight cells wide against three; +14 % (tube) to +37 % (XC2D) run time over rk3 order 2, and +8 to +20 % more for the stage projection with Strang. The code defaults (`ps_wp_order = 2`, `rk_order = 2`, `cf_interp = cons`, Lie) are unchanged, so no deck changed.
+
 ## 3. Dial reference
 
 Every runtime dial is a `PSAMR.*` ParmParse key; there are no environment-variable knobs (the one remaining `getenv`, `GERG_EXT_C` in `gerg_co2_guard.H`, is superseded by `PSAMR.gerg_ext_c`, which is what the build resolves and records). Keys without the `PSAMR.` prefix are silently ignored; check `job_info` (§6). Each dial is read once, at the accessor named in the code, and its resolved value is used by value in kernels.
@@ -174,6 +178,7 @@ Closed pipe of supercritical CO₂ (`prob.p0` 1e7 Pa, `prob.T0` 320 K, `prob.u0`
 ```
 mpiexec -np 4 ./PSAMR2d.gnu.TPROF.MPI.PS.PR.ex inputs-sym-x-lo PSAMR.ps_validate=1   # and -x-hi, -y-lo, -y-hi
 mpiexec -np 4 ./PSAMR2d.gnu.TPROF.MPI.PS.PR.ex inputs-x-amr   PSAMR.ps_validate=1
+./PSAMR2d.gnu.TPROF.PS.PR.ex inputs-x PSAMR.ps_validate=1 PSAMR.do_mol=1 PSAMR.rk_order=3 PSAMR.ps_wp_order=4   # the order-4 tube (VERIFICATION 7.1)
 ```
 
 `inputs-x` is the plain long run of the same problem (`stop_time 5e-3`).
@@ -185,6 +190,7 @@ Periodic smooth diagonal α advection (`prob.P0` 8e6 Pa, `prob.T1` 270 K, `prob.
 ```
 ./PSAMR2d.gnu.TPROF.PS.PR.ex inputs amr.n_cell="32 32"    # then 64 64, 128 128
 ./PSAMR2d.gnu.TPROF.PS.PR.ex inputs-fb-rk2                # static fine box, sum_interval=20
+./PSAMR2d.gnu.TPROF.PS.PR.ex inputs amr.n_cell="64 64" PSAMR.do_mol=1 PSAMR.rk_order=3 PSAMR.ps_wp_order=4 PSAMR.cfl=0.189 prob.alpha_amp=0.0025   # the order-4 rate (VERIFICATION 7.2)
 ```
 
 The README in that directory is a copy of the XC2D one and is to be rewritten.
@@ -196,6 +202,7 @@ Diagonal cross-critical contact (`prob.p_L` 1e7 Pa / `prob.T_L` 270 K liquid bel
 ```
 ./PSAMR2d.gnu.TPROF.PS.PR.ex inputs                                  # 2-level AMR; ray-diff numbers need re-measuring under wp
 ./PSAMR2d.gnu.TPROF.PS.PR.ex inputs amr.max_level=0 amr.n_cell="256 256" stop_time=1.4334906e-4
+mpiexec -np 4 ./PSAMR2d.gnu.TPROF.MPI.PS.PR.ex inputs max_step=40 PSAMR.do_mol=1 PSAMR.rk_order=3 PSAMR.ps_wp_order=4 PSAMR.cf_interp=quartic_limited   # the order-4 ray-diff (VERIFICATION 7.3)
 ```
 
 ### `Exec/CO2_B4`

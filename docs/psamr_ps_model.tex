@@ -778,7 +778,10 @@ aborts).
 parameter & default & selects \\
 \midrule
 \code{ps\_flux}              & \code{wp} & the interior scheme (only value; others abort) \\
-\code{ps\_wp\_order}         & 2 & limited second-order correction, \S\ref{sec:limiter}; 1 = first order \\
+\code{ps\_wp\_order}         & 2 & limited second-order correction, \S\ref{sec:limiter}; 1 = first order; 4 = reconstructed faces (WENO5-Z on the primitive set) with the in-cell term, \code{docs/PLAN\_high\_order.pdf} \\
+\code{rk\_order}            & 2 & under \code{do\_mol=1}: 2 = Heun; 3 = SSPRK(3,3), the order-4 path's integrator \\
+\code{cf\_interp}           & \code{cons} & coarse-to-fine interpolant; \code{quartic\_limited} on the order-4 path \\
+\code{ps\_rk\_project}, \code{ps\_strang} & 0 (1 at order 4) & the stage projection onto $P_1=P_2$ and Strang splitting of the reaction step \\
 \code{ps\_lw\_skip\_contact} & 2 & contact-wave correction: 0 full, 1 blanket drop, 2 the taper \eqref{eq:wckeep} \\
 \code{ps\_bl\_reflux}        & on & AMR reflux handling of the wp fluctuations ($\alpha$ co-move at the coarse-fine layer) \\
 \code{ps\_relax\_mode}       & 6 & X3 coupled relaxation \eqref{eq:chain}, flattened (X3F); 5 = nested X3 (control closure); 0 = mechanical only; 2 = finite-rate control closure; 1, 3, 4 abort \\

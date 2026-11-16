@@ -12,7 +12,7 @@ The documents describe the current tree; git history holds the past.
 | `RUNNING.md` | Build lines per case, table generation, deck inventory, the complete dial table (one row per `PSAMR.*` key), diagnostics and validator output, restart recipes, the two relaxation configurations. |
 | `FUTURE_WORK.md` | Parked work with its scoping: interfacial-area transport as a seventh scalar, 3-D jet, solid phase, the morphology length, and the smaller carried-over items. |
 | `PLAN_cleanup_for_sharing.md` | The plan this tree was cleaned against and its `[DECIDE]` register. |
-| `PLAN_high_order.tex` / `PLAN_high_order.pdf` | Design note and staged plan for fourth-order face reconstruction, SSPRK(3,3) time stepping and the matching AMR coupling: options, the chosen scheme, what bounds the order, dials, predictions and falsifiers per stage. Build with `pdflatex` twice. |
+| `PLAN_high_order.tex` / `PLAN_high_order.pdf` | Design note, staged plan and record for fourth-order face reconstruction, SSPRK(3,3) time stepping and the matching AMR coupling: options, the chosen scheme, what bounds the order, dials, predictions and falsifiers per stage, and in §11 the measured record of every stage with Marc's decisions (15–16 Nov 2026; the code is an option, `ps_wp_order = 4`, the defaults unchanged). Build with `pdflatex` twice. |
 
 ## Read in this order
 
