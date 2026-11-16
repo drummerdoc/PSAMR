@@ -3017,4 +3017,36 @@ kernel's Newton count only.  The documents (MODEL \S5.1, a DESIGN
 entry, \code{FUTURE\_WORK.md} \S13 item 4) follow in their own
 commits; the default and step B are Marc's to decide on this record.
 
+
+\paragraph{GPU (peart, CUDA, at \code{600b8fb9}, 16--17 November 2026).}
+One queue at the branch tip, each run against the Mac partner of the
+same configuration at the same commit.  The tube 300 steps under the
+order-4 default: at order 1 the GPU agrees with the Mac to
+$5.4\times10^{-9}$ of range at the worst slot ($\alpha_2\rho_2$),
+$6.6\times10^{-10}$ in $\rho$ and $1.4\times10^{-9}$ on $\alpha_1$,
+the level of every earlier tube line; at order 2 to $4.5\times10^{-10}$,
+$7.0\times10^{-11}$ and $1.9\times10^{-10}$, ten times closer, the
+quarter-span stages amplifying the two machines' rounding less than the
+full backward-Euler step does.  Validator 0 on both; run times 207.1\,s
+and 208.8\,s ($+0.8\,\%$).  XC2D 40 steps (its deck does not reach the
+kernel): level 0 to $3.0\times10^{-10}$ of range and level 1 to
+$1.3\times10^{-8}$ ($1.1\times10^{-8}$ at order 2) on $\alpha_1$, the
+trace band at $3\times10^{-15}$ absolute, the levels of every earlier
+XC2D line; 43.0 and 42.9\,s.  \textbf{Held}; the GPU side of step A is
+closed.
+
+\paragraph{Finding: the GPU's own run-to-run spread.}  The two XC2D
+runs of this queue cannot differ (the deck runs no relaxation, so the
+dial is not read by any kernel; on the Mac the two are bitwise
+identical), yet on the GPU they differ by $1.9\times10^{-10}$ of range
+on level 0 and $6.4\times10^{-9}$ on level 1, the size of the
+GPU-against-Mac lines themselves.  So on the two-level case the GPU
+lines of this branch measure the GPU's run-to-run spread as much as
+the two machines' rounding, and a GPU result there is not bitwise
+reproducible.  A second GPU run of the single-level tube at order 1 is bitwise identical to the first (206.8\,s), so the spread is a property of the two-level path, not of the kernels or the GPU arithmetic, and the tube's $5\times10^{-9}$ is the two machines' rounding through the kernels, as the Stage~4 record read it.  The solution path
+is meant to be free of atomics and cross-cell reductions
+(\code{GROUND\_RULES.md} rule 9); where the spread enters (the
+coarse--fine fill, the reflux, or a reduction in the step control) is
+not located here and is a finding for the register, not for this item.
+
 \end{document}
