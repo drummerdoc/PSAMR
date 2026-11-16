@@ -266,8 +266,28 @@ $\bar u\,\Delta\alpha$ of MODEL \S3.6, not $\Delta(\alpha u)$.
 The limited Lax--Wendroff correction of the present scheme
 (\code{ps\_wp\_order=2}) is not applied under the new path: its role, to
 raise the order above one, is taken by the reconstruction.  The
-contact-wave taper (MODEL \S3.4) has no counterpart yet; whether a
-high-order contact needs one is a Stage~3 measurement.
+contact-wave taper (MODEL \S3.4) loses its operand with it.  Its purpose,
+no high-order contact increment across a material interface, is carried
+into the new path as two options, both built and both measured in
+Stage~3 (Marc, 16 November 2026: no basis yet for choosing, so the
+record decides).  \emph{Option 0}, \code{ps\_wp\_contact\_taper=0}: the
+reconstruction's own smoothness measure is the only interface treatment;
+WENO5-Z falls to its one-sided stencil at a jump by construction and
+nothing jump-based survives.  \emph{Option 1},
+\code{ps\_wp\_contact\_taper=1}: the H-5 weight
+$w = 1 - \mathrm{smoothstep}(|\Delta\alpha_1|/\alpha_{\mathrm{cond}})$,
+with the jump taken on the raw cell averages across the face as now, is
+applied at each face to the high-order increment of the five contact
+characteristic fields, $q^{L,R}_{\mathrm{contact}} = \bar q + w\,(q^{L,R}_{\mathrm{weno}} - \bar q)$,
+the two acoustic fields untouched; at $w = 0$ the contact wave sees the
+raw averages on both sides, the present first-order behaviour at an
+interface, and the weight acts on whole characteristic fields, so the
+identity argument of MODEL \S3.3 is kept.  Option 1 inherits the Stage~0
+finding that the jump-based weight caps $\alpha_1$ at first order on a
+resolved smooth gradient whose per-face jump is of order
+$\alpha_{\mathrm{cond}}$; option 0 is where that cap is lifted and where
+the interface wiggle of MODEL \S3.4 is the risk.  Stage~3 measures both
+on every instrument and the default is set on the record.
 
 \subsection{Reconstruction}
 
@@ -424,6 +444,7 @@ Key & Default & Meaning \\
 \code{PSAMR.cf\_interp} & \code{cons} & Coarse-to-fine interpolater for the state: \code{cons} = \code{cell\_cons\_interp}; \code{quartic} = \code{quartic\_interp}. \\
 \code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
+\code{PSAMR.ps\_wp\_contact\_taper} & 1 & Under \code{ps\_wp\_order=4}: 1 = the H-5 jump weight on the high-order increment of the contact characteristic fields (the present interface behaviour carried forward); 0 = the reconstruction's smoothness measure alone. Both measured in Stage~3; the default is set on its record. \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -741,7 +762,10 @@ Commits: this plan; the rule with its documents; the record.
 
 \subsection*{Stage 3: reconstructed faces and the in-cell term}
 
-\code{ps\_wp\_order=4}, \code{ps\_wp\_recon=weno5z}, on top of Stage 2.
+\code{ps\_wp\_order=4}, \code{ps\_wp\_recon=weno5z}, on top of Stage 2b
+(\code{cf\_interp=quartic\_limited}).  Every item below is measured under
+both contact-taper options (\S\ref{sec:scheme}); where the two are
+expected to differ the prediction says so, otherwise it applies to both.
 
 \begin{enumerate}[nosep]
 \item ADV2D space: $32^2, 64^2, 128^2$ with \code{cfl} scaled as
@@ -755,6 +779,17 @@ Commits: this plan; the rule with its documents; the record.
       (\code{ps\_wp\_recon=ppm}) is run to tell which: PPM at or above 3.5
       with WENO below it points at the WENO weights; both below it point
       at the in-cell term or the projection.
+\item ADV2D space at amplitude 0.25, the taper's own configuration
+      (Stage~0): option 0 at the same rate as at amplitude 0.0025 within
+      0.5; option 1 at or below 2 on the $32^2 \to 64^2$ pair, where the
+      per-face jump exceeds $\alpha_{\mathrm{cond}}$ and $w = 0$ on the
+      steepest faces, rising toward the option-0 rate only as the jump
+      falls below $\alpha_{\mathrm{cond}}$.  This is the measurement that
+      separates the two options on a smooth gradient.  At amplitude
+      0.0025 the two options agree in rate to 0.1 ($w$ is within
+      $10^{-3}$ of 1 everywhere).  Falsifier for option 1: a rate above 3
+      on the coarse pair, which would mean the weight is not reaching the
+      contact fields.
 \item ADV2D time: $64^2$, \code{cfl} 0.3, 0.15, 0.075: $\log_2$ ratio
       $3.0\pm0.3$ as in Stage 1 (the spatial error is now small enough
       that the temporal one shows).  Falsifier: below 2.5.
@@ -792,6 +827,19 @@ Commits: this plan; the rule with its documents; the record.
       (amplitude at the same station as the record), with no prediction
       that it is smaller.  Falsifier: an abort, or broken centreline
       symmetry.
+\item The interface, both options: the jet-edge $\alpha_1$ wiggle of
+      MODEL \S3.4 (0.4--1\,\% under the full correction, the taper's
+      reason) at step 50 of demo3, and the demo3 centreline metric of
+      VERIFICATION \S7.5, each under option 0 and option 1.  Prediction for
+      option 1: wiggle and metric within the band of the present scheme
+      (the contact wave sees the same raw averages at the interface).
+      Prediction for option 0: no prediction of the sign; the wiggle is
+      recorded.  Falsifier for option 0 as a default candidate: a wiggle
+      larger than under the full Lax--Wendroff correction (MODEL \S3.4
+      table), which would mean the smoothness measure does not do the
+      taper's job and option 1 is the default.  Battery interface cases
+      (B-series with a material contact) under both: every check kept
+      under both, \code{energyid} on B9 no larger than now under both.
 \item GPU: battery fingerprints are host-only; XC2D and T-Blowdown to
       round-off against the Mac.  Wall time per step on peart against the
       Stage~0 control: within a factor 4 of \code{do\_mol=1} Heun per step
@@ -1099,7 +1147,13 @@ and compile to no-ops on the device, so the GPU runs carry none.
       replaces the correction the taper acts on, so the taper has no
       operand there and its purpose (no correction across an interface)
       must be served by the reconstruction's own smoothness measure.  That
-      is a design point to settle before Stage 3, not here.
+      is a design point to settle before Stage 3, not here.  Decided
+      (Marc, 16 November 2026): no basis for choosing yet, so both are
+      carried as the \code{ps\_wp\_contact\_taper} options of
+      \S\ref{sec:scheme} and \S\ref{sec:dials}, measured side by side in
+      Stage~3, the default set on that record.  The ADV2D reference
+      (item 2): both configurations recorded, amplitude 0.0025 for the
+      operator's rate and amplitude 0.25 for the taper's.
 \item Stage 1: the method-of-lines correction (no $\Delta t$ factor, no
       transverse term) under \code{rk\_order=3}, as a code change inside
       the Stage 1 commit, with the prediction above.
