@@ -2323,8 +2323,33 @@ and the B4 widening is a property of a coarse, kinked, weak shock, not
 of this flow.  The Mach disk forms later than step 200; the instrument
 that would settle it is the demo2 restart window $3550 \to 3605$
 (VERIFICATION \S7.5, the recorded shock passage, 64\,s on six ranks)
-run under the order-4 default and read along the row of the tracked
-cell, which is not an existing plotfile and waits on Marc's word.  Until
-then the item rests with the threshold question stated.
+run under the order-4 default, which Marc then asked for.
+
+\paragraph{The Mach disk: the window $3550 \to 3605$ (Marc's word, 16 November 2026).}
+The demo2 restart window of VERIFICATION \S7.5 (six ranks, the recipe of
+\code{regen\_refs.sh}: \code{stop\_time=1.0}, validator and mass
+diagnostic on) run from the archived checkpoint under the order-4
+default and under rk3 order 2 with \code{quartic\_limited}, read with
+the whole-level scanner (scratchpad \code{shockwidth2d.py}: every row of
+the finest level, the largest monotone pressure rises above a factor
+1.2, the 10--90\,\% width in cells).  The strongest feature at step
+3605 is the Mach disk at $x \approx 1.81$--$1.85$\,m, 14 to 80\,bar, on
+some 350 rows.  Its width: 1.7 to 1.8 cells under order 4, 2.1 to 2.4
+under rk3 order 2, 2.2 to 2.4 under the production scheme (the 14
+November reference plotfile, single step, \code{cons}); the largest
+per-cell step 0.5 to 0.65 of the jump under order 4 against 0.4 to 0.5.
+The post-shock pressure is 83 to 85\,bar under order 4 against 80 under
+both order-2 runs, a 6\,\% stronger recompression after 55 steps of a
+less dissipative scheme, not a width effect.  Guards 0 (including
+\code{recon\_fallback}), validator 0, no abort; the top--bottom
+asymmetry $8.9\times10^{5}$\,Pa against $7.7\times10^{5}$ (rk3 order 2)
+and $7.6\times10^{5}$ (the reference), the known amplification level of
+this window (O-22).  Run time 168\,s against 103\,s for rk3 order 2 on
+this three-level deck, $+63\,\%$, more than the $+37\,\%$ of XC2D.
+So the production shock is \emph{sharper} under the fourth-order path,
+the B4 widening is confined to coarse weak shocks, and the sensor would
+buy nothing in production: \textbf{item 2 closes without the sensor}, the
+threshold question moot until a production case shows a weak shock
+resolved too wide.
 
 \end{document}
