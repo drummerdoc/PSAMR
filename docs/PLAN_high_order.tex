@@ -254,10 +254,27 @@ On the conserved slots it is $f(q^{L}_{i+1/2})-f(q^{R}_{i-1/2})$ exactly,
 so together with the fluctuations the update telescopes to the recovered
 flux form that \src{Hydro_consup.cpp} already differences.  On the
 non-conserved slots ($\alpha_1$, the two phase energies) it is the
-integral of the non-conservative product across the cell, evaluated by
-quadrature on the reconstruction polynomial with the velocity taken from
-the same polynomial, and deposited per cell as the correction term is
-deposited now (MODEL \S3.3).  This is the Ketcheson--Parsani--LeVeque form
+integral of the non-conservative product across the cell, deposited per
+cell as the correction term is deposited now (MODEL \S3.3).  As built
+(Stage~3): between the cell's two edge states $q_{\mathrm{lo}}$,
+$q_{\mathrm{hi}}$, the same values the fluctuations use, the $\alpha_1$
+term is $\bar u\,(\alpha_{\mathrm{hi}}-\alpha_{\mathrm{lo}}) - K\,(u_{\mathrm{hi}}-u_{\mathrm{lo}})$
+with the cell's mean velocity and the Kapila coefficient
+$K = \alpha_1\alpha_2(\rho_2c_2^2-\rho_1c_1^2)/(\alpha_1\rho_2c_2^2+\alpha_2\rho_1c_1^2)$
+from the cell's own phase states; the phase-energy term is
+$F_k(q_{\mathrm{hi}})-F_k(q_{\mathrm{lo}})$ plus
+$\Sigma_1 = -\Sigma_2 = -\bar u\,[\bar Y_2\,\Delta(\alpha_1 P) - \bar Y_1\,\Delta(\alpha_2 P)]$
+(Pelanti--Shyue 2014 eq.~2d at the mixture pressure, H-3).  The Kapila
+term is what the face solver's relaxed-$\alpha$ star states do across an
+acoustic wave (each phase strained by its own bulk modulus, MODEL
+\S2.3): without it the compression that the reconstruction places inside
+a cell leaves $\alpha$ behind and the liquid's density follows the
+mixture's (B12, Stage~3 record).  Using the same edge values as the
+fluctuations is what keeps the $\alpha$ update consistent with the mass
+update for a uniform velocity (the Abgrall condition); using the cell's
+mean velocity and mass fractions makes the product second order where
+the velocity varies, which bounds the order of the non-conserved slots
+there (\S\ref{sec:bounds}).  This is the Ketcheson--Parsani--LeVeque form
 of high-order wave propagation; for the $\alpha$ equation it is the
 Johnsen--Colonius treatment of $u\,\partial_x\alpha$, and the face
 contribution keeps the advective split
@@ -291,25 +308,41 @@ on every instrument and the default is set on the record.
 
 \subsection{Reconstruction}
 
-WENO5-Z reconstruction of the cell averages to the two face values, on
-the characteristic fields of the frozen six-equation system projected at
-each face with the Roe-averaged or arithmetic-mean state (two acoustic
-fields $u\pm c$, five contact fields at $u$; the eigenvectors of
-\src{PS_wavespeed.H} and \src{PS_hllc.H}).  Characteristic-wise
-reconstruction is the high-order analogue of the one-scalar-per-wave
-limiter: the DESIGN\_DECISIONS record that any per-slot limiting bends the
-wave (the rejected $\phi=\min(\phi_1,\phi_2)$ entry, MODEL \S3.3) binds
-here, and reconstructing the slots independently is not an option.  The
-variables reconstructed are $\alpha_1$, $m_1$, $m_2$, the momenta and the
-two phase energies; the mixture slots are formed as sums at the face so the
-identities $m_1+m_2=\rho$ and $\mathcal{E}_1+\mathcal{E}_2=\rho E$ hold at
-the face by construction.  Five cells enter each face value; the ghost
-width of 4 covers it.  Reconstruction near a vanished or corridor phase is
+WENO5-Z reconstruction of the cell averages to the two edge values of
+each cell (\src{PS_recon.H}).  As planned, the reconstruction was to be
+characteristic-wise on the frozen six-equation system, the high-order
+analogue of the one-scalar-per-wave limiter.  As built (Stage~3) it is
+component by component on the primitive set $(\alpha_1, \rho_1, \rho_2,
+u, v, w, e_1, e_2)$, for two reasons.  First, the Abgrall condition: a
+uniform-velocity, uniform-pressure contact varies only in $\alpha_1$ in
+this set, every other component reconstructs to its constant bitwise, so
+the reconstruction cannot disturb it; in conserved variables the same
+holds only through an exact characteristic projection.  Second, the exact
+projection of the six-equation system in primitive form needs the
+per-phase Gr\"uneisen derivatives $p_\rho|_e$ and $p_e|_\rho$, which
+the EOS interface does not expose (it returns $P$ and $c$), and
+finite-differencing them per face would double the EOS cost that already
+dominates the face.  The one-scalar-per-wave argument of MODEL \S3.3 is
+about scaling a wave, which a reconstruction does not do; its known cost
+here, more post-shock noise than a characteristic projection on strong
+shocks, is a battery measurement, and the projection is the named
+follow-up if the battery asks for it.  The conserved face state is formed
+from the primitive edge values, so the identities $m_1+m_2=\rho$ and
+$\mathcal{E}_1+\mathcal{E}_2=\rho E$ hold at the face by construction.
+Every edge formula is written in deviation form about the cell's own
+average (uniform data reconstruct bitwise uniform, the Stage~2b lesson)
+and the left edge is the right-edge formula on the reversed stencil
+(mirror-exact).  Five cells enter each edge value and three ghost cells
+are read; the ghost width of 4 covers it.  Reconstruction near a vanished or corridor phase is
 the delicate point and the reason the present scheme uses raw averages:
-the presence classifier (\src{PS_presence.H}) runs on the reconstructed
-face states, and a face whose reconstruction leaves a present phase's
-$\alpha_k$ or $m_k$ outside the admissible set falls back to the raw
-averages at that face and is counted (\code{recon\_fallback} in
+a cell whose five-cell stencil has a phase Absent in some cells and
+present in others takes its raw averages at both edges (first order at a
+presence front, as the correction path is there); a phase Absent in the
+cell is pinned absent at its edges; an edge that leaves the admissible
+set ($\alpha_1$ outside $[0,1]$, a present phase's $\alpha_k$ at or below
+$\alpha_{\mathrm{vanish}}$, a non-positive or non-finite phase density, a
+non-finite energy or velocity) returns the cell to its raw averages at
+both edges; every fallback is counted (\code{recon\_fallback} in
 \src{PS_counters.H}).  Whether that fallback fires anywhere in the
 battery or the two-dimensional cases is a Stage~3 prediction.
 
@@ -403,6 +436,24 @@ belongs to the split single-step form.
       WENO weights reduces the rate at extrema.  The battery measures
       errors against exact references, not rates, and the prediction is
       ``no worse'', not ``fourth order''.
+\item \textbf{The non-conservative products.}  (Stage~3.)  The in-cell
+      integrals of $u\,\partial_x\alpha$, $K\,\partial_x u$ and $\Sigma_k$
+      are evaluated with the cell's mean velocity, mass fractions and
+      Kapila coefficient between the two edge values: exact where the
+      velocity is uniform (the ADV2D rate of 5 and the Abgrall condition
+      at round-off), second order where it varies.  A higher-order
+      quadrature needs the reconstruction polynomial inside the cell, and
+      must use the same edge values as the fluctuations or the $\alpha$
+      and mass updates part company at a contact; it is not built.  So
+      the conserved slots are at the reconstruction's order and the
+      non-conserved slots are fourth order only in uniform flow.
+\item \textbf{Weak shocks.}  (Stage~3.)  WENO5 spreads a weak shock
+      (the 4\,\% pressure jump of the B4 and B10 vapour shocks) over
+      about eight cells against three under the TVD correction, because
+      its smoothness indicators barely distinguish a weak jump from smooth
+      data; at 64 cells that costs 17--21\,\% in the velocity error of
+      those cases and at 256 cells the order-4 solution is the better one
+      on every metric.
 \end{enumerate}
 
 % =====================================================================
@@ -1717,5 +1768,194 @@ $1.51\times10^{-3}$), with the old rule's figures kept beside it, and
 the O-32 register entry records the decision.  The instrument for the
 next question, which production regions the rule acts in, is
 \code{lim\_wave\_noise} by level and step.
+
+
+\subsection{Stage 3: reconstructed faces and the in-cell term (16 November 2026, Mac \code{llvm}; commit \code{1fe81e07})}
+\label{sec:stage3}
+
+Implementation: \src{PS_recon.H} and \src{PS_umeth.cpp} under
+\code{ps\_wp\_order=4}, as \S\ref{sec:scheme} now describes it (the
+primitive set component by component, the in-cell term with the Kapila
+term, the presence rules, \code{recon\_fallback}); the dials
+\code{ps\_wp\_recon} (\code{weno5z}, \code{ppm}) and
+\code{ps\_wp\_contact\_taper} (1, 0); \code{RUNNING.md} rows.  Two things
+changed from the plan on the way and are recorded in \S\ref{sec:scheme}
+and \S\ref{sec:bounds}: the reconstruction is on the primitive set rather
+than characteristic-wise (the EOS exposes no Gr\"uneisen derivative), and
+the $\alpha$ in-cell term carries the Kapila term, which the first pass
+lacked: with the advection term alone the compression that the
+reconstruction places inside a cell left $\alpha$ behind, and on B12 the
+liquid compressed like the vapour (ratio 0.95 against the 0.25 bound,
+B9 0.794 against 0.752); with it B12 reads 0.0092 and B9 0.762.  Every
+2-D run below used \code{cf\_interp=quartic\_limited}, \code{rk\_order=3}
+and \code{do\_mol=1}; ``option 1'' and ``option 0'' are the two contact-taper
+settings, the control is the same deck under \code{ps\_wp\_order=2}
+(``rk3 order 2'', the Stage 2b/2d scheme) unless said otherwise.
+
+\begin{enumerate}[nosep]
+\item ADV2D space at amplitude 0.0025, \code{cfl} $=0.3\,(32/N)^{2/3}$,
+      $L_1(\alpha_1)$ on $32^2/64^2/128^2$.  Option 0:
+      $6.41\times10^{-9}$ / $2.00\times10^{-10}$ / $6.27\times10^{-12}$,
+      rates 5.00 and 5.00, the same in $L_1(\rho)$: \textbf{held} (above
+      the 4.0 bound, above the $4.5\pm0.5$ prediction; WENO5-Z at its
+      design order, since averaging commutes with the linear flux).  At
+      $64^2$ this is 8000 times below the Stage~1 error
+      ($1.61\times10^{-6}$).  Option 1: $1.53\times10^{-7}$ /
+      $1.88\times10^{-8}$ / $2.35\times10^{-9}$, rates 3.03 and 3.00:
+      \textbf{refuted} on the prediction that the two options agree in
+      rate at this amplitude.  The H-5 weight is $1-w\sim(\Delta\alpha/\alpha_{\mathrm{cond}})^2 = O(h^2)$
+      here, applied to an $O(h)$ increment, so the taper leaves an
+      $O(h^3)$ error that dominates the fifth-order one however small the
+      amplitude; the taper caps the order at three on any smooth
+      $\alpha$ variation, not only at first order on the steep one.  PPM:
+      $2.32\times10^{-6}$ / $6.46\times10^{-7}$ / $1.65\times10^{-7}$, rates
+      1.84 and 1.97: the Colella--Woodward limiter flattens the smooth
+      extrema (second order, as a limited interpolant is), so the plan's
+      PPM-against-WENO diagnosis is read the other way round, and was not
+      needed.
+\item ADV2D space at amplitude 0.25.  Option 1: $1.15\times10^{-2}$ /
+      $5.40\times10^{-3}$ / $1.47\times10^{-3}$, rates 1.09 and 1.88, the
+      Stage~0 and Stage~1 figures to three digits (the taper governs):
+      \textbf{held}.  Option 0: $6.38\times10^{-7}$ / $1.99\times10^{-8}$
+      / $6.24\times10^{-10}$, rates 5.00 and 5.00: \textbf{held} (the same
+      rate as at amplitude 0.0025).
+\item ADV2D time, $64^2$, amplitude 0.0025, option 1, \code{cfl} 0.3,
+      0.15, 0.075: $L_1(\alpha_1)$ $1.8825\times10^{-8}$,
+      $1.8801\times10^{-8}$, $1.8798\times10^{-8}$; pairwise differences
+      $3.62\times10^{-11}$ and $4.53\times10^{-12}$, ratio 7.99, $\log_2$
+      3.00: \textbf{held}.
+\item ADV2D conservation (\code{inputs-fb-rk2}): mass, the two partial
+      masses, momentum and total energy to $1.5\times10^{-15}$:
+      \textbf{held}.
+\item The in-cell term.  (a) The two-dimensional advection ($64^2$,
+      amplitude 0.0025, option 1, every cell with both phases
+      Independent): at \code{stop\_time} $\max|u-100| = 1.1\times10^{-12}$\,m/s,
+      $\max|v-100| = 1.0\times10^{-12}$\,m/s, pressure range
+      $3.7\times10^{-7}$\,Pa of $8\times10^{6}$: \textbf{held} at
+      round-off.  (b) The advected B11 contact as planned (liquid 250\,K
+      against vapour 290\,K at 30\,bar, both at 200\,m/s, relaxation,
+      mass transfer and flash off, 256 cells, 23 plotfiles): the
+      prediction of $10^{-10}$ is \textbf{refuted for every scheme
+      including the controls}, and the instrument is the reason: over the
+      run $\max|u-200|$ is $1.25\times10^{-2}$\,m/s under option 1,
+      $1.3\times10^{-3}$ under option 0, $1.2\times10^{-2}$ under PPM,
+      $1.4\times10^{-2}$ under the single-step scheme and
+      $1.5\times10^{-2}$ under rk3 order 2, the pressure range
+      $1.0$--$1.4\times10^{-4}$ of $P$ for all five.  The level is set by
+      the presence corridor at the interface cells, where the minority
+      phase's pressure is the host's by substitution (MODEL \S4), not by
+      the reconstruction; the uniform-velocity, uniform-pressure argument
+      for the primitive set is tested by (a).  Option 0 is the cleanest of
+      the five.
+\item Battery.  \code{verify\_canonical} under option 1: the two-phase
+      checks pass (B4 theta-independence 0.115 against 0.132 at Stage~1,
+      flat; B9 0.762 against 0.740; B12 far field $0$, mirror
+      $2.2\times10^{-8}$, ratio 0.0092 against 0.0101); the A/C
+      fingerprint checks fail because every error is \emph{smaller} than
+      the recorded tuple (mean 0.0298 against the 0.0350 record and
+      0.0361 at Stage~1; A1 $\rho$ 0.0072 against 0.0114); the frozen B4
+      zero-trace check fails upward, 0.156 against 0.131 (0.133 at
+      Stage~1).  The 21-case table against Stage~1 (rk3 order 2), rel-$L_2$:
+      every A and C case smaller in all three fields; B1, B6, B8, B11
+      smaller; B3 equal; B4 $u$ 0.154 against 0.132 and B10 $u$ 0.152
+      against 0.126 larger; B7 $\rho$ 0.167 against 0.157 under option 1
+      (0.161 under option 0); B2 and B9 against the frozen reference
+      smaller in $u$ (0.465 and 0.439 against 0.624 and 0.596).  So the
+      ``no error larger than Stage~1'' falsifier is \textbf{refuted on the
+      cross-critical cases}, and the diagnosis is in the per-bin table of
+      the frozen B4 run at 64 cells: the fan ($x<0.2$) and the contact are
+      as good or better, the whole increase is the weak vapour shock at
+      $x\approx0.71$ (4\,\% pressure jump), which WENO5 spreads over eight
+      cells (velocity 8.7 against 9.0 three cells behind it, 2.7 against 0
+      one cell ahead) where the TVD correction holds three; at 256 cells
+      the order-4 run is below the control on every metric ($u$ 0.0692
+      against 0.0708, $P$ 0.0188 against 0.0236).  PPM at 64 cells gives
+      the same 0.155.  Recorded as the weak-shock bound of
+      \S\ref{sec:bounds}; a shock-aware weight (WENO-Z with the higher
+      power, or a sensor that drops to the TVD face at a weak jump) is
+      the follow-up if the weak-shock width matters in production.
+      Option 0 differs from option 1 only on the cases with a material
+      contact: B5 better (0.140 against 0.159), B7 better, B9 $u$ 0.750
+      against 0.788, B11 $\rho$ 0.079 against 0.121, B2 worse (0.78
+      against 0.82 in $u$ but 0.085 against 0.074 in $\rho$); gate B9
+      0.708.
+\item Self-convergence (128/256/512, $L_1$ between successive
+      resolutions, order 4 against rk3 order 2): A1 0.93 against 0.96
+      (density), A4 double rarefaction 1.09 against 0.98, B4 0.41/0.79/0.97
+      against 0.42/0.71/0.79 ($\rho$/$\rho u$/$P$), B11 0.53 against 0.57.
+      Every case in the suite is kinked or shocked, so the observed orders
+      stay near one under both schemes; the ``smooth cases above 2''
+      expectation had no smooth case to act on (ADV2D is that case).
+\item XC2D 40 steps: runs under both options, counters 0 (including
+      \code{recon\_fallback}), no folds.  Ray-diff against the uniform
+      $256^2$ reference, fine interior $\max|\Delta P|/P$: option 1
+      $1.57\times10^{-2}$, option 0 $1.26\times10^{-2}$, the rk3 order-2
+      twin $4.59\times10^{-2}$; $|\Delta\mathcal{E}_1|$ $5.5\times10^{-4}$
+      and $4.4\times10^{-4}$ against $1.45\times10^{-3}$; coarse--fine
+      edge $\Delta\alpha$ $2.5$ and $3.2\times10^{-9}$ against
+      $1.6\times10^{-9}$, $\Delta P$ $9.6\times10^{-4}$ and
+      $1.6\times10^{-3}$ against $3.6\times10^{-3}$: \textbf{held} (the gaps
+      do not grow; the solution is three times closer to the fine
+      reference).  Cost 4.55\,s against 3.33\,s on four ranks.
+      T-Blowdown \code{inputs-x} 300 steps: runs under both options,
+      validator clean, no folds; 47.8 and 46.3\,s against 42.0\,s.
+      Orientation suite under option 1: the transposed pairs (x against
+      y) agree to $8\times10^{-16}$; the mirrored pairs to
+      $6.3\times10^{-12}$, above the suite's $10^{-12}$ tolerance and the
+      $8.7\times10^{-14}$ of the order-2 record: \textbf{refuted at
+      tolerance}, and not a coding asymmetry: at step 1 the mirror is exact
+      (0 in every field) and at step 20 it is $6\times10^{-15}$ (order 2:
+      $9\times10^{-14}$); the less dissipative scheme lets the round-off
+      difference grow faster over 300 steps.  The AMR tube
+      (\code{inputs-x-amr}, 300 coarse steps): runs under both options,
+      mass drift $2\times10^{-16}$, \code{recon\_fallback} 0; option 0
+      takes 304 vacuum folds over the run, option 1 and the control none.
+\item Pipe-break demo3 to step 200 under both options: runs, counters 0,
+      no folds.  Centreline symmetry, the top--bottom pressure asymmetry of
+      \code{symchk.py}: at step 50 option 1 $1.7\times10^{-6}$\,Pa and
+      option 0 $5.4\times10^{-7}$\,Pa (round-off), where rk3 order 2 is
+      already at 1189\,Pa and the single-step scheme at 1672\,Pa; at step
+      200 option 1 1996\,Pa and option 0 127\,Pa against 6136\,Pa for rk3 order 2 and 2020\,Pa for Heun.  So the
+      reconstructed scheme holds the symmetry longer than the present one:
+      \textbf{held}.
+\item The interface (demo3 step 50, six ranks, \code{d2alpha\_metric.py}).
+      Contact window $\max|d^2\alpha_1|$ / sign-flip extrema: option 1
+      $1.51\times10^{-3}$ / 2, option 0 $8.8\times10^{-5}$ / 1, rk3 order 2
+      $1.38\times10^{-3}$ / 2, the single-step scheme $1.42\times10^{-3}$
+      / 4 (the VERIFICATION \S7.5 record, $1.30\times10^{-3}$ / 4, was
+      taken with \code{cons} interpolation).  Front window: option 1
+      $1.66\times10^{-3}$ / 1, option 0 $7.72\times10^{-3}$ / 1, rk3 order
+      2 $9.0\times10^{-4}$ / 1, single step $1.18\times10^{-3}$ / 1.
+      Option 1 within the band of the present scheme: \textbf{held}
+      (contact 1.51 against 1.38--1.42, front 1.66 against 0.90--1.18,
+      the same extrema counts).  Option 0: the jet-edge wiggle, the
+      taper's reason, is seventeen times smaller than under any other
+      scheme and than under the full correction of MODEL \S3.4
+      ($1.18\times10^{-3}$), so on the letter of its falsifier option 0
+      \textbf{stands} as a default candidate; its front curvature is
+      five times larger with a single sign change, a steeper monotone
+      front rather than a wiggle, which the metric cannot tell from a
+      worse one.  Cost (six ranks, nothing else running): 9.65\,s against
+      8.18\,s for rk3 order 2 and 7.40\,s for Heun.
+\item GPU: queued on peart (\code{peart\_stage3.sh}: XC2D under both
+      options, rk3 order 2 and Heun; the tube under option 1 and the two
+      controls; ADV2D $64^2$ under both options), appended when it
+      reports.
+\end{enumerate}
+
+\paragraph{State and the decisions it leaves.}  \code{ps\_wp\_order=4} is
+landed with \code{weno5z} and \code{ps\_wp\_contact\_taper=1} as its
+defaults and \code{ps\_wp\_order=2} still the code default, so no deck
+changes.  For Marc: (i) the contact-taper default under order 4.  Option
+1 keeps the present interface behaviour and the present rates on steep
+$\alpha$ (first order) but caps every smooth $\alpha$ variation at third
+order; option 0 gives the design order everywhere, the cleanest jet edge
+and the cleanest B11 contact, a steeper demo3 front, 304 vacuum folds on
+the AMR tube, and B2 slightly worse.  (ii) Whether the weak-shock width
+of WENO5 at 64 cells (B4, B10) is accepted as the price of the order or
+a shock-aware weight is built.  (iii) The characteristic projection on
+the primitive set stays the follow-up if production shows the post-shock
+noise component-wise reconstruction is known for; the battery did not.
+Then Stage~4 (the relaxation placement, \S\ref{sec:stages}).
 
 \end{document}
