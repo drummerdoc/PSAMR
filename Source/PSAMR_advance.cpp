@@ -176,6 +176,19 @@ PSAMR::PSAMR_advance (Real time,
         const int v = ps_dial_int("ps_rk_project", ps_order4_default);
         if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project must be 0 or 1"); }
         return v; }();
+    //   PSAMR.ps_rk_project_tol (1e-10): the stage projection's Newton
+    //     stopping tolerance on |P1-P2|/max(P1,P2); the X3F residual
+    //     tolerance by default, so the stage state sits on the constraint
+    //     to the precision the production operator solves it (the mode-0
+    //     kernel's 1e-4 floored the Stage 4 self-convergence at 3e-5 of
+    //     P; docs/PLAN_high_order.pdf, follow-up 1).  1e-4 recovers the
+    //     Stage 4 behaviour for A/B.
+    static const amrex::Real ps_rk_project_tol_cached = []() -> amrex::Real {
+        const amrex::Real v = ps_dial_real("ps_rk_project_tol", amrex::Real(1.0e-10));
+        if (!(v > amrex::Real(0.0)) || v >= amrex::Real(1.0)) {
+            amrex::Abort("PSAMR.ps_rk_project_tol must lie in (0, 1)");
+        }
+        return v; }();
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
@@ -664,7 +677,7 @@ PSAMR::PSAMR_advance (Real time,
                 ps_apply_vanish_fold(S, 0);
                 if (ps_rk_project_cached != 0) {
                     ps_resync_mixture_mass(S, 0);
-                    ps_apply_mechanical_projection(S, 0);
+                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);
                 }
             }
 #else

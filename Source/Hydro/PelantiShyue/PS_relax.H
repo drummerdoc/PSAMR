@@ -178,7 +178,8 @@ inline void
 ps_mechanical_relax_admitted(int i, int j, int k,
                              amrex::Array4<amrex::Real> const& U,
                              hem::PsPhaseAPI const& eos,
-                             amrex::Real alpha1_in, amrex::Real m1, amrex::Real m2)
+                             amrex::Real alpha1_in, amrex::Real m1, amrex::Real m2,
+                             double tol_P_rel = 1.0e-4)
 {
     // V6[3] = rho_mix |u|: the kernel forms ½(V6[3]/rho_mix)² = ½|u|²,
     // which is direction-free, so the momentum magnitude is exact.
@@ -187,12 +188,15 @@ ps_mechanical_relax_admitted(int i, int j, int k,
 
     // Default PsPressureRelaxParams (max_iter 30, tol_P_rel 1e-4,
     // alpha_min ps_const::ALPHA_NEWTON_MIN = 1e-9, step_cap_frac 0.3;
-    // single-phase skip at eos.dials.single_phase_threshold).
+    // single-phase skip at eos.dials.single_phase_threshold); the
+    // stage projection (ps_apply_mechanical_projection) passes its own
+    // tol_P_rel, the X3F residual tolerance, so the constraint is
+    // converged rather than approximated between the stages.
     // Uv[0], Uv[4], Uv[5] update in place; Uv[1..3] are invariants.
     int reason = hem::PSR_OK;
-    const bool ok = hem::ps_pressure_relax_cell(Uv, eos,
-                                                hem::PsPressureRelaxParams{},
-                                                &reason);
+    hem::PsPressureRelaxParams prp{};
+    prp.tol_P_rel = tol_P_rel;
+    const bool ok = hem::ps_pressure_relax_cell(Uv, eos, prp, &reason);
     if (!ok) {
         return;   // failure: leave the cell unchanged
     }
@@ -208,14 +212,15 @@ AMREX_GPU_HOST_DEVICE
 inline void
 ps_mechanical_relax_cell(int i, int j, int k,
                           amrex::Array4<amrex::Real> const& U,
-                          hem::PsPhaseAPI const& eos, const PsPres& pr)
+                          hem::PsPhaseAPI const& eos, const PsPres& pr,
+                          double tol_P_rel = 1.0e-4)
 {
     // Entry classification: non-finite, near-pure (either side), a
     // non-positive phase mass and the presence gate (refusal counted) all
     // return without touching the cell.
     amrex::Real alpha1_in, m1, m2;
     if (!ps_relax_entry_gate(i, j, k, U, pr, alpha1_in, m1, m2)) return;
-    ps_mechanical_relax_admitted(i, j, k, U, eos, alpha1_in, m1, m2);
+    ps_mechanical_relax_admitted(i, j, k, U, eos, alpha1_in, m1, m2, tol_P_rel);
 }
 
 
@@ -564,10 +569,15 @@ ps_x3f_grid_relax_cell(int i, int j, int k,
 //  forward Euler steps; the finite-rate legs (thermal, mass transfer,
 //  flash) and the corridor projection stay in the reaction step outside
 //  the stages.  No reports, no counter resets: the stage sweep leaves the
-//  reaction step's census alone.
+//  reaction step's census alone.  tol_P_rel is the Newton's stopping
+//  tolerance on |P1-P2|/max(P1,P2) (PSAMR.ps_rk_project_tol, default the
+//  X3F residual tolerance 1e-10, so the stage state is on the constraint
+//  to the precision the production operator solves it; the mode-0
+//  kernel's own 1e-4 floored the Stage 4 self-convergence at 3e-5 of P).
 // -----------------------------------------------------------------
 inline void
-ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0)
+ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0,
+                               double tol_P_rel = 1.0e-10)
 {
     BL_PROFILE("PS::ps_apply_mechanical_projection()");
     const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
@@ -577,7 +587,7 @@ ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0)
         amrex::Array4<amrex::Real> const& U = S.array(mfi);
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            ps_mechanical_relax_cell(i, j, k, U, eos, l_pres);
+            ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, tol_P_rel);
         });
     }
 }
