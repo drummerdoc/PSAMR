@@ -2192,4 +2192,62 @@ projection with Strang (Stage 4), \code{ps\_wp\_order=2} unchanged as
 the code default.  Outstanding on the GPU side: the Stage 4 XC2D and
 tube lines, appended to the Stage~4 record when the peart queue reports.
 
+\subsection{Follow-up 1: the stage projection converged to the production tolerance (16 November 2026, Mac \code{llvm})}
+\label{sec:fu1}
+
+Implementation as planned: \code{PSAMR.ps\_rk\_project\_tol} (default
+$10^{-10}$, the X3F residual tolerance; $10^{-4}$ the Stage~4 value) is
+a trailing argument of the mode-0 kernel's two wrappers and of
+\code{ps\_apply\_mechanical\_projection}; every other caller keeps the
+old default.  Control: at $10^{-4}$ the B5 run and the tube reproduce
+the Stage~4 plotfiles bitwise.  Against the predictions:
+\begin{enumerate}[nosep]
+\item B5, Strang with the projection, \code{cfl} 0.25 to 0.03125 (the
+      run at 0.015625 again wrote no final plotfile and is not used):
+      successive differences in $\rho$ $1.89\times10^{-2}$,
+      $8.53\times10^{-3}$, $4.05\times10^{-3}$ against the Stage~4
+      $2.04$, $1.21$, $1.24\times10^{-2}$; orders 1.14 and 1.07 in
+      $\rho$, 1.13 and 0.95 in $P$, 1.15 and 1.08 in $\alpha_1$.  The
+      floor is gone (the third difference a third of the Stage~4 one and
+      still falling), and the order is first, not second: \textbf{falsifier
+      B}.  At $\Dt/\theta$ from 1.5 to 0.2 the full step under Strang
+      is first order in $\Dt$, and with the projection converged to
+      $10^{-10}$ the stage projection is out of the account; what is
+      left is the mode-2 operator's own per-step error (three Picard
+      sweeps of the thermal leg at $\theta\approx\Dt$), the Stage~4
+      reading.  The item closes as ``tolerance removed, order bounded by
+      the operator''; an implicit--explicit treatment of the rate terms
+      (\code{FUTURE\_WORK.md} \S13 item 4) is where second order would
+      come from.  The tolerance moves the \code{cfl} 0.25 solution by
+      $1.6\times10^{-4}$ of range in $\rho$ and $3.7\times10^{-4}$ in
+      $P$.
+\item B11: differences $1.01\times10^{-2}$, $8.86\times10^{-3}$ in
+      $\rho$ (Stage~4: $6.56$, $7.63\times10^{-3}$), $1.4$ and
+      $0.8\times10^{3}$\,Pa, orders 0.19 and 0.79: \textbf{refuted}.
+      The stagnation is not the tolerance; at $5\times10^{-4}$ of $P$ it
+      is the level the Stage~3 contact instrument found for every scheme,
+      set by the discrete presence logic at the interface cells (the
+      corridor substitution, MODEL \S4.6), which does not vary smoothly
+      with $\Dt$.  Recorded as the bound of this instrument.
+\item Cost: the tube on one rank, back to back, 60.9\,s at $10^{-10}$
+      against 59.4\,s at $10^{-4}$ ($+2.4\,\%$); demo3 to step 50 on
+      six ranks 11.74\,s against 11.7: \textbf{held}.
+\item Battery under the order-4 default with the mode-5 probe, Strang:
+      the gate's PASS/FAIL set identical to Stage~4 (10 and 21), the one
+      moving line the B12 mirror under mode 5 ($9.3\times10^{4}$ against
+      $1.7\times10^{5}$\,Pa, mode 5's own asymmetry); the 21-case table
+      within 0.2\,\% per entry (worst B7 $P$ 0.3062 to 0.3056).  demo3
+      step 50: contact window $8.79\times10^{-5}$ / 1, front
+      $7.76\times10^{-3}$ / 1, symmetry $1.2\times10^{-6}$\,Pa, validator
+      and run clean: \textbf{held}.
+\item GPU: none for this item, as planned; the next peart queue carries
+      the dial (the kernel body is unchanged).
+\end{enumerate}
+
+\paragraph{State.}  The dial is landed with $10^{-10}$ as the default
+of the stage projection; \code{RUNNING.md}, MODEL \S3.8, H-8 and
+\code{FUTURE\_WORK.md} \S13 say so.  Nothing in the order-4 default
+changes except that the stage state now sits on the constraint to the
+production precision.
+
 \end{document}
