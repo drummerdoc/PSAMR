@@ -2349,6 +2349,80 @@ co-move off the mismatch is thirty times larger.  Located to the
 register fill of the two older paths; which flux copy they store for
 \code{URHO} is the named remainder, of no consequence to conservation.
 
+\subsection{Follow-up 6: SSPRK(4,3) (16 November 2026, Mac \code{llvm})}
+\label{sec:fu6}
+
+Built as planned: \code{PSAMR.rk\_stages=4} under \code{rk\_order=3}
+(\src{PSAMR_advance.cpp}, the four-stage Shu--Osher loop with the same
+per-stage fold and projection; \src{PSAMR.cpp}, the cap $2/\mathrm{DIM}$,
+\code{rk4\_store\_coarse} and \code{rk4\_fill} with the dense-output
+coefficients of \S\ref{sec:stages}, through \code{FillPatchTwoLevels}
+with the state's interpolater).  The three-stage path is untouched.
+Every run under the order-4 default.  Against the predictions:
+\begin{enumerate}[nosep]
+\item ADV2D time order at $64^2$: $L_1(\alpha_1)$ $2.0801\times10^{-10}$,
+      $1.9482\times10^{-10}$, $1.9333\times10^{-10}$ at \code{cfl} 0.3,
+      0.15, 0.075; pair differences $1.81\times10^{-11}$ and
+      $2.26\times10^{-12}$, ratio 8.00, order 3.00, the pairs half the
+      three-stage scheme's: \textbf{held}.
+\item ADV2D space: $6.29\times10^{-9}$ / $1.97\times10^{-10}$ /
+      $6.17\times10^{-12}$, rates 5.00 and 4.99, within 2\,\% of the
+      three-stage values (1.9, 1.7, 1.6\,\% below them): \textbf{held}.
+\item Conservation on the fine box: mass, both partial masses, momentum
+      and energy to $2\times10^{-15}$, no FillPatch fallback after the
+      first coarse step: \textbf{held}; the dense-output ghosts and the
+      register weights are consistent.
+\item Stability at the cap: ADV2D (amplitude 0.25) at \code{cfl} 0.9
+      runs; XC2D to the stop time at 0.9 runs with every counter 0,
+      56 coarse steps against 112; the tube at 0.9 to the time of step
+      300 at 0.45 runs in 150 steps with the validator clean.
+      \textbf{Held}, except the ADV2D error clause, which was mis-set:
+      $L_1(\alpha_1)$ is $6.56\times10^{-8}$ at 0.9 against
+      $2.98\times10^{-8}$ for the three-stage scheme at 0.45 and
+      $1.99\times10^{-8}$ at 0.3, because under order 4 the spatial
+      error is $2\times10^{-8}$ and the third-order time error is
+      visible: its part grows as $\Dt^2$ at a fixed time, $1.0\times10^{-8}$
+      at 0.45 and four times that at 0.9, which is the number.  Not an
+      instability.
+\item Cost per simulated time at the caps (0.9 against 0.45): the tube
+      49.0\,s against 75.5\,s (0.65), XC2D 2.40\,s against 3.80\,s (0.63),
+      ADV2D 0.65: \textbf{held} at the predicted two thirds.  At equal
+      step the four stages cost a third more (the tube 87.7\,s at
+      \code{cfl} 0.45; demo3 14.3\,s against 11.7).
+\item Battery under the order-4 default at \code{cfl} 0.25, mode-5
+      probe: the PASS set identical (10 and 21), the 21-case table
+      within 0.3\,\% per entry (B11 $u$ 0.0336 to 0.0335): \textbf{held}.
+\item demo3 step 50 at the deck's \code{cfl} 0.3: contact window
+      $8.76\times10^{-5}$ / 1, front $7.74\times10^{-3}$ / 1 (three
+      stages $8.81\times10^{-5}$, $7.76\times10^{-3}$), symmetry
+      $1.6\times10^{-6}$\,Pa, no fallback, counters 0: \textbf{held}; the
+      coarse--fine stage fill works on three levels with regridding.
+\item GPU: none, as planned.
+\end{enumerate}
+
+\paragraph{What the cap buys, measured.}  The order and the cost
+predictions hold, so the scheme is right; what the raised cap gives in
+production is a separate question, and the controls answer it.  At
+equal step (\code{cfl} 0.45) the four-stage solution differs from the
+three-stage one on XC2D's fine level by $4\times10^{-3}$ of range, less
+than a step halving does ($6\times10^{-3}$), and on its coarse level
+outside the contact band by 2.4\,m/s against 2.0 for the halving and
+$10^{-3}$ of the density range; inside the under-resolved coarse
+contact band both pairs differ by O(1) in velocity (16 and 5\,m/s on a
+range of 18), the presence machinery's switches at coarse resolution.
+On the single-level tube at equal step the two schemes differ by 1\,\%
+of the density range and 7\,\% in the trace-phase slot.  So the scheme
+change is within the step sensitivity, as a third-order scheme should
+be; but at its own cap the four-stage solution is 10 to 18\,\% of range
+away from the three-stage one at its cap on the tube (pressure 15\,\%,
+temperature 18\,\%) and 3\,\% on XC2D's fine level, because the full
+step with the stiff relaxation is first order in $\Dt$ (follow-up 1):
+doubling the step doubles the splitting error.  The two-thirds cost is
+real only where the step is set by the cap and not by that error, which
+on the flashing cases it is not.  Landed as an option with 3 as the
+default; \code{RUNNING.md}, MODEL \S3.9, H-9 and
+\code{FUTURE\_WORK.md} \S13 say so.
+
 \subsection{Follow-up 1: the stage projection converged to the production tolerance (16 November 2026, Mac \code{llvm})}
 \label{sec:fu1}
 
