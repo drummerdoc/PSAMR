@@ -2904,4 +2904,117 @@ validator 0 throughout.  So the step A gate is set: B5 under mode 6
 with the control off and \code{ps\_x3f\_order=2} must come in at
 $2.0\pm0.3$ with differences below C2's at every pair.
 
+
+\subsection{Follow-up 4, step A: the X3F sub-step at second order (16 November 2026, Mac \code{llvm}; commit \code{01b246b0})}
+\label{sec:fu4a}
+
+Built as planned: \code{PSAMR.ps\_x3f\_order} (1 the present kernel; 2
+Alexander's two-stage SDIRK, $\gamma = 1 - 1/\sqrt2$) in
+\src{hem_relax_x3f.H}, the second stage the same five-residual Newton
+over $\gamma\Dt_s$ from the same base with
+$(1+\sqrt2)(q_1, \delta m_1)$ as constants in $F_4$, $F_5$; the dial
+read once in \src{PS_relax.H}; the \code{RUNNING.md} row.  One
+departure from the plan, measured and recorded below: the band gate is
+not asked of the stage-1 solution.  Every run under the order-4 default
+at mode 6; the pre-edit binary is the one of \code{196ab2cb}.  Against
+the predictions:
+\begin{enumerate}[nosep]
+\item B5, control off, order 2, \code{cfl} 0.25 to 0.03125: $\rho$
+      $2.77\times10^{-3}$, $7.01\times10^{-4}$, $1.76\times10^{-4}$,
+      orders 1.98 and 1.99; $P$ 35.4, 8.97, 2.26\,Pa, 1.98 and 1.99;
+      $\alpha_1$ $2.22\times10^{-6}$, $5.62\times10^{-7}$,
+      $1.41\times10^{-7}$, 1.98 and 1.99: \textbf{held}.  The
+      differences are 3.4, 6.2 and 11 times below C2's at the three
+      pairs.  With the control on (the default) the series reads
+      $3.00\times10^{-3}$, $7.23\times10^{-4}$, $1.77\times10^{-4}$,
+      orders 2.05 and 2.03: the doubling, which took the order below
+      one at order 1, is almost never triggered at order 2 and the
+      production setting is second order as it stands.  Newton
+      iterations per sweep at \code{cfl} 0.25: 876 against 389 (2.3
+      per cell against 1.5); every call OK, one sub-step per call, as
+      at order 1.
+\item Order 1 bitwise the present kernel: the B5 \code{cfl} 0.25
+      plotfile, the tube at 300 steps and the 21-case
+      \code{characterize.py} fingerprint (acceptance configuration)
+      identical to the pre-edit binary; rechecked on the final binary
+      after the gate change below: \textbf{held}.
+\item Mode 2 on B5 at \code{cfl} 0.25 with the dial set to 2: bitwise
+      the pre-edit run: \textbf{held} (the dial does not reach mode 2,
+      which stays the first-order control).
+\item Battery under the order-4 default at mode 6, order 2 against
+      order 1 at the same commit: the PASS set identical (11 and 20,
+      the A/C fingerprint checks failing as always under order 4 and
+      the frozen checks under the forced mode); the 21-case table
+      within 0.06\,\% per entry (B2 and B9 $P$ $-0.06\,\%$, B11 $P$
+      $+0.06\,\%$, every other entry to four digits); the A/C mean
+      0.0299 both: \textbf{held}, and on the first build it was not,
+      which is the finding below.
+\item 2-D at order 2 against order 1: XC2D 40 steps bitwise identical
+      (its deck runs \code{ps\_do\_relax=0}, so the kernel is not
+      reached; counters 0); demo3 step 50 on six ranks: contact window
+      $8.79\times10^{-5}$ / 1 and front $7.76\times10^{-3}$ / 1 to every
+      printed digit, symmetry $1.3\times10^{-6}$\,Pa against
+      $1.2\times10^{-6}$, the fields within $4.6\times10^{-4}$ of range
+      ($6\times10^{-7}$ in $\rho$, $4\times10^{-7}$ in $P$; the deck's
+      $\theta = 10^{-3}$\,s puts the rates far from stiff), counters 0,
+      no fallback: \textbf{held}.  The tube: \textbf{refuted} on the
+      size, held on the health: under the order-4 default at the deck's \code{cfl} 0.25, 300 steps, order 2 differs from order 1 by $2.0\times10^{-2}$ of range in $\rho$, $1.5\times10^{-2}$ in $P$ and $8.3\times10^{-2}$ in $\alpha_2\rho_2$ at step 300 (the two runs' step-300 times differ by $9\times10^{-4}$ relative), and at the same time by $1.6\times10^{-2}$, $1.2\times10^{-2}$ and $5.3\times10^{-2}$ at \code{cfl} 0.125.  The premise of the
+      prediction was wrong, not the kernel: the tube deck runs the
+      bare defaults, $\theta = 10^{-7}$\,s, so with $\Dt \approx
+      2.9\times10^{-6}$\,s each Strang half is at $\Dt/2\theta \approx
+      14$, the stiff regime, where the first-order kernel's per-step
+      error is a leading term; the order-1 solution's own step
+      sensitivity (\code{cfl} 0.125 to the same time) is
+      $2.3\times10^{-2}$ of range in $\rho$, $3.2\times10^{-2}$ in $P$
+      and $7.5\times10^{-2}$ in $\alpha_2\rho_2$, and the order-2 change
+      lies inside it; the order-2 solution's own step sensitivity is not separated here from a quarter-step time offset (its last step lands $9\times10^{-4}$ past the stop time under either \code{cfl}) and is not claimed.
+      Validator 0, no fold, and the \code{[PS-X3F]} census identical under both orders: 160 entry stands in $5.3\times10^{5}$ calls (cells at the band edge, the same cells), no refusal, no Newton failure, no cap.
+\item Cost: the tube on one rank, back to back, nothing else running: 62.3\,s at order 1 against 63.1\,s at order 2 ($+1.4\,\%$): \textbf{refuted} on the cheap side of the $+25\pm10\,\%$ band.  On the loaded runs the Newton count over the
+      300 steps is $6.68\times10^{6}$ against $3.59\times10^{6}$ (1.86
+      times, under the 2 of the plan: the quarter-span stages converge
+      faster) and the sub-step count $5.45\times10^{5}$ against
+      $5.26\times10^{5}$; the kernel is a small share of the order-4
+      tube.
+\item Conservation: the committed total energy is formed from the
+      exact total as before; the validator's mass and energy identities
+      at $2\times10^{-16}$ on the tube under both orders: \textbf{held}.
+\item GPU: the kernel body changed; the queue is pending (the next
+      peart queue carries XC2D 40 steps, which does not reach the
+      kernel, and the tube 300 steps, which does, at order 1 and 2).
+\end{enumerate}
+
+\paragraph{Finding: the stage-1 band gate, built and refuted.}  The
+plan asked the coexistence gate of the stage-1 solution, so that a
+sub-step whose first stage leaves the band ends on it.  With that gate
+the first build broke the B12 mirror at order 2: the gate's reflection
+check read $9.6\times10^{4}$\,Pa against $9.3\times10^{-3}$ at order 1,
+one PASS turned FAIL, and the standalone run showed the asymmetry
+appearing between steps 40 and 60 together with a cell whose
+$\alpha_1$ fell from 0.008 to $10^{-4}$.  On B12 the vapour at the wall
+sits above $T_{\mathrm{crit}}$ from step 20 (304 to 313\,K), the
+cells hover at the band edge under the self-lock of R-8, and a counter
+split by cause (host-only, on the \code{[PS-X3F]} line for the
+diagnosis) showed the stage-1 gate firing in 40 of the 82 sweeps.  It
+is a third switch site inside the operator, asked of a Newton iterate
+whose round-off is the Newton tolerance rather than the mirror's, and
+two mirror cells straddling $T_{\mathrm{crit}}$ by that much take
+different paths (one relaxes over $\gamma\Dt_s$, the other over the
+whole sub-step).  Removed: the band is asked of the base at entry and
+of the committed state between sub-steps, as at order 1, and stage 1
+is treated as what it is, an iterate.  With the gate gone the B12
+mirror at order 2 reads $8.1\times10^{-6}$\,Pa, three orders below
+order 1's own figure, the $\alpha_1$ excursion is gone, the B5 series
+is bitwise the one above (the gate never fired there) and the
+fingerprint and the order-1 paths are untouched.  The counter went
+with the gate.  Rule 12 in one line: a gate on an iterate is a switch
+the mirror sees.
+
+\paragraph{State.}  Landed as an option with 1 as the default; the gate
+of step A is met on the production operator (B5 second order at
+$\Dt/\theta$ from 1.5 to 0.2, with the step-doubling control on or
+off), the battery and the 2-D cases are clean, and the cost is in the
+kernel's Newton count only.  The documents (MODEL \S5.1, a DESIGN
+entry, \code{FUTURE\_WORK.md} \S13 item 4) follow in their own
+commits; the default and step B are Marc's to decide on this record.
+
 \end{document}
