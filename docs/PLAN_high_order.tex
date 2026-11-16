@@ -2236,12 +2236,11 @@ taper off, \code{quartic\_limited}, rk3).
       (the trace band, $2.6\times10^{-15}$ absolute); the tube 300
       steps to $4.6\times10^{-9}$ of range at the worst slot
       ($\alpha_2\rho_2$), $1.2\times10^{-9}$ on $\alpha_1$.  Twenty
-      times the Stage~3 order-4 tube figure: the projection's
-      tolerance-terminated Newton may stop one iteration apart on the
-      two machines, so their difference is at the tolerance's residual
-      rather than at round-off; still nothing physical, and the
-      tolerance is now $10^{-10}$ (follow-up 1), which the next queue
-      carries.  Run time 42.9\,s on XC2D ($+2\,\%$ over order 4 without
+      times the Stage~3 order-4 tube figure, and not the tolerance: at
+      $10^{-10}$ (follow-up 1, the dial queue below) the tube reads the
+      same $5.4\times10^{-9}$, so it is the projection's
+      finite-difference Newton amplifying the two machines' rounding
+      differences, three times per step; nothing physical.  Run time 42.9\,s on XC2D ($+2\,\%$ over order 4 without
       the projection on the same device) and 201.9\,s on the tube
       ($+27\,\%$ over 159.5; the Mac pays $+21\,\%$), with the host
       under a load of about 30 from other work.
@@ -2422,6 +2421,22 @@ real only where the step is set by the cap and not by that error, which
 on the flashing cases it is not.  Landed as an option with 3 as the
 default; \code{RUNNING.md}, MODEL \S3.9, H-9 and
 \code{FUTURE\_WORK.md} \S13 say so.
+
+\paragraph{GPU, the three dials (peart, CUDA, at \code{bb42a25a}, 16 November 2026).}
+One queue for follow-ups 1, 2 and 6, each run against the Mac partner
+of the same configuration at the same commit.  XC2D 40 steps: the
+order-4 default (the projection at $10^{-10}$) level 0 to
+$2.3\times10^{-10}$ of range and level 1 to $1.1\times10^{-8}$ on
+$\alpha_1$ (the trace band, $3\times10^{-15}$ absolute); four stages
+$1.9\times10^{-10}$ and $9.8\times10^{-9}$, the coarse--fine stage fill
+exercised on two levels; the power-2 weight $2.5\times10^{-10}$ and
+$1.1\times10^{-8}$.  The tube 300 steps: the default $5.4\times10^{-9}$
+at the worst slot ($\alpha_2\rho_2$), $1.4\times10^{-9}$ on $\alpha_1$;
+four stages $5.6\times10^{-9}$ and $1.7\times10^{-9}$.  All at the
+levels of the Stage~3 and 4 lines: \textbf{held}.  Run times 42.8\,s
+(default), 56.5\,s (four stages at the same step, $+32\,\%$) and 43.0\,s
+(power 2) on XC2D; 202.5\,s and 238.0\,s ($+18\,\%$) on the tube, the
+host under its usual load.  The GPU side of the branch is closed again.
 
 \subsection{Follow-up 1: the stage projection converged to the production tolerance (16 November 2026, Mac \code{llvm})}
 \label{sec:fu1}
