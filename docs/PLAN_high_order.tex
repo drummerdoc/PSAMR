@@ -503,6 +503,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_order} & 2 & Extended: 4 = reconstructed faces (WENO5-Z characteristic-wise) with the in-cell term and no Lax--Wendroff correction; 1 and 2 as now. \\
 \code{PSAMR.ps\_wp\_recon} & \code{weno5z} & Under \code{ps\_wp\_order=4}: \code{weno5z} or \code{ppm}. \\
 \code{PSAMR.ps\_rk\_project} & 0 (1 under \code{ps\_wp\_order=4}) & Under \code{rk\_order=3}: 1 = each stage state is folded, mass-resynced and projected onto mechanical equilibrium (the mode-0 kernel) before it feeds the next stage; 0 = the fold only (Stages 1--3). With \code{ps\_strang=1} the default of the order-4 path (Marc's decision on the Stage~4 record). Stage~4. \\
+\code{PSAMR.rk\_stages} & 3 & Under \code{rk\_order=3}: 3 = SSPRK(3,3); 4 = SSPRK(4,3), SSP coefficient 2, the CFL cap 2/DIM (follow-up 6). \\
 \code{PSAMR.ps\_rk\_project\_tol} & $10^{-10}$ & The stage projection's Newton tolerance on $|P_1-P_2|/\max(P_1,P_2)$: the X3F residual tolerance by default (follow-up 1); $10^{-4}$ = the mode-0 kernel's own, the Stage~4 behaviour, for A/B. \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
@@ -1018,6 +1019,71 @@ $\tau/\beta_k$ is of order one, at a sharp jump.  Predictions:
 If prediction 1 holds the option is refuted and recorded, the dial stays
 as the A/B instrument, and the sensor is put to Marc with the threshold
 question stated.
+
+\subsection*{Follow-up 6: SSPRK(4,3) (planned 16 November 2026)}
+
+Item 6 of \code{FUTURE\_WORK.md} \S13, taken up after item 8 on
+Marc's word.  The Spiteri--Ruuth four-stage third-order scheme, SSP
+coefficient 2 against 1 for SSPRK(3,3): four stage evaluations per step
+at twice the step, a third less work per simulated time.  In Shu--Osher
+form, $u_1 = u_0 + \tfrac12\Dt L(u_0)$, $u_2 = u_1 + \tfrac12\Dt L(u_1)$,
+$u_3 = \tfrac23 u_0 + \tfrac13 u_2 + \tfrac16\Dt L(u_2)$,
+$u^{n+1} = u_3 + \tfrac12\Dt L(u_3)$; stage times $0, \tfrac12, 1,
+\tfrac12$; Butcher weights $\tfrac16, \tfrac16, \tfrac16, \tfrac12$,
+which are the flux-register weights.  Built as \code{PSAMR.rk\_stages=4}
+under \code{rk\_order=3}, with the same per-stage fold and projection as
+the three-stage loop and the CFL cap raised to $2/\mathrm{DIM}$.
+
+The coarse--fine stage ghosts are the one piece of design.  AMReX's
+\code{FillPatcher::fillRK} keys its time-interpolation coefficients to
+the number of stored stages, and with four it applies the classical RK4
+set, which is wrong for this scheme; so the fine level holds the coarse
+level's $u_0$ and four stage derivatives itself and fills each stage
+through the two-level \code{FillPatch} with the state's interpolater
+(\code{quartic\_limited} on the order-4 path) from the coarse state
+that the stage's Taylor form needs, exactly what \code{fillRK} does
+internally.  The quadratic dense output of the four-stage scheme,
+$u(t + \xi\Dt_c) = u_0 + \Dt_c \sum_i b_i(\xi) k_i$, is fixed by
+$\sum b_i = \xi$, $\sum b_i c_i = \xi^2/2$ and $b_i(1)$ the weights, with
+$b_1'(0) = 1$ as AMReX's three-stage set has it: $b = (\xi - \tfrac56\xi^2,
+\tfrac16\xi^2, \tfrac16\xi^2, \tfrac12\xi^2)$.  The stage forms, from the
+Taylor expansion of the Shu--Osher stages: $u_1 = u + \tfrac12\Dt u'$,
+$u_2 = u + \Dt u' + \tfrac14\Dt^2 u''$, $u_3 = u + \tfrac12\Dt u' +
+\tfrac14\Dt^2 u''$, with $\Dt$ the fine step $r\Dt_c$ and $u'$, $u''$
+the derivatives of the dense output at $\xi$.  Predictions, with their
+falsifiers:
+\begin{enumerate}[nosep]
+\item ADV2D time order at $64^2$, amplitude 0.0025, \code{cfl} 0.3,
+      0.15, 0.075 under the order-4 default: 3.0 (pair ratio 8 within 10\,\%),
+      and the pair differences within a factor 2 of the three-stage
+      scheme's ($3.6\times10^{-11}$, $4.5\times10^{-12}$).  Falsifier:
+      order below 2.7.
+\item ADV2D space rate 5.0 and $L_1(\alpha_1)$ within 2\,\% of the
+      three-stage values ($6.41\times10^{-9}$, $2.00\times10^{-10}$,
+      $6.27\times10^{-12}$) at the same steps.
+\item Conservation on \code{inputs-fb-rk2} (the static fine box, the
+      dense-output ghosts exercised every step) to $10^{-15}$ in mass,
+      the partial masses, momentum and energy; no FillPatch fallback
+      after the first coarse step.  Falsifier: a drift above
+      $10^{-13}$, which would put the ghost fill or the register weights
+      in question.
+\item Stability at the new cap: ADV2D (amplitude 0.25, van Leer) and
+      XC2D to the stop time at \code{cfl} 0.9 run with counters 0 and,
+      on ADV2D, $L_1(\alpha_1)$ within $10^{-3}$ of its \code{cfl} 0.45
+      value; the tube at \code{cfl} 0.9 to step 150 (the same time as
+      300 at 0.45) runs with the validator clean.  Falsifier: an abort
+      or a counter above 0 at 0.9 that is 0 at 0.45.
+\item Cost per simulated time at the caps (0.9 against 0.45 in 2-D):
+      the tube and XC2D at $0.67 \pm 0.10$ of the three-stage time.
+      Falsifier: above 0.8.
+\item Battery under the order-4 default at the gate's \code{cfl} 0.25:
+      the PASS set identical to the three-stage one, the 21-case table
+      within 1\,\% per entry.
+\item demo3 to step 50 at \code{cfl} 0.3 (the deck's): metrics within
+      10\,\% of the three-stage ones, symmetry at round-off, counters 0.
+\item GPU: host-side only (MultiFab arithmetic and the two-level
+      FillPatch); no device kernel changes; the next peart queue.
+\end{enumerate}
 
 % =====================================================================
 \section{Parked}
