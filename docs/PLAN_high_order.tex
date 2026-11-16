@@ -2863,4 +2863,45 @@ buy nothing in production: \textbf{item 2 closes without the sensor}, the
 threshold question moot until a production case shows a weak shock
 resolved too wide.
 
+
+\subsection{Follow-up 4: the controls (16 November 2026, Mac \code{llvm}, the binary of \code{196ab2cb}, no code change)}
+\label{sec:fu4ctl}
+
+B5 as in follow-up 1 under mode 6 (\code{ps\_relax\_mode=6
+ps\_theta\_tau=2e-6 ps\_flash\_tau=0}, the SRT transfer on at
+$D = 0.1$\,m), the order-4 default with the projection at $10^{-10}$,
+256 cells, \code{cfl} 0.25 to 0.03125; mean absolute differences
+between successive runs and their $\log_2$ ratios; ranges $\rho$ 152,
+$P$ $7.9\times10^{5}$\,Pa, $\alpha_1$ 0.154.
+\begin{enumerate}[nosep]
+\item[C1.] Control on (the defaults): $\rho$ $6.27\times10^{-3}$,
+      $3.62\times10^{-3}$, $1.95\times10^{-3}$, orders 0.79 and 0.89;
+      $P$ 81.9, 46.2, 25.0\,Pa, orders 0.83 and 0.88; $\alpha_1$
+      $4.97\times10^{-6}$, $2.90\times10^{-6}$, $1.57\times10^{-6}$,
+      orders 0.78 and 0.89.  \textbf{Held} on the order clause (below
+      1.3); the floor clause did not show: the differences fall at every
+      pair and the third pair sits at $3\times10^{-5}$ of range in $P$,
+      so the doubling tolerance is not a floor at this level.  What the
+      control does is lower the order below one: it re-takes a sub-step
+      on the size of its move, so the committed step is a half step in
+      some cells and not in others, and the effective step ratio between
+      runs is not two.
+\item[C2.] Control off: $\rho$ $9.40\times10^{-3}$, $4.34\times10^{-3}$,
+      $2.01\times10^{-3}$, orders 1.12 and 1.11; $P$ 122.8, 57.5,
+      26.3\,Pa, orders 1.09 and 1.13; $\alpha_1$ $7.42\times10^{-6}$,
+      $3.42\times10^{-6}$, $1.60\times10^{-6}$, orders 1.12 and 1.10:
+      \textbf{held}.  The production operator is first order in $\Dt$
+      at $\Dt/\theta$ from 1.5 to 0.2, as mode 2 is; its differences are
+      a third of mode 2's at the same steps ($1.89\times10^{-2}$,
+      $8.53\times10^{-3}$, $4.05\times10^{-3}$ in $\rho$), the joint
+      solve against the Picard alternation.
+\end{enumerate}
+The \code{[PS-X3F]} table on every sweep of every run: 256 calls, 256
+OK, no stand, no refusal, no non-convergence, one sub-step per call
+(the ladder never halved), 1.5 to 2.4 Newton iterations per cell at
+\code{cfl} 0.25 and 0.9 to 1.6 at 0.03125; \code{[PS-GUARD]} and the
+validator 0 throughout.  So the step A gate is set: B5 under mode 6
+with the control off and \code{ps\_x3f\_order=2} must come in at
+$2.0\pm0.3$ with differences below C2's at every pair.
+
 \end{document}
