@@ -507,6 +507,8 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_rk\_project\_tol} & $10^{-10}$ & The stage projection's Newton tolerance on $|P_1-P_2|/\max(P_1,P_2)$: the X3F residual tolerance by default (follow-up 1); $10^{-4}$ = the mode-0 kernel's own, the Stage~4 behaviour, for A/B. \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
+\code{PSAMR.ps\_x3f\_order} & 1 & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
+\code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3): the kernel's backward-Euler solves inside the stages, the flash once after the step; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1085,6 +1087,300 @@ falsifiers:
       FillPatch); no device kernel changes; the next peart queue.
 \end{enumerate}
 
+\subsection*{Follow-up 4: the finite-rate terms at second order inside the step, third the target (planned 16 November 2026)}
+\label{sec:fu4plan}
+
+Item 4 of \code{FUTURE\_WORK.md} \S13, taken up after follow-ups 1
+and 6 on Marc's word.  Two measurements bound what the present
+placement of the rate terms buys.  Follow-up 1 (\S\ref{sec:fu1}): on
+B5 (mode 2, $\theta = 2\times10^{-6}$\,s, $\Dt/\theta$ from 1.5 to
+0.2) the full step under Strang with the projection converged to
+$10^{-10}$ is first order in $\Dt$ (1.14 and 1.07 in $\rho$), so the
+stage projection is out of the account and what remains is the
+operator's own per-step error.  Follow-up 6 (\S\ref{sec:fu6}): at the
+raised cap the four-stage scheme is 10 to 18\,\% of range from the
+three-stage one on the flashing tube because doubling the step doubles
+that first-order error, so the step on the flashing cases is set by it
+and not by the cap.  The item: raise the order of the rate terms in the
+full step so that B5 is measurably second order, with third the target,
+and the cap's two thirds reaches the flashing cases.
+
+\paragraph{Where the first order comes from.}  Not from the Strang
+split, whose own error is $O(\Dt^2)$ and would show as second order if
+the operator between the halves were exact.  From the operator.
+\begin{itemize}[nosep]
+\item Mode 2 (\code{ps\_ptg\_relax\_cell}, \src{PS_relax.H}) is three
+      Picard sweeps of \{isochoric pressure projection; exact
+      exponential of the energies toward the isochoric $T_1 = T_2$
+      partition at the current $\alpha$\}.  The exponential is exact
+      for a rate toward a fixed target, but the target is evaluated at
+      fixed $\alpha$ and the projection moves $\alpha$ by $O(\Dt)$ with
+      $O(\Dt)$ interfacial work, so the target the leg relaxes toward is
+      off the manifold's by $O(\Dt)$ and the per-step error is
+      $O(\Dt\cdot\Dt/\theta)$: a Lie composition of the constraint and
+      the rate inside the operator, first order by construction.  Three
+      sweeps truncate a fixed-point iteration; they do not raise the
+      order.  The joint solve of constraint and rate is what raises it,
+      and that is the X3F kernel.  So mode 2 is the control of this
+      item, not its target.
+\item Mode 6 (X3F, \src{hem_relax_x3f.H}, the production default) is
+      one backward Euler per sub-step of the joint system in
+      $z = (\alpha', T_1', T_2', q, \delta m)$ with the constraint as
+      residual $F_1$ and the rates as $F_4$, $F_5$ at the new state:
+      first order per sub-step, with the constraint exact at every
+      sub-step.  Its step-doubling control re-takes a sub-step that
+      moves $\alpha_1$ by more than $10^{-3}$ or a phase energy by more
+      than $10^{-4}$ of the energy scale and accepts the pair when they
+      agree to that tolerance plus a tenth of the move, so with the
+      control on the per-step error is bounded by the tolerance and the
+      self-convergence floors there ($10^{-4}$ of the energy scale is
+      about $10^{-4}$ of range in $P$, the level at which the follow-up 1
+      differences in $P$ already sit at the third pair), while with the
+      control off (\code{ps\_x3f\_step\_tol\_a} $\le 0$) the operator is
+      plain backward Euler and first order.  Neither has been measured
+      on B5; both are the controls below.
+\end{itemize}
+
+\paragraph{The bound every design meets.}  No Runge--Kutta method of
+order above one is unconditionally strong-stability preserving;
+backward Euler alone is (Ketcheson, Macdonald and Gottlieb 2009, and
+the implicit SSP coefficients of Pareschi--Russo's pairs are finite
+multiples of the explicit forward-Euler bound of the stiff term, so
+they bound nothing at $\Dt \gg \theta$; the plan's \S\ref{sec:bounds}
+item 1 said as much).  In Shu--Osher terms: any second-order
+integration of the rate terms has a stage whose base lies
+\emph{beyond} an earlier stage state along a relaxation increment, by a
+factor fixed by the tableau, and that base is not a convex combination
+of admissible states.  In the stiff limit the extrapolation is of the
+whole distance to equilibrium: the thermal channel then has $T_1 - T_2$
+of the wrong sign, which the equation of state tolerates, and the mass
+channel has a donor or receiver mass the extrapolation can take through
+zero, which nothing tolerates.  The design rule that follows is the one
+rule of this item: \textbf{the extrapolated base is formed in the
+kernel's own unknowns $(q, \delta m)$ as constants in the residuals
+$F_4$, $F_5$, never as a grid state}; admissibility is then the
+kernel's existing line search and transfer box on the total transfer,
+the band gate is asked of the stage solutions as it is asked of the
+sub-steps today, and a stage that cannot be solved admissibly is the
+kernel's existing failure path (the sub-step halves), not a new guard.
+
+\paragraph{Step A, the gate: the kernel at second order, the placement unchanged.}
+The X3F sub-step becomes Alexander's two-stage SDIRK with
+$\gamma = 1 - 1/\sqrt2$ (L-stable, stiffly accurate, second order):
+from the base $b$ over $\Dt_s$,
+\begin{align}
+z_1&: \quad q_1 = \gamma\Dt_s\, r_T(z_1), \qquad
+          \delta m_1 = \gamma\Dt_s\, r_M(z_1), \\
+z_2&: \quad q_2 = \tfrac{1-\gamma}{\gamma}\, q_1 + \gamma\Dt_s\, r_T(z_2), \qquad
+          \delta m_2 = \tfrac{1-\gamma}{\gamma}\,\delta m_1 + \gamma\Dt_s\, r_M(z_2),
+\end{align}
+both stages the present five-residual Newton from the same base with
+the same frozen carrier $h_c$ and the same interfacial-work form, the
+second with the offsets $(1+\sqrt2)(q_1, \delta m_1)$ as constants in
+$F_4$, $F_5$ (the unknowns stay the total transfers from the base, so
+the mass and energy bookkeeping of $F_2$, $F_3$ is unchanged and
+conservation is by construction as now); the committed state is $z_2$.
+The predictor of stage 2 is the backward-Euler linearisation about the
+offset.  The band gate: at entry as now; on $z_1$ as the path gate asks
+it of a sub-step today (a stage-1 solution outside the band commits
+$z_1$ and ends the step, exit-code bit 16, counted); on $z_2$ as the
+end of the sub-step.  A stage-2 Newton that does not converge, which is
+where the offset exceeds the transfer box ($\delta m_1$ above
+$0.37\,m_{\mathrm{donor}}$), halves the sub-step as any Newton failure
+does today; no new threshold.  The step-doubling control is kept
+(it then compares two second-order results and triggers on the same
+move sizes) and is switched off for the order instrument.  Modes 0, 2
+and 5 are not touched.  Dial: \code{PSAMR.ps\_x3f\_order} (1, the
+present kernel bitwise; 2 the two-stage sub-step), read once into
+\code{PsX3fParams}.  Cost: two Newton solves per sub-step for one, on
+the kernel's share of the reaction step.  Under the present Strang
+placement, $R(\Dt/2)\,H(\Dt)\,R(\Dt/2)$ with $R$ second order and $H$
+third, the full step is second order unless something else floors it,
+and that is the measurement.  GPU: the kernel body is
+\code{AMREX\_GPU\_HOST\_DEVICE} and the change is inside it (two
+doubles of offset, one more call of the Newton); no new state, no
+host-side change; the next peart queue carries it.
+
+\paragraph{Step B, the target: the IMEX pairing, on A's record and Marc's decision.}
+Third order needs the rate terms inside the stages: the additive
+Runge--Kutta pairing IMEX-SSP3(4,3,3) of Pareschi and Russo (J.\ Sci.\
+Comput.\ 25, 2005, Table 6; its order conditions, the coupling
+conditions and the L-stability of the implicit part, $w^T A^{-1} e = 1$,
+re-checked numerically before this plan was written).  Its explicit
+part is SSPRK(3,3) behind a dummy first stage, $\tilde c = (0, 0, 1,
+\tfrac12)$, $\tilde b = (0, \tfrac16, \tfrac16, \tfrac23)$: the hydro is
+evaluated three times at the stage times and weights of today, so the
+flux-register weights and the coarse--fine stage fill
+(\code{rk\_fill}, \code{rk\_store\_coarse} on the three hydro
+derivatives) are unchanged.  Its implicit part is four backward-Euler
+solves of the kernel with $a_{ii} = \alpha = 0.24169426078821$, from
+bases that carry the explicit increments and the earlier relaxation
+increments $D_j = U_j - U_j^{*}$ with the factors $a_{ij}/\alpha$:
+\begin{align}
+U_1 &= \mathrm{BE}_{\alpha\Dt}(U^n), \\
+U_2^{*} &= U^n - D_1, \qquad U_2 = \mathrm{BE}_{\alpha\Dt}(U_2^{*}), \qquad k_2 = L(U_2), \\
+U_3^{*} &= U^n + \Dt\,k_2 + 3.137\,D_2, \qquad U_3 = \mathrm{BE}_{\alpha\Dt}(U_3^{*}), \qquad k_3 = L(U_3), \\
+U_4^{*} &= U^n + \tfrac{\Dt}{4}(k_2 + k_3) + 0.250\,D_1 + 0.534\,D_2 + 0.284\,D_3, \\
+U_4 &= \mathrm{BE}_{\alpha\Dt}(U_4^{*}), \qquad k_4 = L(U_4), \\
+U^{n+1} &= \Pi\big[U^n + \tfrac{\Dt}{6}(k_2 + k_3 + 4k_4) + 0.690\,(D_2 + D_3 + 4D_4)\big],
+\end{align}
+with the fold and resync of $\Pi$ on every base as today and the
+mechanical projection of $\Pi$ on the final combination only (the
+implicit part is L-stable but not stiffly accurate, so the final state
+is off the constraint by its final layer; the projection is the remedy
+Pareschi--Russo name for the algebraic part).  The relaxation
+increments $D_j$ are applied in the kernel's unknowns as constants in
+$F_4$, $F_5$ from the base $V_i = U^n + \Dt\sum_j \tilde a_{ij} k_j$,
+by the rule above.  Stage 2's base is the reflection of $D_1$ about
+$U^n$ and stage 3's carries $3.14\,D_2$: in the mid regime
+($\Dt/\theta \le 1.5$, where $D_1$ is a quarter of the distance to
+equilibrium) these are moves of a fraction of that distance; in the
+stiff limit $U_3^{*}$ sits 6.3 relaxation distances past equilibrium,
+an inadmissible mass at any transfer front.  So step B is for the
+regime the production decks run in ($\Dt/\theta \approx 10^{-4}$ at
+$\theta = 10^{-3}$\,s; the battery at $10^{-1}$) and is bounded at
+flash fronts, and the instrument that says where is the per-cell
+fallback: a cell at which any stage refuses its base, stands at the
+band, or fails its Newton takes the present operator over the whole
+step from the explicit final state (one Lie call of the kernel: first
+order in that cell, the state it would have had today), counted by
+cause on the \code{[PS-X3]} line (\code{imex\_fallback} base / stand /
+newton).  A cell that stands at every stage has $D_j = 0$ throughout
+and needs no fallback.  The flash is the nucleator, a switch, and stays
+outside the stages: one call per step after the combination with the
+R-12 reproject, as under \code{ps\_strang=0}; the pre-hydro half step
+of Strang disappears with the rate terms it carried.  Dial:
+\code{PSAMR.ps\_imex} (0 the present placement; 3 the pairing), which
+requires \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}
+and \code{ps\_relax\_mode} 6 or 0, sets \code{ps\_strang=0}, and aborts
+otherwise (mode 2 and mode 5 are not ported: their operators are not
+backward-Euler stage solves).  The second-order pairing SSP3(3,3,2)
+(Table 5) runs on the same plumbing with three solves and factors
+$\sqrt2$ and $1/(6\gamma)$; it is not built, since at second order step A
+is the cheaper object.  Cost: four kernel solves per step against two
+Strang calls (each one or more sub-steps).  GPU: host plumbing (MultiFab
+arithmetic for the bases, four launches of the kernel in place of two,
+a per-cell stage-status \code{iMultiFab} on the device, the counters
+host-only under \code{AMREX\_USE\_GPU}); the kernel gains the offset
+arguments of step A and nothing else; the next queue.
+
+\paragraph{What is not claimed.}  The order in the stiff limit
+($\Dt \gg \theta$) is not measured by B5, which sits at $\Dt/\theta$
+from 0.2 to 1.5; step A is stiffly accurate (the kernel lands on the
+equilibrium of its sub-step), step B is L-stable with a final layer,
+and both are first order there in the cells the fallback takes.  B11's
+self-convergence is bounded by the discrete presence logic at the
+interface cells (follow-up 1) and is recorded, not chased.  Mode 2 stays
+first order by the argument above; that it does is the control of the
+attribution.
+
+\paragraph{Controls, no code change (Step 0).}  B5 as in follow-up 1
+(order-4 default, Strang, the projection at $10^{-10}$, 256 cells,
+\code{cfl} 0.25 to 0.03125) under mode 6 at the deck's rates with the
+flash off (\code{ps\_relax\_mode=6 ps\_theta\_tau=2e-6 ps\_flash\_tau=0};
+the SRT transfer stays on at $D = 0.1$\,m, since mode 6 has no transfer
+switch and needs none):
+\begin{enumerate}[nosep]
+\item[C1.] Control on (the defaults): the differences in $\rho$ and $P$
+      stop falling by the third pair, at about $10^{-4}$ of range in
+      $P$, or the orders over the last two pairs lie below 1.3; the
+      \code{[PS-X3]} table reads every cell OK (no stand, no failure:
+      B5's phases are inside the band).  Falsifier: orders in
+      $2.0\pm0.3$ with the differences still falling, which would say
+      the production operator is already second order and the item's
+      premise holds for mode 2 only.
+\item[C2.] Control off (\code{ps\_x3f\_step\_tol\_a=-1}): first order,
+      $1.0\pm0.3$ in $\rho$ and $P$, the differences falling at every
+      pair; the mode-2 reading transfers to the production operator.
+      Falsifier: an order above 1.7.
+\end{enumerate}
+
+\paragraph{Predictions for step A, each with its falsifier.}
+\begin{enumerate}[nosep]
+\item B5 under mode 6, control off, \code{ps\_x3f\_order=2},
+      \code{cfl} 0.25 to 0.03125: orders in $2.0\pm0.3$ in $\rho$, $P$
+      and $\alpha_1$ over the last two pairs, with the differences below
+      C2's at every pair.  Falsifier A: below 1.7 with falling
+      differences; then the attribution to the kernel was wrong and the
+      next candidate is the Strang commutator with the projection inside
+      the stages, which step B has not got, so B becomes the
+      disambiguation.  Falsifier B: a floor; then its level names the
+      cause (the Newton tolerance $10^{-10}$ is below any level this
+      instrument reaches).
+\item \code{ps\_x3f\_order=1} is the present kernel bitwise: the B5
+      \code{cfl} 0.25 plotfile, the tube at 300 steps and the battery
+      fingerprint (\code{characterize.py}) identical to the pre-edit
+      binary (\code{git show HEAD:}).
+\item Mode 2 on B5 is bitwise unchanged (the dial does not reach it) and
+      stays first order: the follow-up 1 numbers reproduce.
+\item Battery under the order-4 default at the gate's own mode 6
+      (\code{PROBE\_OV} with \code{ps\_relax\_mode=6}), order 2 against
+      order 1 at the same commit: the PASS set identical; the 21-case
+      table within 1\,\% per entry, the entries that move the flash
+      cases B2, B7 and B9.  Falsifier: a PASS/FAIL flip, or an entry
+      moving by more than 2\,\%.
+\item 2-D at order 2 against order 1, same commit: the tube 300 steps
+      with the validator 0 and the solution within $10^{-3}$ of range in
+      $\rho$ and $P$ (the tube's relaxation is far from stiff, so the
+      kernel's order barely shows); XC2D 40 steps with every
+      \code{[PS-GUARD]} counter 0; demo3 step 50 metrics within 10\,\% of
+      $8.81\times10^{-5}$ / 1 and $7.76\times10^{-3}$ / 1, symmetry at
+      round-off, no fallback.
+\item Cost, the tube on one rank back to back: order 2 within $+25\pm10$\,\%
+      of order 1 (the Newton count per sub-step doubles on the kernel's
+      share of a reaction step that is a quarter of the run; the
+      sub-step count may fall).  Falsifier: above $+40\,\%$.
+\item Conservation: mixture mass, momentum and total energy are
+      invariants of the kernel by construction (the committed $U_5$ is
+      the exact total less $U_4$); \code{inputs-fb-rk2} to $10^{-15}$
+      as now.
+\item GPU: the kernel body changes, so XC2D 40 steps and the tube 300
+      steps on peart against the Mac at the same commit, at the levels
+      of the follow-up 6 lines ($2\times10^{-10}$ and $10^{-8}$ on
+      XC2D's two levels, $5\times10^{-9}$ on the tube).
+\end{enumerate}
+
+\paragraph{Predictions for step B, if Marc takes it.}
+\begin{enumerate}[nosep]
+\item B5 under mode 6, \code{ps\_imex=3}: order $3.0\pm0.3$ in $\rho$
+      and $P$ over the last two pairs (pair ratio 8 within 30\,\%), the
+      differences below step A's at every pair, \code{imex\_fallback} 0
+      at every \code{cfl}.  Falsifier: below 2.7 with zero fallbacks;
+      then the stage solve is not the stage equation (the first
+      suspect: the base's entry projection, which moves $\alpha$ by the
+      hydro's pressure disequilibrium before the solve) or the final
+      layer of the non-stiffly-accurate combination, told apart by
+      running with the final projection off.
+\item B11: bounded by the presence logic as in follow-up 1 (differences
+      about $10^{-2}$ in $\rho$); recorded.
+\item Battery at mode 6 under the order-4 default: the PASS set
+      identical; the 21-case table within 1\,\% per entry of step A's;
+      the fallback count per case recorded, zero on the A and C cases
+      and on B1, B3, B5, B6, B8, B11, B12, nonzero at most on the flash
+      cases.  Falsifier: a flip, or a fallback on a non-flash case.
+\item The tube, XC2D and demo3 clean as under A, with the fallback count
+      recorded per run (the tube's flash front is where it may fire);
+      conservation on \code{inputs-fb-rk2} to $10^{-15}$ (the reflux
+      takes the explicit weights only; the rate terms carry no flux).
+\item Cost: the tube at $+20\pm10$\,\% over step A at the same step
+      (four solves for two calls); what the raised cap then buys is the
+      follow-up 6 comparison repeated at \code{rk\_stages=4}, which is
+      its own record.
+\item GPU: the host plumbing and the status mask; the next queue at the
+      same levels as A.
+\end{enumerate}
+
+\paragraph{Order of work.}  The controls C1--C2 first, on the present
+binary, recorded here before any code.  Then step A as one commit
+(the kernel, the dial, the \code{RUNNING.md} row), proven inert at
+order 1 by prediction 2 before the order-2 runs; its record in
+\S\ref{sec:results}; the documents (MODEL \S5.1, a DESIGN entry,
+\code{FUTURE\_WORK.md} \S13 item 4) one commit per group.  Step B
+only on Marc's word after A's record, since A alone may reach the
+gate and B's worth is then the third order on B5 against four kernel
+solves per step and the fallback where the transfer is stiff.  Nothing
+pushed; the defaults are Marc's to set on the record.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
@@ -1094,8 +1390,8 @@ falsifiers:
 \item The McCorquodale--Colella average-to-point conversions for formal
       multi-dimensional fourth order, including the equation of state and
       the sources at point values.
-\item The implicit--explicit Runge--Kutta treatment of the finite-rate
-      relaxation terms, for third order in the full step.
+\item (Moved to follow-up 4: the finite-rate terms at second order
+      inside the step, the IMEX pairing as its second step.)
 \item SSPRK(4,3), with its own \code{FillPatcher} coefficients, for a third
       less work per simulated time.
 \item (Moved to Stage 2b: the McCorquodale--Colella limited quartic, by
