@@ -2304,7 +2304,27 @@ as the A/B instrument with 1 as its default.  What remains of item 2 is
 the sensor that drops a face to the TVD state at a weak compressive
 jump, and it needs a threshold on the jump (a pressure ratio, or a
 velocity convergence against the sound speed) that nothing in the tree
-derives; that is the design question for Marc, and the item rests
-there.
+derives; that is the design question for Marc.
+
+\paragraph{Does production need it?  Measured on the existing step-200 plotfiles.}
+On Marc's word the centreline pressure of demo3 at step 200
+($t \approx 0.94$\,ms, finest level $1024\times512$, the two rows
+straddling $y = 0.5$) was scanned for its largest compressive rises and
+each rise's 10--90\,\% width counted in cells (scratchpad
+\code{shockwidth.py} on the Stage~3 and Stage~4 plotfiles).  There is no
+shock on the axis at this stage of the jet: the largest rises are 3 to
+9\,\% in pressure over 16 to 19 cells under every scheme, smooth
+recompressions, and the one at $x \in [251, 296]$\,mm (29.8 to
+31.0\,bar) is 15.7 cells wide under rk3 order 2 and 16.5 to 16.6 under
+order 4 with either taper option and under the order-4 default: the same
+width.  So on the production deck's weak compressions at step 200 the
+fourth-order path spreads nothing that the second-order path does not,
+and the B4 widening is a property of a coarse, kinked, weak shock, not
+of this flow.  The Mach disk forms later than step 200; the instrument
+that would settle it is the demo2 restart window $3550 \to 3605$
+(VERIFICATION \S7.5, the recorded shock passage, 64\,s on six ranks)
+run under the order-4 default and read along the row of the tracked
+cell, which is not an existing plotfile and waits on Marc's word.  Until
+then the item rests with the threshold question stated.
 
 \end{document}
