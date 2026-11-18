@@ -508,7 +508,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
-\code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3): the kernel's backward-Euler solves inside the stages, the flash once after the step; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
+\code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -3061,5 +3061,204 @@ order-4 default the bare run bitwise the explicit \code{ps\_x3f\_order=2}
 runs of the record (the tube 300 steps, B5 at \code{cfl} 0.25 with the
 control off) and an explicit 1 bitwise the order-1 tube.  No deck
 changed.
+
+
+\subsection{Follow-up 4, step B: the IMEX pairing (18 November 2026, Mac \code{llvm}; commits \code{d0bd3141}, \code{42ea7e90}, \code{497e151b})}
+\label{sec:fu4b}
+
+Built on Marc's word after the step A record, with
+\code{ps\_x3f\_order=2} made the order-4 default the same morning
+(\code{1087b4b0}).  \code{PSAMR.ps\_imex} (0 the present placement; 3
+the pairing IMEX-SSP3(4,3,3)): the X3F kernel gains a stage mode (one
+backward-Euler Newton over $\alpha\Dt$ from the entry-projected base
+with the earlier stages' transfers as constants in $F_4$, $F_5$, the
+stage's own transfer returned; $\Dt = 0$ the 3-residual apply of the
+transfers alone, the final combination), \src{PS_relax.H} the stage and
+final sweeps with the per-cell status and the fallback by cause on the
+\code{[PS-IMEX]} line, \src{PSAMR_advance.cpp} the stepping and the
+dial's checks, the transfers in a MultiFab of eight components and never
+a grid state.  Two departures from the plan, each measured below: the
+stepping is in Shu--Osher form, not the Butcher form the plan wrote
+(the finding), and a deck that runs no relaxation is allowed (its stages
+carry the projection only).  Every run under the order-4 default at
+mode 6 on the binaries of \code{497e151b}; the pre-edit comparisons
+are the step A runs of this record.  Against the predictions:
+\begin{enumerate}[nosep]
+\item B5, \code{ps\_imex=3}, \code{cfl} 0.25 to 0.03125: $\rho$
+      $2.58\times10^{-5}$, $4.31\times10^{-6}$, $9.42\times10^{-7}$,
+      orders 2.58 and 2.19; $P$ 0.891, 0.130, 0.0237\,Pa, 2.78 and
+      2.46; $\alpha_1$ $1.32\times10^{-8}$, $2.79\times10^{-9}$,
+      $6.05\times10^{-10}$, 2.24 and 2.21; \code{imex\_fallback} 0 at
+      every \code{cfl} and every sweep.  \textbf{Refuted as stated,
+      held on the size}: the differences are 107 times below step A's
+      at the first pair and 187 times at the last, but the order over
+      the last two pairs is not $3.0\pm0.3$.  The last pair sits on a
+      floor of the instrument, found by the series below; above it the
+      first pair reads 2.6 to 2.8 in $\rho$ and $P$, with a fifth of
+      the second difference already the floor's, which is consistent
+      with 3 and is not a measurement of it.  Newton iterations per
+      step at \code{cfl} 0.25: $1.44\times10^{3}$ over the five sweeps
+      (1.1 per solve) against 982 over step A's two.
+\item B11 (the advected contact, three levels, $\theta = 2\times10^{-6}$\,s):
+      $\rho$ $1.92\times10^{-2}$, $5.41\times10^{-3}$,
+      $1.38\times10^{-3}$, orders 1.83 and 1.97; $P$ $3.40$, $1.17$,
+      $0.20\times10^{3}$\,Pa, 1.54 and 2.57; $\alpha_1$ 2.51 and 1.46;
+      no fallback.  Step A on the same configuration $2.63\times10^{-2}$,
+      $2.23\times10^{-3}$, $2.33\times10^{-3}$ (3.56 and $-0.06$): both
+      bounded by the presence logic, as predicted; \textbf{recorded}.
+\item Battery at mode 6 under the order-4 default: the PASS set
+      identical to step A's (11 and 21); the 21-case table within
+      1.0\,\% per entry (B7 $\rho$ $+1.00$, $P$ $+0.52$; B9 $P$ $+0.74$;
+      B5 $u$ $-0.72$; B2 $\rho$ $-0.35$; every A and C entry and B1, B3,
+      B6, B8 to four digits); the A/C mean 0.0298 against 0.0299:
+      \textbf{held}.  The fallback count per case (a pass of the 21
+      cases and B12 with the census on): zero on every A and C case and
+      on B1, B3, B5, B6, B8; B2 one final-apply fallback, B9 two and
+      three dropped, B11 five dropped; B4 127 and B10 151 stands (the
+      cross-critical cases, the band gate at $T_{\mathrm{crit}}$), B7
+      44 stands; B12 18 Newton failures and 688 stands over its 82
+      steps (its cells hover at $T_{\mathrm{crit}}$ under the self-lock
+      of R-8).  \textbf{Refuted} on B11 and B12 and on ``nonzero at
+      most on the flash cases'': the stands are the band gate's, which
+      the fallback reaches and stands again (the same state), and the
+      counts say where the gate is asked, not where the pairing fails.
+      The B12 mirror under the pairing reads $2.9\times10^{-7}$\,Pa
+      (step A $8.1\times10^{-6}$, order 1 $9.3\times10^{-3}$).
+\item 2-D.  The tube under the order-4 default (the deck's
+      $\theta = 10^{-7}$\,s, $\Dt/\theta \approx 29$, each stage solve
+      at $\alpha\Dt/\theta \approx 7$): validator 0 (the mass and energy
+      identities at $2.2\times10^{-16}$ and $3.5\times10^{-16}$), no
+      fold; over 300 steps the fallback took no cell for a Newton
+      failure, 32 for a base refused at a stage, 288 stands and 64
+      dropped (admitted at the stages, refused by the presence gate at
+      the explicit final state, their transfers not applied); the
+      census $1.33\times10^{6}$ stage solves with $4.51\times10^{6}$
+      Newton iterations (3.4 per solve) against $5.27\times10^{5}$
+      calls and $6.68\times10^{6}$ iterations for the order-2 Strang
+      step.  At one time ($8.578\times10^{-4}$\,s, \code{cfl} 0.25) the
+      pairing differs from the order-2 Strang step by $3.4\times10^{-2}$
+      of range in $\rho$, $9.1\times10^{-2}$ in $P$, $5.8\times10^{-2}$
+      in $\alpha_1$ and 0.13 in $\alpha_2\rho_2$; its own step
+      sensitivity (\code{cfl} 0.125 to the same time) is
+      $4.8\times10^{-2}$, 0.11, $5.9\times10^{-2}$ and 0.14, the Strang
+      step's $2.3\times10^{-2}$, $2.2\times10^{-2}$, $5.7\times10^{-2}$
+      and 0.12, and at \code{cfl} 0.125 the two differ by
+      $2.4\times10^{-2}$, $2.4\times10^{-2}$ and 0.12.  So in the stiff
+      regime the two schemes differ by their own step sensitivities,
+      and the pairing's is five times the Strang step's in $P$: the
+      final layer of an L-stable method that is not stiffly accurate,
+      where step A's SDIRK lands on the equilibrium of its sub-step
+      (the plan's ``what is not claimed'', now measured).  Clean,
+      \textbf{held}; the regime is step A's.  XC2D 40 steps (no
+      relaxation, the stages carry the projection): every guard 0;
+      against the Lie SSPRK(3,3) run (\code{ps\_strang=0}, which is
+      $3.8\times10^{-5}$ from the Strang one) level 1 within
+      $8.2\times10^{-3}$ of range ($u$ $1.4\times10^{-3}$, $P$
+      $6.7\times10^{-4}$) and the uncovered cells of level 0 within
+      $3.0\times10^{-2}$ of the velocity range (0.34\,m/s of 11, along
+      the diagonal waves): the pairing projects the old state before its
+      first hydro evaluation, as every stage state is on the manifold,
+      and the SSPRK path evaluates its first stage on the raw old state,
+      which the reaction step leaves off the manifold when it applies no
+      operator; in production the old state is on it.  \textbf{Held} on
+      the guards, the difference recorded.  demo3 to step 50 on six
+      ranks: contact window $8.79\times10^{-5}$ / 1 and front
+      $7.76\times10^{-3}$ / 1 (step A $8.79\times10^{-5}$,
+      $7.76\times10^{-3}$), symmetry $2.6\times10^{-6}$\,Pa, the fields
+      within $5.6\times10^{-3}$ of range on the finest level
+      ($3.6\times10^{-3}$ in $\rho$, $1.5\times10^{-3}$ in $P$); 8904
+      stands and 70 dropped over 2100 sweeps, no Newton, base or final
+      fallback; 12.2\,s against 11.8: \textbf{held}.  Conservation on
+      \code{inputs-fb-rk2} (two levels, 40 steps, the totals from the
+      plotfiles with the covered coarse cells excluded): mass
+      $1.5\times10^{-15}$ and $\rho E$ $1.8\times10^{-15}$ relative
+      ($1.7$ and $1.9\times10^{-15}$ under the present stepping):
+      \textbf{held}.
+\item Cost: the tube on one rank, back to back, nothing else running:
+      51.7\,s against 62.2\,s for the order-2 Strang step ($-17\,\%$;
+      a first pair in Butcher form 48.8 against 60.8, $-20\,\%$):
+      \textbf{refuted} on the cheap side of $+20\pm10\,\%$.  The Strang
+      pre-step (a whole reaction pass on the old state) and the
+      kernel's ladder with its step doubling are gone; five stage sweeps
+      of one Newton each cost less than two reaction passes.
+\item GPU: pending.  peart has not answered ssh since 11:00 on 18
+      November; the queue (\code{peart\_fu4b.sh}: the tube 300 steps at
+      \code{ps\_imex} 0 and 3, XC2D 40 steps at 3, against the Mac
+      partners of this record) is written and goes when it answers.
+\item Inertness: \code{ps\_imex=0} bitwise the previous binary on B5 at
+      \code{cfl} 0.25, the order-4 tube at 300 steps, XC2D on four
+      ranks and the 21-case fingerprint (21/21), at every one of the
+      three commits: \textbf{held}.
+\end{enumerate}
+
+\paragraph{The instrument's floor.}  B5 at $\theta = 2\times10^{-5}$\,s
+(the thermal rate ten times slower, $\Dt/\theta$ from 0.15 to 0.02)
+under the pairing: $\rho$ $2.86\times10^{-6}$, $1.29\times10^{-6}$,
+$8.3\times10^{-7}$ (orders 1.15, 0.63), $P$ $5.1$, $1.9$,
+$1.4\times10^{-2}$\,Pa, $\alpha_1$ down to $6.0\times10^{-10}$: a floor
+at $5.5\times10^{-9}$ of range in $\rho$, $1.8\times10^{-8}$ in $P$ and
+$3.9\times10^{-9}$ in $\alpha_1$, broad (73 of the 256 cells above the
+mean, no single switching cell).  It is not the kernel's or the
+projection's Newton tolerance (both at $10^{-13}$ move the mid-regime
+series by 5\,\% at the last pair and not at all at the first: 2.58 and
+2.32 against 2.57 and 2.25) and not the limiter's reference floor
+(\code{ps\_lim\_ref\_eps} at $10^{-14}$ reproduces the series to every
+digit); the EOS inversions' own tolerances ($10^{-9}$ in
+\src{hem_pr_state.H} and \src{hem_saturation_amrex.H}) are the
+remaining candidate, not chased here.  The mid-regime series' last
+difference ($9.4\times10^{-7}$) sits on this floor, which is why its
+last pair reads 2.2.
+
+\paragraph{The regimes.}  Two more B5 series separate the suspects the
+plan named.  With the thermal rate off ($\theta = 10^{3}$\,s, the
+projected constraint alone): the pairing 3.29, 3.22 and 3.39 at the
+first pair in $\rho$, $P$ and $\alpha_1$, the present stepping 3.22,
+3.16 and 3.15, both at the floor at the second: the entry projection,
+the plan's first suspect, is not the limit, and the projected
+constraint is third order in both schemes.  In the stiff regime
+($\theta = 2\times10^{-7}$\,s, $\Dt/\theta$ from 15 to 2): the pairing
+$\rho$ $6.48\times10^{-5}$, $7.60\times10^{-6}$, $9.95\times10^{-7}$
+(3.09 and 2.93), $P$ 2.69, 2.69, 0.48\,Pa ($-0.00$ and 2.49), $\alpha_1$
+0.27 and 2.45, the coarse pair in $P$ and $\alpha_1$ not falling (the
+stiff layer at $\Dt/\theta = 15$ and 7.5); step A there
+$1.92\times10^{-2}$, $7.16\times10^{-3}$, $2.08\times10^{-3}$ (1.42
+and 1.79): the pairing 300 times below A at the first pair and 2000
+times at the last.  On B5 the pairing is the better scheme in every
+regime; on the tube at $\Dt/\theta \approx 29$ with its flash front it
+is not (item 4), and that is the regime the production decks' flash
+cases run in.
+
+\paragraph{Finding: the Butcher form, built and replaced.}  The plan
+wrote the pairing in Butcher form, the stage bases $U^n + \Dt\sum_j
+\tilde a_{ij} k_j$ with the implicit offsets $a_{ij}/\alpha$, and it was
+built so first.  Those bases are not convex combinations of the
+projected stage states, so the argument of H-8 (every stage a convex
+combination of forward Euler steps of admissible states) does not hold
+for them, and on XC2D, which runs no relaxation, the level-0 velocity
+differed from the SSPRK(3,3) run by 0.46 of its range (5.2\,m/s at a
+cell) after 40 steps: the derivative $k_2$ taken at the projected state
+$\Pi U^n$ added to the unprojected $U^n$.  Rewritten in Shu--Osher form
+(stage 3 from $U_2 + \Dt k_2$ with the offsets 1 and $(1-2\alpha)/\alpha$
+on $D_1$, $D_2$; stage 4 from $\tfrac34 U^n + \tfrac14(U_3 + \Dt k_3)$
+with $\tfrac14$, $-\tfrac14$, $a_{43}/\alpha - \tfrac14$; the final from
+$\tfrac13 U^n + \tfrac23(U_4 + \Dt k_4)$ with $-\tfrac16$, $\tfrac13$,
+$\tfrac12$, $4/(6\alpha) - \tfrac23$; the two forms equal to round-off
+on a linear test), every base is a forward Euler step of an admissible
+stage state, the XC2D difference falls to $3.0\times10^{-2}$ of the
+range (the projection of the old state, above) and B5 reads the same
+orders to two digits (2.58 and 2.19 against 2.57 and 2.25).  The
+commit message of \code{497e151b} says a no-relaxation deck reduces to
+the present stepping in this form; it does not, by the projection of
+the old state, and this record and the code's comment say so.
+
+\paragraph{State.}  Landed as an option with 0 as the default.  The
+gate of step B is not met as written: the order on B5 cannot be read
+above 2.8 through the instrument's floor, though every difference is
+100 to 2000 times below step A's and the constraint alone is third
+order.  In the mid regime the pairing is the better operator and 17\,\%
+cheaper; in the stiff regime of the production tube it is first order
+with five times step A's step sensitivity in $P$.  The follow-up 6
+comparison at the raised cap, the GPU line and the default are open;
+the default is Marc's to set on this record.
 
 \end{document}
