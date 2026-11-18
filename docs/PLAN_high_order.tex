@@ -507,7 +507,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_rk\_project\_tol} & $10^{-10}$ & The stage projection's Newton tolerance on $|P_1-P_2|/\max(P_1,P_2)$: the X3F residual tolerance by default (follow-up 1); $10^{-4}$ = the mode-0 kernel's own, the Stage~4 behaviour, for A/B. \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
-\code{PSAMR.ps\_x3f\_order} & 1 & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
+\code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3): the kernel's backward-Euler solves inside the stages, the flash once after the step; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
@@ -3048,5 +3048,18 @@ is meant to be free of atomics and cross-cell reductions
 (\code{GROUND\_RULES.md} rule 9); where the spread enters (the
 coarse--fine fill, the reflux, or a reduction in the step control) is
 not located here and is a finding for the register, not for this item.
+
+\paragraph{Decision: the default (Marc, 18 November 2026).}  The
+order-2 sub-step is the default of the order-4 path:
+\code{ps\_x3f\_order} reads 2 under \code{ps\_wp\_order=4} and 1
+otherwise, read as the other two order-4 defaults are (a query of
+\code{ps\_wp\_order} without adding it back), and either value may be
+set explicitly under either path.  Proven on the Mac at the commit of
+this paragraph: the order-2 path bitwise the previous binary (the bare
+tube 300 steps, the 21-case fingerprint 21/21 identical); under the
+order-4 default the bare run bitwise the explicit \code{ps\_x3f\_order=2}
+runs of the record (the tube 300 steps, B5 at \code{cfl} 0.25 with the
+control off) and an explicit 1 bitwise the order-1 tube.  No deck
+changed.
 
 \end{document}
