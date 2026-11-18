@@ -3181,10 +3181,22 @@ are the step A runs of this record.  Against the predictions:
       pre-step (a whole reaction pass on the old state) and the
       kernel's ladder with its step doubling are gone; five stage sweeps
       of one Newton each cost less than two reaction passes.
-\item GPU: pending.  peart has not answered ssh since 11:00 on 18
-      November; the queue (\code{peart\_fu4b.sh}: the tube 300 steps at
-      \code{ps\_imex} 0 and 3, XC2D 40 steps at 3, against the Mac
-      partners of this record) is written and goes when it answers.
+\item GPU (peart, CUDA, at \code{3cb16ec3}, 18 November 2026, the queue
+      launched when peart answered in the evening): the tube 300 steps
+      under the order-4 default at \code{ps\_imex=0} agrees with the Mac
+      to $4.5\times10^{-10}$ of range at the worst slot ($\alpha_2\rho_2$;
+      $7\times10^{-11}$ in $\rho$, $1\times10^{-10}$ in $P$), the step A
+      level; under the pairing to $2.1\times10^{-8}$ at the worst slot
+      ($4\times10^{-9}$ in $\rho$, $9\times10^{-9}$ in $P$), fifty times
+      the Strang line, the five stage solves with their offsets in the
+      stiff regime amplifying the two machines' rounding more than the
+      two Strang halves do; validator 0 on both (the mass and energy
+      identities at $2\times10^{-16}$ and $3\times10^{-16}$); run times
+      210.3\,s and 169.8\,s ($-19\,\%$, as on the Mac).  XC2D 40 steps
+      under the pairing: level 0 to $2.7\times10^{-10}$ and level 1 to
+      $1.0\times10^{-8}$ on $\alpha_1$, the levels of every earlier XC2D
+      line (and of the GPU's own run-to-run spread on that case); 44.5\,s.
+      \textbf{Held}; the GPU side of step B is closed.
 \item Inertness: \code{ps\_imex=0} bitwise the previous binary on B5 at
       \code{cfl} 0.25, the order-4 tube at 300 steps, XC2D on four
       ranks and the 21-case fingerprint (21/21), at every one of the
