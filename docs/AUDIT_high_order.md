@@ -81,7 +81,18 @@ The weakness is volume. The same construction exists twice in four places, three
 | E9 | `PS_relax.H:716-776` | a cell already marked for the fallback still runs the full Newton at every later stage. | a design call: the projection only for marked cells changes the stage state the hydro sees. |
 | E10 | `hem_relax_x3f.H:615-616` | the SDIRK stage-2 predictor uses the base rates where stage 1's converged transfer is a free better guess. | untested. |
 
-## Order of work, if taken
+## Applied (18 Nov 2026, commits 328dcbbd, 194910d8, 35df4cc2)
+
+Three batches, each built and rerun on a reference set of 22 runs on the binaries of 82767b27 (B5 at eight settings: the order-2 Strang step with and without the step-doubling control, the pairing, the four-stage integrator, Heun, mode 2, Lie without the projection, the order-1 sub-step; the tube bare, order 4, the pairing, four stages; XC2D on four ranks at the same four; the fine box at order 4, four stages and the unlimited interpolater; the 21-case fingerprint) and compared file by file. Every run is bitwise except the two runs of the pairing with relaxation, which move at 4e-11 of range on the tube and 2e-8 in pressure on B5 after batch A and not again after B or C: that is B6, the predictor's initial guess, converging to the same solution within the Newton tolerance.
+
+- Batch A (the kernel and its sweeps): B6, C1, C2, C3, C4, C5, D5, D6, D7, F1, F2, F9, F10, F11. B7's comment fixed, its arithmetic kept (the shrink toward the offset is untested).
+- Batch B (the advance and the fills): B1, B2 (an abort), B4, B5, C10, C11, C12, C13, D3, D4, D5, D7, E1, E2, E3 (the coarse old data read in place, the scratch persistent, the fine copy gone; the derivatives still copied once per coarse step), F3, F4, F5, F6, F7.
+- Batch C (the hydro): C6, C7, C8, C9 (the flux side; the HLLC face still forms its own state, E7's other half), D1, D2, D5, E4, E5, F2, F8, and the edge stores allocated under order 4 only.
+- Not applied, as listed: B3 (a decision that changes `rk_order=3` results), E6, E8, E9, E10 (measurements or design calls), the HLLC half of E7.
+
+The new source code of the branch is shorter by about 500 lines after the three batches, with no output changed.
+
+## Order of work, as it was taken
 
 1. B1, B5, D1, D3, D4, F2, F3, F4 and the comment lines of D5–D7: no output change, an afternoon.
 2. C1–C5 and F1 (the kernel and sweeps), then C10, C11, C13 and E1, E2 (the advance): each proven bitwise on the existing records (B5 cfl 0.25, the tube at 300 steps, the fingerprint) before the next.
