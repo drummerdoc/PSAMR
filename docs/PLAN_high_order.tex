@@ -3328,4 +3328,96 @@ compiler's fused multiply-add contraction across the restructured
 loop).  One unit in the last place, recorded for the register, not
 chased.
 
+\subsection{The register items (18 November 2026, Mac \code{llvm} and peart)}
+\label{sec:register}
+
+Each open finding of this branch taken as far as one measurement goes,
+on Marc's word.
+
+\paragraph{The convergence floor on B5.}  With the EOS inversions'
+tolerances tightened a thousandfold in a temporary build (the
+$(\rho,e)\to T$ inversion's relative and absolute tolerances
+$10^{-12}$, $10^{-10}$\,K and $10^{-12}$ to $10^{-15}$, $10^{-13}$\,K,
+$10^{-15}$; the saturation solves' $10^{-9}$ to $10^{-12}$) the
+$\theta = 2\times10^{-5}$\,s series reads $2.24\times10^{-6}$,
+$9.70\times10^{-7}$, $6.99\times10^{-7}$ in $\rho$ against
+$2.86\times10^{-6}$, $1.29\times10^{-6}$, $8.35\times10^{-7}$; $P$
+$1.15\times10^{-2}$ against $1.39\times10^{-2}$\,Pa; $\alpha_1$
+$5.0\times10^{-10}$ against $6.0\times10^{-10}$.  The floor moves by a
+sixth: the EOS tolerances carry part of it, the kernel and projection
+tolerances a twentieth (above), and the rest, about three quarters of
+it at $4.6\times10^{-9}$ of range in $\rho$, has no named source.  Not
+chased further; the orders of this branch are read above the floor.
+
+\paragraph{demo3's last bit.}  The two commits either side of it
+(\code{328dcbbd}, \code{194910d8}) built in a worktree and run at six
+ranks with three levels, one rank with three levels, six ranks with one
+level and six ranks with two levels: the two commits are bitwise in
+every configuration but the first.  So the one unit in the last place
+needs both the third level and the six ranks: an order of parallel
+communication in the three-level path that batch B's rewrite of the
+advance changed, and that one rank or two levels do not reach.  Not
+located within the batch.
+
+\paragraph{The GPU's two-level spread.}  On peart at \code{3cb16ec3},
+XC2D 40 steps twice at each setting: single level bitwise; two levels
+under the order-4 default $2.2\times10^{-10}$ of range on level 0 and
+$6.8\times10^{-9}$ on level 1 between the two runs, and the same
+with the $\alpha$ co-move reflux off ($1.9\times10^{-10}$,
+$5.9\times10^{-9}$), with the conservative interpolater
+($1.5\times10^{-10}$, $6.8\times10^{-9}$), with the stage projection
+and Strang off ($2.9\times10^{-11}$, $5.6\times10^{-9}$), and under the
+second-order Heun path $1.0\times10^{-13}$ and $2.3\times10^{-13}$.  So
+the seed of the spread is in the two-level machinery every scheme
+shares and none of the three suspects removes (the flux register's
+accumulation of fine faces onto a coarse face on the device is the
+standard candidate), and the fourth-order reconstruction amplifies it
+from $10^{-13}$ to $10^{-8}$ through its weights, as it amplified the
+two machines' rounding in Stage~2.  A deterministic register would
+close it; not built.
+
+\paragraph{The weak-shock width, re-derived.}  The Stage~3 figure
+(eight cells under WENO5 against three under the TVD correction, read
+off the velocity profile of the frozen B4 run at 64 cells) does not
+reproduce at the tip.  With the relaxation frozen as Stage~3 ran it,
+the vapour shock of B4 at 64 cells crosses from 3\,\% to 97\,\% of its
+jump in six cells under both orders (five and eight at 256; from 10 to
+90\,\% in five against four at 64, six against five at 256; B10 seven
+against five, eight against seven), the order-4 profile the steeper of
+the two one cell ahead of the shock (0.47 against 1.11\,m/s on a jump of
+9).  Relaxing, the same within a cell (\code{FUTURE\_WORK.md} \S0).  No
+excess width under order 4 at the tip, and no three-cell shock under
+order 2 either: the earlier control is not reproducible from the
+record's text.  Closed; nothing to build.
+
+\paragraph{The raised cap under the order-2 sub-step.}  Follow-up 6's
+comparison repeated with \code{ps\_x3f\_order=2} the default: the tube,
+three stages at \code{cfl} 0.45 to the time of its step 300
+($1.508\times10^{-3}$\,s) against four stages at 0.9 to the same time:
+$\rho$ $6.4\times10^{-2}$, $P$ 0.13, $T$ 0.15, $\alpha_2\rho_2$
+$9.3\times10^{-2}$ of range (follow-up 6: $P$ 0.15, $T$ 0.18); the
+three-stage solution's own step sensitivity at 0.45 against 0.225 is
+$4.7\times10^{-2}$, 0.10, 0.10 and 0.22, and the two schemes at the
+same step 0.45 differ by $1.1\times10^{-2}$, $8\times10^{-3}$,
+$6.5\times10^{-3}$ and $6.5\times10^{-2}$.  The reading of follow-up 6
+stands: at $\Dt/\theta$ of 50 the tube is in the stiff regime where the
+step is set by the splitting error and not by the cap, and the
+second-order sub-step, exact on the equilibrium of its sub-step, does
+not change that; the cap's two thirds is real where the step is set by
+the cap.
+
+\paragraph{The masked norm.}  \code{Exec/CO2\_TBlowdown/step\_sensitivity\_masked.py}:
+the difference of two plotfiles at one time, reported apart on the
+cells within a few of a wave (a pressure or density jump to a neighbour
+above a fraction of the range, the flash, an $\alpha_1$ jump) and on the
+rest.  On the tube at one time, Strang order 2, \code{cfl} 0.25 against
+0.125: with the wave mask at 1\,\% of the range (23\,\% of the cells),
+the masked cells carry $4.4\times10^{-3}$ of range in $\rho$ in $L_1$
+and the rest $2.9\times10^{-4}$, fifteen times less; at 0.3\,\% (26\,\%
+of the cells) the rest is at $10^{-8}$, the untouched initial state.
+The flash and $\alpha_1$ masks alone (4\,\% of the cells) do not hold
+the maximum, which sits at the waves, not at the phase front.  The
+instrument is the one the next B5-type measurement at a front should
+use.
+
 \end{document}

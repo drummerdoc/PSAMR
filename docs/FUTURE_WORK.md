@@ -13,10 +13,10 @@
 **What does not, or not yet.**
 
 - *The stiff regime.* When the phases reach equilibrium within a fraction of a step (the blowdown tube at θ = 1e-7 s, Δt/θ ≈ 29), every time integrator is first order in the cells at the flashing front; that is a property of stiff problems, not of a scheme. Step A handles it gracefully (it lands exactly on the equilibrium); step B leaves a small residual layer and is five times more step-sensitive in pressure there, which is why it is not the default. The production pipe-break decks (θ = 1e-3 s) are far from this regime and get the full benefit of the configuration.
-- *The convergence floor.* On B5 the differences between step sizes stop shrinking at about 5 parts in a billion of the field's range. Not the Newton tolerances, not the limiter; probably the tolerances of the equation-of-state inversions. It limits how finely orders can be measured, not how the code runs.
-- *Order near fronts.* The step sensitivity on the tube is localized: half of it sits in 4 to 6 % of the cells and 90 % in 12 to 16 %, so the domain-wide L1 norm is twenty times below the maximum norm. A convergence instrument that masks the front cells and reports the order away from them, together with the fraction of the domain masked, is the right way to show the reduction as local (not yet built; item 13.9).
-- *Weak shocks.* The Stage 3 record read the weak vapour shocks of B4 and B10 (a 4 to 5 % pressure jump) as eight cells wide under the fifth-order reconstruction against three before. Re-measured on 18 Nov at the branch tip under mode 6, as the number of cells over which the velocity crosses from 10 % to 90 % of its jump (and from 1 % to 99 %): B4 reads 4 to 5 cells (6 to 8) under order 4 against 5 (9 to 11) under order 2 at N = 64 and 256, B10 4 to 5 (6 to 9) against 5 to 6 (10), and the stronger B6 shock 3 against 4. On this measure the fourth-order shock is not wider than the second-order one, and neither is three cells. The Stage 3 figure does not reproduce and is to be re-derived (its measure, its binary, its probe mode) before anything is built for it (item 13.9).
-- *GPU run-to-run spread.* Two GPU runs of the two-level XC2D case differ at a few parts in a billion; single-level runs are bitwise reproducible, so it sits in the coarse–fine machinery. Not located.
+- *The convergence floor.* On B5 the differences between step sizes stop shrinking at about 5 parts in a billion of the field's range. Not the Newton tolerances, not the limiter; the equation-of-state inversions' tolerances carry a sixth of it (measured 18 Nov with them tightened a thousandfold), the rest has no named source. It limits how finely orders can be measured, not how the code runs.
+- *Order near fronts.* The step sensitivity on the tube is localized: half of it sits in 4 to 6 % of the cells and 90 % in 12 to 16 %, so the domain-wide L1 norm is twenty times below the maximum norm. The masked instrument `Exec/CO2_TBlowdown/step_sensitivity_masked.py` (18 Nov) shows it: within three cells of a pressure or density jump above 1 % of the range, 23 % of the cells, the sensitivity is fifteen times that of the rest, and at a 0.3 % threshold the rest is the untouched initial state.
+- *Weak shocks.* The Stage 3 record read the weak vapour shocks of B4 and B10 (a 4 to 5 % pressure jump) as eight cells wide under the fifth-order reconstruction against three before. Re-measured on 18 Nov at the branch tip under mode 6, as the number of cells over which the velocity crosses from 10 % to 90 % of its jump (and from 1 % to 99 %): B4 reads 4 to 5 cells (6 to 8) under order 4 against 5 (9 to 11) under order 2 at N = 64 and 256, B10 4 to 5 (6 to 9) against 5 to 6 (10), and the stronger B6 shock 3 against 4. On this measure the fourth-order shock is not wider than the second-order one, and neither is three cells; with the relaxation frozen, as Stage 3 ran it, the same within a cell (18 Nov). The Stage 3 figure does not reproduce and its control is not reproducible from the record's text; closed, nothing to build.
+- *GPU run-to-run spread.* Two GPU runs of the two-level XC2D case differ at a few parts in a billion; single-level runs are bitwise reproducible. Measured 18 Nov: the spread stays with the α co-move reflux off, with the conservative interpolater and with the stage projection off, and the second-order Heun path has it at 1e-13, so its seed is in the two-level machinery every scheme shares (the flux register's accumulation on the device the standard candidate) and the fourth-order reconstruction amplifies it to 1e-8. A deterministic register would close it; not built.
 - *Cost.* The fourth-order configuration costs 14 to 37 % over second order depending on the case, and the stage projection with Strang 8 to 20 % more.
 
 **What code was added** (branch `high-order`, 35 files, about 2300 lines of source plus the plan).
@@ -33,13 +33,13 @@
 
 **Reasonable next steps**, each its own small item with its gate (item 13 holds the record of each).
 
-1. The masked convergence norm (above): a cheap instrument, no solver code.
-2. The weak-shock width: re-derive the Stage 3 measure; only if a real excess stands is anything built, and then the characteristic projection of item 13.3 is the first candidate (it reconstructs along waves, not variables).
-3. The floor's cause: the EOS inversion tolerances, a one-dial test.
-4. The GPU two-level spread: a bisection of the coarse–fine path (fill, reflux, step control) on XC2D.
-5. The follow-up 6 comparison at the raised CFL cap under step A: whether the flashing cases now gain from the cap.
+1. The masked convergence norm: DONE 18 Nov (`Exec/CO2_TBlowdown/step_sensitivity_masked.py`).
+2. The weak-shock width: re-derived 18 Nov, no excess under order 4; closed.
+3. The floor's cause: the EOS inversion tolerances carry a sixth (18 Nov); the rest unnamed, not chased.
+4. The GPU two-level spread: localized 18 Nov to the shared two-level machinery, amplified by the reconstruction; a deterministic flux register would close it.
+5. The follow-up 6 comparison at the raised cap under step A: DONE 18 Nov, the reading stands (the stiff tube's step is set by the splitting error, not the cap).
 6. The cost of the five stage sweeps on the GPU: the class-compacted launch of item 12 applied to them.
-7. Larger, parked: the McCorquodale–Colella conversions for formal fourth order in 2-D (item 13.5), interface sharpening (item 13.7).
+7. Larger, parked: the McCorquodale–Colella conversions for formal fourth order in 2-D (item 13.5), interface sharpening (item 13.7); a deterministic flux register on the device.
 
 Scoped, measured as far as possible without new code, and parked; each entry states the item, the evidence, and the gate it must pass. Nothing here is implemented.
 
