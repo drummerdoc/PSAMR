@@ -197,9 +197,12 @@ PSAMR::PSAMR_advance (Real time,
     //     step with a per-cell fallback to the present operator, the flash
     //     once after the combination.  Needs do_mol=1, rk_order=3,
     //     rk_stages=3, ps_rk_project=1, ps_relax_mode 6 or 0 with a finite
-    //     ps_theta_tau and ps_do_relax=1; sets ps_strang=0 (an explicit 1
-    //     aborts).  0 = the rate terms outside the stages (Strang or Lie
-    //     per ps_strang).
+    //     ps_theta_tau; sets ps_strang=0 (an explicit 1 aborts).  Under
+    //     ps_do_relax=0 the stages carry the projection only (as the
+    //     SSPRK stages do) and the reaction step applies no operator, so
+    //     a no-relaxation deck runs the explicit part in its Butcher form.
+    //     0 = the rate terms outside the stages (Strang or Lie per
+    //     ps_strang).
     static const int ps_imex_cached = [&]() -> int {
         const int v = ps_dial_int("ps_imex", 0);
         if (v != 0 && v != 3) { amrex::Abort("PSAMR.ps_imex must be 0 or 3 (IMEX-SSP3(4,3,3))"); }
@@ -214,7 +217,6 @@ PSAMR::PSAMR_advance (Real time,
             if (ps_rk_project_cached != 1) { amrex::Abort("PSAMR.ps_imex=3 needs ps_rk_project=1"); }
             if (mode != 6 && mode != 0) { amrex::Abort("PSAMR.ps_imex=3 needs ps_relax_mode 6 or 0 (modes 2 and 5 are not backward-Euler stage solves)"); }
             if (mode == 6 && !(ps_theta_tau() > amrex::Real(0.0))) { amrex::Abort("PSAMR.ps_imex=3 needs a finite ps_theta_tau (the stage transfers are rate integrals)"); }
-            if (ps_do_relax_cached == 0) { amrex::Abort("PSAMR.ps_imex=3 needs ps_do_relax=1"); }
             if (sv == 1) { amrex::Abort("PSAMR.ps_imex=3 sets ps_strang=0; do not set ps_strang=1 with it"); }
         }
         return v; }();
@@ -762,7 +764,11 @@ PSAMR::PSAMR_advance (Real time,
             auto stage = [&](amrex::MultiFab& S, int s, amrex::GpuArray<amrex::Real,4> const& c) {
                 ps_apply_vanish_fold(S, 0);
                 ps_resync_mixture_mass(S, 0);
-                ps_apply_imex_stage(S, imex_D, imex_st, s, c, al * dt, ps_rk_project_tol_cached);
+                if (ps_do_relax_cached != 0) {
+                    ps_apply_imex_stage(S, imex_D, imex_st, s, c, al * dt, ps_rk_project_tol_cached);
+                } else {
+                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);   // no rate terms: the SSPRK stage's own projection
+                }
             };
             // Stage 1: U_1 = BE(U^n), no hydro (b~_1 = 0 and a~_i1 = 0).
             MultiFab::Copy(S_new, S_old, 0, 0, NVAR, 0);
