@@ -224,10 +224,27 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     };
     //  Residual at z for the base b over dtl; n = 3 (mechanical only) or 5.
     //  Fills the forward states of the trial (for the rates and the commit).
-    //  q_off, dm_off: the second SDIRK stage's offsets (zero otherwise),
-    //  constants in F_4 and F_5; the Jacobian does not see them.
+    //  q_off, dm_off: the stage offsets (SDIRK stage 2, the IMEX stages and
+    //  final apply; zero otherwise), constants in F_4 and F_5 and the
+    //  transfers of an n = 3 solve; the Jacobian does not see them.
     double q_off = 0.0, dm_off = 0.0;
     struct Trial { PsPhase p1, p2; double m1, m2; bool ok; };
+    //  The rates (X3's expressions) at a state given by its masses, heat
+    //  capacities, temperatures, alpha and Gibbs energies; false when the
+    //  state cannot carry a rate (a non-positive c_v or T_2, a non-finite
+    //  rate).  c_v is frozen in the rate derivatives (the Jacobian).
+    auto rates = [&](double m1, double m2, double cv1, double cv2, double T1, double T2,
+                     double a, double g1, double g2, double& rT, double& rM) -> bool {
+        constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
+        if (!(cv1 > 0.0) || !(cv2 > 0.0) || !(T2 > 0.0)) return false;
+        const double inv = 1.0 / (m1 * cv1) + 1.0 / (m2 * cv2);
+        rT = joint_pt ? 0.0 : (T1 - T2) / (xp.theta * inv);
+        const double a2 = 1.0 - a;
+        const double a_geom = (g1 > g2) ? (a2 + xp.srt_delta) * a : (a + xp.srt_delta) * a2;
+        const double Sig = (32.0 / two_pi) * a_geom / xp.srt_D;
+        rM = Sig * (m2 / a2) * std::sqrt(eos.molar_mass() / (two_pi * R_u * T2)) * (g1 - g2);
+        return std::isfinite(rT) && std::isfinite(rM);
+    };
     auto residual = [&](const Base& b, double dtl, int n, const double z[5],
                         double F[5], Trial& t) -> bool {
         const double a = z[0], T1 = z[1], T2 = z[2];
@@ -254,18 +271,8 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         F[1] = (t.m1 * t.p1.e - (b.U1 - dm * h_c - q - W)) / E_s;
         F[2] = (t.m2 * t.p2.e - (b.U2 + dm * h_c + q + W)) / E_s;
         if (n == 5) {
-            //  Rates at the trial state (X3's expressions).
-            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
-            if (!(t.p1.cv > 0.0) || !(t.p2.cv > 0.0) || !(T2 > 0.0)) return false;
-            const double inv = 1.0 / (t.m1 * t.p1.cv) + 1.0 / (t.m2 * t.p2.cv);
-            const double rT = joint_pt ? 0.0 : (T1 - T2) / (xp.theta * inv);
-            const double a2 = 1.0 - a;
-            const double a_geom = (t.p1.g > t.p2.g) ? (a2 + xp.srt_delta) * a
-                                                    : (a + xp.srt_delta) * a2;
-            const double Sig = (32.0 / two_pi) * a_geom / xp.srt_D;
-            const double rM  = Sig * (t.m2 / a2) * std::sqrt(eos.molar_mass() / (two_pi * R_u * T2))
-                             * (t.p1.g - t.p2.g);
-            if (!std::isfinite(rT) || !std::isfinite(rM)) return false;
+            double rT = 0.0, rM = 0.0;
+            if (!rates(t.m1, t.m2, t.p1.cv, t.p2.cv, T1, T2, a, t.p1.g, t.p2.g, rT, rM)) return false;
             const double T_s = std::max(b.T1, b.T2);
             F[3] = joint_pt ? (T1 - T2) / T_s : (q - q_off - dtl * rT) / E_s;
             F[4] = (dm - dm_off - dtl * rM) / rho_mix;
@@ -391,7 +398,10 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         clamp(z);
         double F[5] = {0, 0, 0, 0, 0};
         if (!residual(b, dtl, n, z, F, t)) {
-            //  Inadmissible start: shrink the predictor toward the base.
+            //  Inadmissible start: shrink the predictor toward the base in
+            //  alpha and T, and the total transfer toward zero (with offsets
+            //  that is the stage increment toward minus the offset, kept as
+            //  built; a shrink toward the offset is untested).
             int h = 0;
             while (h++ < 12) {
                 if (n == 5) { z[3] *= 0.5; z[4] *= 0.5; }
@@ -517,41 +527,39 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         }
     }
 
+    //  One Newton over dtl from the base bb into out: rc 0 advanced, 1 the
+    //  Newton failed or the result is inadmissible, 2 fixed-count
+    //  non-convergence.  n = 5 the rate solve, 3 the apply of the offsets.
+    auto solve = [&](const Base& bb, double dtl, int n, double z[5], Trial& t, int& nit, Base& out) -> int {
+        const int rc = newton(bb, dtl, n, z, t, nit);
+        if (rc != 0) return rc;
+        out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
+        return out.adm ? 0 : 1;
+    };
+    //  The backward-Euler predictor over dtl from the base rates (the
+    //  linearised F_4: rT(end) = rT0 - q/theta), on top of the offsets.
+    auto predict = [&](double dtl, double rT0, double rM0, double z[5]) {
+        z[3] = joint_pt ? 0.0 : (q_off + dtl * rT0) / (1.0 + dtl / xp.theta);
+        z[4] = dm_off + dtl * rM0;
+    };
+
     if (xp.imex != 0) {
-        //  IMEX stage solve (PSAMR.ps_imex=3; docs/PLAN_high_order.pdf
-        //  follow-up 4, step B): one backward-Euler Newton over dt from
-        //  the entry-projected base, the earlier stages' transfers as
-        //  constants in F_4 and F_5 (the offsets), the stage's own
-        //  transfer returned; dt = 0 is the final combination, the
-        //  3-residual apply of the offsets alone.  No ladder and no
-        //  step-doubling: the stage equation is one solve, and a cell it
-        //  cannot solve is the caller's fallback (the cell is left as it
-        //  came).  The band gate above stands the cell as at entry.
+        //  IMEX stage solve: one Newton over dt with the offsets (see
+        //  PsX3fParams::imex); a cell it cannot solve is left as it came
+        //  for the caller's fallback.
         q_off = xp.imex_q_off; dm_off = xp.imex_dm_off;
         double z[5] = { b.a, b.T1, b.T2, q_off, dm_off };
-        int nit = 0, rc = 0; Trial t{};
+        int nit = 0, rc = 0; Trial t{}; Base b1{};
         count(xp.sub_out);
         if (dt > 0.0) {
-            //  The base rates and the predictor, as step_once forms them.
-            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
-            if (!(b.cv1 > 0.0) || !(b.cv2 > 0.0) || !(b.T2 > 0.0)) { q_off = 0.0; dm_off = 0.0; set_status(X3_DEAD); return false; }
-            const double inv = 1.0 / (b.m1 * b.cv1) + 1.0 / (b.m2 * b.cv2);
-            const double rT0 = joint_pt ? 0.0 : (b.T1 - b.T2) / (xp.theta * inv);
-            const double a2 = 1.0 - b.a;
-            const double a_geom = (b.g1 > b.g2) ? (a2 + xp.srt_delta) * b.a : (b.a + xp.srt_delta) * a2;
-            const double Sig = (32.0 / two_pi) * a_geom / xp.srt_D;
-            const double rM0 = Sig * (b.m2 / a2) * std::sqrt(eos.molar_mass() / (two_pi * R_u * b.T2)) * (b.g1 - b.g2);
-            if (!std::isfinite(rT0) || !std::isfinite(rM0)) { q_off = 0.0; dm_off = 0.0; set_status(X3_DEAD); return false; }
-            z[3] = joint_pt ? 0.0 : q_off + dt * rT0 / (1.0 + dt / xp.theta);
-            z[4] = dm_off + dt * rM0;
-            rc = newton(b, dt, 5, z, t, nit);
+            double rT0 = 0.0, rM0 = 0.0;
+            if (!rates(b.m1, b.m2, b.cv1, b.cv2, b.T1, b.T2, b.a, b.g1, b.g2, rT0, rM0)) { set_status(X3_DEAD); return false; }
+            predict(dt, rT0, rM0, z);
+            rc = solve(b, dt, 5, z, t, nit, b1);
         } else {
-            rc = newton(b, 0.0, 3, z, t, nit);
+            rc = solve(b, 0.0, 3, z, t, nit, b1);
         }
-        q_off = 0.0; dm_off = 0.0;
         if (rc != 0) { set_status(rc == 2 ? X3_FIXED_NONCONV : X3_NEWTON); return false; }
-        const Base b1 = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
-        if (!b1.adm) { set_status(X3_NEWTON); return false; }
         if (dt > 0.0) {
             if (xp.imex_q_out)  *xp.imex_q_out  = z[3] - xp.imex_q_off;
             if (xp.imex_dm_out) *xp.imex_dm_out = z[4] - xp.imex_dm_off;
@@ -571,54 +579,28 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     //  3 structurally dead; 4 at the equilibrium already (out = bb).
     auto step_once = [&](const Base& bb, double dtl, Base& out) -> int {
         double rT0 = 0.0, rM0 = 0.0;
-        {
-            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
-            if (!(bb.cv1 > 0.0) || !(bb.cv2 > 0.0) || !(bb.T2 > 0.0)) return 3;
-            const double inv = 1.0 / (bb.m1 * bb.cv1) + 1.0 / (bb.m2 * bb.cv2);
-            rT0 = joint_pt ? 0.0 : (bb.T1 - bb.T2) / (xp.theta * inv);
-            const double a2 = 1.0 - bb.a;
-            const double a_geom = (bb.g1 > bb.g2) ? (a2 + xp.srt_delta) * bb.a : (bb.a + xp.srt_delta) * a2;
-            const double Sig = (32.0 / two_pi) * a_geom / xp.srt_D;
-            rM0 = Sig * (bb.m2 / a2) * std::sqrt(eos.molar_mass() / (two_pi * R_u * bb.T2)) * (bb.g1 - bb.g2);
-            if (!std::isfinite(rT0) || !std::isfinite(rM0)) return 3;
-        }
+        if (!rates(bb.m1, bb.m2, bb.cv1, bb.cv2, bb.T1, bb.T2, bb.a, bb.g1, bb.g2, rT0, rM0)) return 3;
         if (std::abs(dtl * rT0) < tol_q && std::abs(dtl * rM0) < tol_m) { out = bb; return 4; }
+        double z[5] = { bb.a, bb.T1, bb.T2, 0.0, 0.0 };
+        int nit = 0; Trial t{};
         if (xp.order != 2) {
-            double z[5] = { bb.a, bb.T1, bb.T2,
-                            joint_pt ? 0.0 : dtl * rT0 / (1.0 + dtl / xp.theta),
-                            dtl * rM0 };
-            int nit = 0; Trial t{};
-            const int rc = newton(bb, dtl, 5, z, t, nit);
-            if (rc != 0) return rc;
-            out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
-            return out.adm ? 0 : 1;
+            predict(dtl, rT0, rM0, z);
+            return solve(bb, dtl, 5, z, t, nit, out);
         }
-        //  Two-stage SDIRK: both stages over gamma dtl from the base bb.
+        //  Two-stage SDIRK: both stages over gamma dtl from the base bb,
+        //  stage 2 with stage 1's transfer times (1 - gamma)/gamma as its
+        //  offsets; no band gate on stage 1 (an iterate, not a state: header).
         constexpr double gam = 0.29289321881345243;   // 1 - 1/sqrt(2)
         const double dtg = gam * dtl;
-        double z[5] = { bb.a, bb.T1, bb.T2,
-                        joint_pt ? 0.0 : dtg * rT0 / (1.0 + dtg / xp.theta),
-                        dtg * rM0 };
-        int nit = 0; Trial t{};
-        q_off = 0.0; dm_off = 0.0;
-        int rc = newton(bb, dtg, 5, z, t, nit);
+        predict(dtg, rT0, rM0, z);
+        int rc = solve(bb, dtg, 5, z, t, nit, out);
         if (rc != 0) return rc;
-        out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
-        if (!out.adm) return 1;
-        //  The band gate is asked of the base at entry and of the committed
-        //  state between sub-steps, as at order 1; not of stage 1, which is
-        //  an iterate of the sub-step, not a state (a gate there is a third
-        //  switch site and broke the B12 mirror; docs/PLAN_high_order.pdf
-        //  follow-up 4).
         q_off  = ((1.0 - gam) / gam) * z[3];
         dm_off = ((1.0 - gam) / gam) * z[4];
-        z[3] = joint_pt ? 0.0 : (q_off + dtg * rT0) / (1.0 + dtg / xp.theta);
-        z[4] = dm_off + dtg * rM0;
-        rc = newton(bb, dtg, 5, z, t, nit);
+        predict(dtg, rT0, rM0, z);
+        rc = solve(bb, dtg, 5, z, t, nit, out);
         q_off = 0.0; dm_off = 0.0;
-        if (rc != 0) return rc;
-        out = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
-        return out.adm ? 0 : 1;
+        return rc;
     };
     const bool control = (xp.step_tol_a > 0.0);
     double t_done = 0.0, dt_try = dt;
