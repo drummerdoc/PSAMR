@@ -1,51 +1,33 @@
 #ifndef PS_RECON_H
 #define PS_RECON_H
 // =====================================================================
-//  PS_recon.H  —  reconstructed face states for the wave-propagation
-//                 interior (PSAMR.ps_wp_order=4, docs/PLAN_high_order.pdf
-//                 section 4 and Stage 3).
+//  PS_recon.H  —  reconstructed edge states for the wave-propagation
+//                 interior (PSAMR.ps_wp_order=4).
 //
 //  Per cell and direction, the two edge states of the cell are built
 //  from the five cell averages i-2..i+2 by WENO5-Z (ps_wp_recon=weno5z)
 //  or PPM (ps_wp_recon=ppm), component by component on the primitive set
-//  (alpha_1, rho_1, rho_2, u, v, w, e_1, e_2) and converted back to the
-//  NVAR conserved array with the identities rho = m_1 + m_2 and
-//  rhoE = E_1 + E_2 holding by construction.  The primitive set is the
-//  one in which a uniform-velocity, uniform-pressure contact stays
-//  uniform in every variable but alpha, so the reconstruction cannot
-//  disturb it (the Abgrall condition, Stage 3 item 4); the characteristic
-//  projection of the plan's section 4 needs the per-phase Grueneisen
-//  derivatives, which the EOS interface does not expose, and is a named
-//  follow-up (Stage 3 record).
+//  (alpha_1, rho_1, rho_2, e_1, e_2, u[DIM]), in which a uniform-velocity,
+//  uniform-pressure contact is uniform in every variable but alpha, and
+//  converted back to the conserved array with rho = m_1 + m_2 and
+//  rhoE = E_1 + E_2 by construction.  Every edge formula is written in
+//  deviation form about the cell's own average (uniform data reconstruct
+//  bitwise uniform) and the left edge is the right-edge formula on the
+//  reversed stencil (a mirrored stencil gives the mirrored value).
 //
-//  Every edge formula is written in deviation form about the cell's own
-//  average, so uniform data reconstruct bitwise uniform (the Stage 2b
-//  lesson: a round-off asymmetry on uniform data is amplified by the 2-D
-//  scheme), and the left edge is the right-edge formula on the reversed
-//  stencil, so a mirrored stencil gives the mirrored value exactly.
+//  Presence rules: a cell whose stencil has a phase Absent in some cells
+//  and present in others, or whose edge leaves the admissible set (alpha
+//  outside [0,1] or at a present phase's vanish threshold, a non-positive
+//  or non-finite phase density, a non-finite energy or velocity), takes
+//  the round trip of its raw averages at both edges (identical up to
+//  round-off, an absent phase's slots exactly zero), first order there;
+//  a phase Absent in the cell is pinned absent at its edges.  The caller
+//  counts the fallbacks.  The contact taper (ps_wp_contact_taper, at its
+//  accessor in PS_umeth.cpp) scales the high-order increment of each
+//  edge by the H-5 keep-weight of its face.
 //
-//  Presence rules: a cell whose five-cell stencil has a phase Absent in
-//  some cells and present in others takes its raw averages at both edges
-//  (first order at a presence front, as the correction path is there);
-//  a phase Absent in the cell is pinned absent at its edges; an edge
-//  that leaves the admissible set (alpha outside [0,1], a present
-//  phase's alpha at or below alpha_vanish, a non-positive or non-finite
-//  phase density, a non-finite energy or velocity) returns the cell to
-//  its raw averages at both edges.  Every fallback is counted
-//  (recon_fallback, host builds).
-//
-//  The contact taper (ps_wp_contact_taper=1): the H-5 weight
-//  w = 1 - smoothstep(|dalpha|/alpha_cond) of the face, dalpha on the
-//  raw averages, scales the whole high-order increment of the edge
-//  state on that face's side: V_edge = V_bar + w (V_recon - V_bar), so
-//  at w = 0 the face sees the raw averages, the present first-order
-//  behaviour at a material interface.  0 = the reconstruction's own
-//  smoothness measure is the only interface treatment (the default,
-//  Marc's decision on the Stage 3 record).
-//
-//  Device-safe: no statics, no ParmParse, no EOS calls (the primitive
-//  set needs none; the EOS enters at the face through ps_wp_face as
-//  before).
+//  Device-safe: no statics, no ParmParse, no EOS calls (the EOS enters at
+//  the face as before).  docs/PLAN_high_order.pdf section 4, Stage 3.
 // =====================================================================
 #ifdef USE_PS_HYDRO
 
@@ -59,7 +41,7 @@
 #include "PS_presence.H"
 #include "PS_constants.H"
 #include "PS_util.H"
-#include "PS_guards.H"
+#include "PS_state.H"
 
 namespace PS_RECON {
 
@@ -78,12 +60,11 @@ constexpr int IA1 = 0, IR1 = 1, IR2 = 2, IE1 = 3, IE2 = 4, IU = 5;
 //  bitwise.  eps is 1e-40, below any smoothness indicator the data can
 //  carry, so the weights are scale-invariant (the same weights for
 //  alpha and for an energy with the same shape).  wpow is the power on
-//  the ratio tau/beta_k (PSAMR.ps_wp_weno_power: 1 = Borges, 2 = the
-//  higher power that pushes a marginal stencil harder toward ENO;
-//  docs/PLAN_high_order.pdf follow-up 2); 1 is bitwise the plain ratio.
+//  the ratio tau/beta_k (PSAMR.ps_wp_weno_power: 1 = Borges, 2 the
+//  higher power); 1 is bitwise the plain ratio.
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real weno5z_right (Real a, Real b, Real c, Real d, Real e, int wpow = 1) noexcept
+Real weno5z_right (Real a, Real b, Real c, Real d, Real e, int wpow) noexcept
 {
     const Real da = a - c, db = b - c, dd = d - c, de = e - c;
     // the three candidate values, as deviations from c
@@ -115,7 +96,7 @@ Real weno5z_right (Real a, Real b, Real c, Real d, Real e, int wpow = 1) noexcep
 //  Left-edge value of the centre cell: the right-edge formula on the
 //  reversed stencil (mirror-exact).
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Real weno5z_left (Real a, Real b, Real c, Real d, Real e, int wpow = 1) noexcept
+Real weno5z_left (Real a, Real b, Real c, Real d, Real e, int wpow) noexcept
 {
     return weno5z_right(e, d, c, b, a, wpow);
 }
@@ -149,10 +130,10 @@ void ppm_edges (Real a, Real b, Real c, Real d, Real e, Real& ql, Real& qr) noex
 }
 
 // ---------------------------------------------------------------------
-//  The primitive set of one cell from its conserved array, without an
-//  EOS call: the clamped alpha, the checked phase quotients (rho_k, e_k)
-//  of PS_presence.H with the mixture placeholders of PS_state.H for a
-//  phase with no state, the velocity.  ab_k says the phase is Absent.
+//  The primitive set of one cell from its conserved array: the pre-EOS
+//  cell state of PS_state.H (the clamped alpha, the checked phase
+//  quotients with the mixture placeholders, the velocity).  ab_k says
+//  the phase is Absent.
 // ---------------------------------------------------------------------
 struct PsPrim {
     Real v[NPRIM];
@@ -162,44 +143,22 @@ struct PsPrim {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 PsPrim prim_from_cons (const Real U[NVAR], const PsPres& pr) noexcept
 {
+    PsCellState s;
+    ps_cell_prims(U, pr, s);
     PsPrim p;
-    const Real rho = amrex::max(ps_finite_or(U[URHO], Real(ps_const::RHO_MIX_MIN)),
-                                Real(ps_const::RHO_MIX_MIN));
-    const Real inv = Real(1.0) / rho;
-    const Real ux = ps_finite_or(U[UMX], Real(0.0)) * inv;
+    p.ab1 = (s.rg1 == PsRegime::Absent);
+    p.ab2 = (s.rg2 == PsRegime::Absent);
+    p.v[IA1] = s.alpha1;
+    p.v[IR1] = s.rho1;
+    p.v[IR2] = s.rho2;
+    p.v[IE1] = s.e1;
+    p.v[IE2] = s.e2;
+    p.v[IU + 0] = s.ux;
 #if (AMREX_SPACEDIM >= 2)
-    const Real uy = ps_finite_or(U[UMY], Real(0.0)) * inv;
-#else
-    const Real uy = Real(0.0);
+    p.v[IU + 1] = s.uy;
 #endif
 #if (AMREX_SPACEDIM == 3)
-    const Real uz = ps_finite_or(U[UMZ], Real(0.0)) * inv;
-#else
-    const Real uz = Real(0.0);
-#endif
-    const Real ke = ps_kinetic_energy(ux, uy, uz);
-    const Real e_mix = ps_finite_or(U[UEINT], Real(0.0)) * inv;
-    Real a1 = ps_finite_or(U[UALPHA1], Real(1.0));
-    if (a1 < Real(0.0)) a1 = Real(0.0);
-    if (a1 > Real(1.0)) a1 = Real(1.0);
-    const Real a2 = Real(1.0) - a1;
-    const Real m1 = amrex::max(ps_finite_or(U[UM1RHO1], Real(0.0)), Real(0.0));
-    const Real m2 = amrex::max(ps_finite_or(U[UM2RHO2], Real(0.0)), Real(0.0));
-    p.ab1 = (ps_regime(a1, m1, pr) == PsRegime::Absent);
-    p.ab2 = (ps_regime(a2, m2, pr) == PsRegime::Absent);
-    const PsPhaseQuot q1 = ps_phase_quot(a1, m1, ps_finite_or(U[UE1], Real(0.0)), ke, pr);
-    const PsPhaseQuot q2 = ps_phase_quot(a2, m2, ps_finite_or(U[UE2], Real(0.0)), ke, pr);
-    p.v[IA1] = a1;
-    p.v[IR1] = q1.exists ? q1.rho : rho;
-    p.v[IR2] = q2.exists ? q2.rho : rho;
-    p.v[IE1] = q1.exists ? q1.e   : e_mix;
-    p.v[IE2] = q2.exists ? q2.e   : e_mix;
-    p.v[IU + 0] = ux;
-#if (AMREX_SPACEDIM >= 2)
-    p.v[IU + 1] = uy;
-#endif
-#if (AMREX_SPACEDIM == 3)
-    p.v[IU + 2] = uz;
+    p.v[IU + 2] = s.uz;
 #endif
     return p;
 }
@@ -255,7 +214,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real contact_keep (Real dalpha, Real alpha_cond) noexcept
 {
     Real t = std::abs(dalpha) / amrex::max(alpha_cond, Real(1.0e-30));
-    if (t < Real(0.0)) t = Real(0.0);
     if (t > Real(1.0)) t = Real(1.0);
     return Real(1.0) - t * t * (Real(3.0) - Real(2.0) * t);
 }
@@ -264,14 +222,14 @@ Real contact_keep (Real dalpha, Real alpha_cond) noexcept
 //  cell_edges: the two edge states (conserved arrays) of cell (i,j,k)
 //  in direction idir, written to rq(i,j,k, 0..NVAR-1) (low edge) and
 //  rq(i,j,k, NVAR..2NVAR-1) (high edge).  recon: 0 = WENO5-Z, 1 = PPM.
-//  taper: the contact-taper option.  Returns true when the cell fell
-//  back to its raw averages (the caller counts).
+//  taper: the contact-taper option; wpow: the WENO power.  Returns true
+//  when the cell fell back to its raw averages (the caller counts).
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 bool cell_edges (int idir, int i, int j, int k,
                  amrex::Array4<const Real> const& uin,
                  amrex::Array4<Real> const& rq,
-                 int recon, int taper, const PsPres& pr, int wpow = 1) noexcept
+                 int recon, int taper, int wpow, const PsPres& pr) noexcept
 {
     const int oi = (idir == 0), oj = (idir == 1), ok = (idir == 2);
     PsPrim P[5];

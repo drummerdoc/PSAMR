@@ -69,13 +69,16 @@ struct PsCellState {
 //  ps_regime_reach and sanitize_phase_pressure count on host builds).
 //  The EOS is queried once for the host phase and at most once for the
 //  minority phase; no single-fluid mixture query is made.
+//  ps_cell_prims: the part of the state before any EOS call (the
+//  mixture primitives, the clamped alpha, the checked phase quotients
+//  with the mixture placeholders), shared with the reconstruction's
+//  primitive set (PS_recon.H).  Fills those fields of s and no other.
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-PsCellState
-ps_cell_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
+void
+ps_cell_prims(const amrex::Real U[NVAR], const PsPres& pr, PsCellState& s) noexcept
 {
     using amrex::Real;
-    PsCellState s;
 
     // Mixture primitives.
     s.rho    = amrex::max(ps_finite_or(U[URHO], Real(ps_const::RHO_MIX_MIN)), Real(ps_const::RHO_MIX_MIN));
@@ -120,6 +123,16 @@ ps_cell_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
     s.rho2 = q2.exists ? q2.rho : s.rho;
     s.e1   = q1.exists ? q1.e   : s.e_mix;
     s.e2   = q2.exists ? q2.e   : s.e_mix;
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+PsCellState
+ps_cell_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
+{
+    using amrex::Real;
+    PsCellState s;
+    ps_cell_prims(U, pr, s);
 
     Real Y[NUM_SPECIES];
     ps_pure_species(Y);
@@ -140,7 +153,7 @@ ps_cell_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
         // "is this above P_FLOOR_PA?" without restating the constant.
         s.host_floored = !ps_guard::phase_pressure_ok(s.P1, Real(0.0));
         s.P1 = ps_guard::sanitize_stock_pressure(s.P1);      // host: floor only
-        s.queried2 = q2.exists
+        s.queried2 = s.exists2
                   && ps_regime_reach(s.rg2, s.rho2, s.e2, /*liquid=*/false, pr) == PsRegime::Independent;
         if (s.queried2) {
             EOS::REY2P_vapor(s.rho2, s.e2, Y, s.P2);
@@ -151,7 +164,7 @@ ps_cell_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
         EOS::REY2P_vapor(s.rho2, s.e2, Y, s.P2);
         s.host_floored = !ps_guard::phase_pressure_ok(s.P2, Real(0.0));
         s.P2 = ps_guard::sanitize_stock_pressure(s.P2);
-        s.queried1 = q1.exists
+        s.queried1 = s.exists1
                   && ps_regime_reach(s.rg1, s.rho1, s.e1, /*liquid=*/true, pr) == PsRegime::Independent;
         if (s.queried1) {
             EOS::REY2P_liquid(s.rho1, s.e1, Y, s.P1);

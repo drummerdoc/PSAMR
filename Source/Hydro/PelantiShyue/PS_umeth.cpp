@@ -65,14 +65,27 @@ using namespace amrex;
 //  (ρ, e) → state cache absorbs the repeated per-face EOS solves.
 //  Non-finite flux entries are zeroed and counted.
 // ---------------------------------------------------------------------
+//  The momentum slot of direction idir.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int ps_umom_comp(int idir) noexcept
+{
+    return (idir == 0) ? UMX
+#if (AMREX_SPACEDIM >= 2)
+         : (idir == 1) ? UMY
+#endif
+#if (AMREX_SPACEDIM == 3)
+         : UMZ
+#else
+         : UMX
+#endif
+         ;
+}
+
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
-ps_physical_flux_from_state(int idir, const Real U[NVAR], Real F[NVAR],
-                            const PsPres& pr, Real* pmix_out = nullptr) noexcept
+ps_physical_flux(int idir, const Real U[NVAR], const PsCellState& s, Real F[NVAR]) noexcept
 {
-    const PsCellState s = ps_cell_state(U, pr);
-    if (pmix_out != nullptr) *pmix_out = s.P_mix;
     const Real rho     = s.rho;
     Real un = s.ux;
     if      (idir == 1) un = s.uy;
@@ -141,8 +154,8 @@ ps_physical_flux_from_state(int idir, const Real U[NVAR], Real F[NVAR],
 // ---------------------------------------------------------------------
 //  Under ps_wp_order=4 (recon_faces) the two side states are the
 //  reconstructed edge states of PS_recon.H and the face also stores, for
-//  the in-cell term of Pass 3, the phase-energy physical fluxes and the
-//  alpha_k P_mix products of both sides (wpf comps 6..15, see PS_umeth).
+//  the in-cell term of Pass 3, each side's phase-energy physical fluxes,
+//  mixture pressure, alpha_1 and normal velocity (wpf comps 6..15).
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -158,9 +171,11 @@ ps_wp_face_core(int idir, int i, int j, int k,
     using amrex::Real;
     const bool in_valid = vbox.contains(amrex::IntVect(AMREX_D_DECL(i,j,k)));
     Real FL[NVAR], FR[NVAR];
-    Real PL = Real(0.0), PR = Real(0.0);
-    ps_physical_flux_from_state(idir, UL, FL, l_pres, &PL);
-    ps_physical_flux_from_state(idir, UR, FR, l_pres, &PR);
+    const PsCellState sL = ps_cell_state(UL, l_pres);
+    const PsCellState sR = ps_cell_state(UR, l_pres);
+    ps_physical_flux(idir, UL, sL, FL);
+    ps_physical_flux(idir, UR, sR, FR);
+    const Real PL = sL.P_mix, PR = sR.P_mix;
 
     PS_HLLC::Fluctuations flu;
     const bool ok = PS_HLLC::fluctuations(idir, UL, UR, flu, l_pres,
@@ -205,16 +220,7 @@ ps_wp_face_core(int idir, int i, int j, int k,
                 Am[n] = Real(0.5) * dF - half;
                 Ap[n] = Real(0.5) * dF + half;
             }
-            const int mcomp = (idir == 0) ? UMX
-#if (AMREX_SPACEDIM >= 2)
-                            : (idir == 1) ? UMY
-#endif
-#if (AMREX_SPACEDIM == 3)
-                            : UMZ
-#else
-                            : UMX
-#endif
-                            ;
+            const int mcomp = ps_umom_comp(idir);
             const Real rL  = UL[URHO], rR = UR[URHO];
             const Real unL = (rL > Real(0.0)) ? UL[mcomp] / rL : Real(0.0);
             const Real unR = (rR > Real(0.0)) ? UR[mcomp] / rR : Real(0.0);
@@ -280,8 +286,9 @@ ps_wp_face_core(int idir, int i, int j, int k,
         wpf(i,j,k, 4) = ps_finite_or(Am[UE2],     Real(0.0));
         wpf(i,j,k, 5) = ps_finite_or(Ap[UE2],     Real(0.0));
         if (recon_faces) {
-            //  In-cell term ingredients (Stage 3): F[UE_k] of each side
-            //  state, alpha_k P_mix of each side, alpha_1 of each side.
+            //  The in-cell term's ingredients (Pass 3) of each side state:
+            //  F[UE_k] (6..9), P_mix (10, 11), the clamped alpha_1 (12, 13)
+            //  and the normal velocity (14, 15).
             Real aL = UL[UALPHA1], aR = UR[UALPHA1];
             if (aL < Real(0.0)) aL = Real(0.0); if (aL > Real(1.0)) aL = Real(1.0);
             if (aR < Real(0.0)) aR = Real(0.0); if (aR > Real(1.0)) aR = Real(1.0);
@@ -289,28 +296,15 @@ ps_wp_face_core(int idir, int i, int j, int k,
             wpf(i,j,k, 7)  = ps_finite_or(FL[UE2], Real(0.0));
             wpf(i,j,k, 8)  = ps_finite_or(FR[UE1], Real(0.0));
             wpf(i,j,k, 9)  = ps_finite_or(FR[UE2], Real(0.0));
-            wpf(i,j,k, 10) = ps_finite_or(aL * PL, Real(0.0));
-            wpf(i,j,k, 11) = ps_finite_or(aR * PR, Real(0.0));
-            wpf(i,j,k, 12) = ps_finite_or((Real(1.0) - aL) * PL, Real(0.0));
-            wpf(i,j,k, 13) = ps_finite_or((Real(1.0) - aR) * PR, Real(0.0));
-            wpf(i,j,k, 14) = aL;
-            wpf(i,j,k, 15) = aR;
-            //  normal velocity of each side state, for the in-cell
-            //  divergence of the Kapila term
-            const int mcomp = (idir == 0) ? UMX
-#if (AMREX_SPACEDIM >= 2)
-                            : (idir == 1) ? UMY
-#endif
-#if (AMREX_SPACEDIM == 3)
-                            : UMZ
-#else
-                            : UMX
-#endif
-                            ;
+            wpf(i,j,k, 10) = PL;
+            wpf(i,j,k, 11) = PR;
+            wpf(i,j,k, 12) = aL;
+            wpf(i,j,k, 13) = aR;
+            const int mcomp = ps_umom_comp(idir);
             const Real rL = amrex::max(ps_finite_or(UL[URHO], Real(0.0)), Real(ps_const::RHO_MIX_MIN));
             const Real rR = amrex::max(ps_finite_or(UR[URHO], Real(0.0)), Real(ps_const::RHO_MIX_MIN));
-            wpf(i,j,k, 16) = ps_finite_or(UL[mcomp], Real(0.0)) / rL;
-            wpf(i,j,k, 17) = ps_finite_or(UR[mcomp], Real(0.0)) / rR;
+            wpf(i,j,k, 14) = ps_finite_or(UL[mcomp], Real(0.0)) / rL;
+            wpf(i,j,k, 15) = ps_finite_or(UR[mcomp], Real(0.0)) / rR;
         }
     }
 
@@ -326,49 +320,31 @@ ps_wp_face_core(int idir, int i, int j, int k,
     }
 }
 
-//  ps_wp_face: the face from the raw cell averages (ps_wp_order 1, 2).
+//  ps_wp_face: the face between the cells (iL,jL,kL) and (i,j,k) from the
+//  side states read at src(.., cL0 + n) on the left and src(.., cR0 + n)
+//  on the right: the raw cell averages (ps_wp_order 1, 2: src = uin,
+//  cL0 = cR0 = 0) or the reconstructed edge states of PS_RECON::cell_edges
+//  (ps_wp_order=4: src = the per-cell edge store, cL0 = NVAR the high edge
+//  of the left cell, cR0 = 0 the low edge of the right cell).
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
 ps_wp_face(int idir, int i, int j, int k, int iL, int jL, int kL,
-           amrex::Array4<const amrex::Real> const& uin,
+           amrex::Array4<const amrex::Real> const& src, int cL0, int cR0,
            amrex::Array4<amrex::Real> const& flx,
            amrex::Array4<amrex::Real> const& wpf,
            amrex::Array4<amrex::Real> const& wv,
-           bool store_waves,
+           bool store_waves, bool recon_faces,
            amrex::Box vbox,
            const PsPres& l_pres) noexcept
 {
     using amrex::Real;
     Real UL[NVAR], UR[NVAR];
     for (int n = 0; n < NVAR; ++n) {
-        UL[n] = ps_finite_or(uin(iL, jL, kL, n), Real(0.0));
-        UR[n] = ps_finite_or(uin(i,  j,  k,  n), Real(0.0));
+        UL[n] = ps_finite_or(src(iL, jL, kL, cL0 + n), Real(0.0));
+        UR[n] = ps_finite_or(src(i,  j,  k,  cR0 + n), Real(0.0));
     }
-    ps_wp_face_core(idir, i, j, k, UL, UR, flx, wpf, wv, store_waves, false, vbox, l_pres);
-}
-
-//  ps_wp_face_recon: the face from the reconstructed edge states
-//  (ps_wp_order=4): the high edge of the left cell and the low edge of
-//  the right cell, from the per-cell store rq of PS_RECON::cell_edges.
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void
-ps_wp_face_recon(int idir, int i, int j, int k, int iL, int jL, int kL,
-                 amrex::Array4<const amrex::Real> const& rq,
-                 amrex::Array4<amrex::Real> const& flx,
-                 amrex::Array4<amrex::Real> const& wpf,
-                 amrex::Array4<amrex::Real> const& wv,
-                 amrex::Box vbox,
-                 const PsPres& l_pres) noexcept
-{
-    using amrex::Real;
-    Real UL[NVAR], UR[NVAR];
-    for (int n = 0; n < NVAR; ++n) {
-        UL[n] = ps_finite_or(rq(iL, jL, kL, NVAR + n), Real(0.0));
-        UR[n] = ps_finite_or(rq(i,  j,  k,  n),        Real(0.0));
-    }
-    ps_wp_face_core(idir, i, j, k, UL, UR, flx, wpf, wv, false, true, vbox, l_pres);
+    ps_wp_face_core(idir, i, j, k, UL, UR, flx, wpf, wv, store_waves, recon_faces, vbox, l_pres);
 }
 
 // ---------------------------------------------------------------------
@@ -809,7 +785,7 @@ PS_umeth(const Box& bx,
         const bool store_w = o2 || tv;              // need the raw waves?
         const int  wc = store_w ? (3*NVAR + 3) : 1; // wave/speed store width
         const int  fc = o2 ? 3 : 1;                 // Ftilde store {α,UE1,UE2}
-        const int  pc = o4 ? 18 : 6;                // per-face non-conserved store width
+        const int  pc = o4 ? 16 : 6;                // per-face non-conserved store width
         const Real dt_l = dt;
         const int  recon_l = wp_recon;
         const int  taper_l = wp_contact_taper;
@@ -856,36 +832,38 @@ PS_umeth(const Box& bx,
         //      averages along it (PS_recon.H); the faces of the valid box
         //      read the high edge of the left cell and the low edge of the
         //      right cell.  Three ghost cells are read; numGrow() is 4.
-        const amrex::Box rbx = o4 ? amrex::grow(bx, 1) : amrex::Box(amrex::IntVect(0), amrex::IntVect(0));
-        const int rc = o4 ? 2*NVAR : 1;
-        amrex::FArrayBox rq_x_fab(rbx, rc, amrex::The_Async_Arena());
+        const amrex::Box rbx = amrex::grow(bx, 1);
+        amrex::FArrayBox rq_x_fab;
+        if (o4) { rq_x_fab.resize(rbx, 2*NVAR, amrex::The_Async_Arena()); }
         auto const& rq_x = rq_x_fab.array();
 #if (AMREX_SPACEDIM >= 2)
-        amrex::FArrayBox rq_y_fab(rbx, rc, amrex::The_Async_Arena());
+        amrex::FArrayBox rq_y_fab;
+        if (o4) { rq_y_fab.resize(rbx, 2*NVAR, amrex::The_Async_Arena()); }
         auto const& rq_y = rq_y_fab.array();
 #endif
 #if (AMREX_SPACEDIM == 3)
-        amrex::FArrayBox rq_z_fab(rbx, rc, amrex::The_Async_Arena());
+        amrex::FArrayBox rq_z_fab;
+        if (o4) { rq_z_fab.resize(rbx, 2*NVAR, amrex::The_Async_Arena()); }
         auto const& rq_z = rq_z_fab.array();
 #endif
         if (o4) {
             BL_PROFILE_VAR("PS::wp_recon_edges()", ps_wp_recon_prof);
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, l_pres, wpow_l))
+                if (PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, wpow_l, l_pres))
                     ps_guard::count_recon_fallback();
             });
 #if (AMREX_SPACEDIM >= 2)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, l_pres, wpow_l))
+                if (PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, wpow_l, l_pres))
                     ps_guard::count_recon_fallback();
             });
 #endif
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, l_pres, wpow_l))
+                if (PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, wpow_l, l_pres))
                     ps_guard::count_recon_fallback();
             });
 #endif
@@ -898,41 +876,28 @@ PS_umeth(const Box& bx,
         //  EOS-heavy (per-face branch-locked solves).  On a GPU build the
         //  ParallelFors are async, so the timer is meaningful on CPU only.
         BL_PROFILE_VAR("PS::wp_face_riemann()", ps_wp_face_prof);
-        if (o4) {
-            amrex::ParallelFor(xfbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_recon(0, i, j, k, i-1, j, k, rq_x, flx1, wp_fluct_x, wp_wave_x, xfbx, l_pres);
-            });
-#if (AMREX_SPACEDIM >= 2)
-            amrex::ParallelFor(yfbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_recon(1, i, j, k, i, j-1, k, rq_y, flx2, wp_fluct_y, wp_wave_y, yfbx, l_pres);
-            });
-#endif
-#if (AMREX_SPACEDIM == 3)
-            amrex::ParallelFor(zfbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_recon(2, i, j, k, i, j, k-1, rq_z, flx3, wp_fluct_z, wp_wave_z, zfbx, l_pres);
-            });
-#endif
-        } else {
+        //  The side states: the reconstructed edges under order 4 (the
+        //  wave box equals the face box there), the raw averages otherwise.
+        const int cL0 = o4 ? NVAR : 0;
+        const amrex::Array4<const Real> src_x = o4 ? amrex::Array4<const Real>(rq_x) : uin_arr;
         amrex::ParallelFor(wxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            ps_wp_face(0, i, j, k, i-1, j, k, uin_arr, flx1, wp_fluct_x, wp_wave_x, store_w, xfbx, l_pres);
+            ps_wp_face(0, i, j, k, i-1, j, k, src_x, cL0, 0, flx1, wp_fluct_x, wp_wave_x, store_w, o4, xfbx, l_pres);
         });
 #if (AMREX_SPACEDIM >= 2)
+        const amrex::Array4<const Real> src_y = o4 ? amrex::Array4<const Real>(rq_y) : uin_arr;
         amrex::ParallelFor(wybx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            ps_wp_face(1, i, j, k, i, j-1, k, uin_arr, flx2, wp_fluct_y, wp_wave_y, store_w, yfbx, l_pres);
+            ps_wp_face(1, i, j, k, i, j-1, k, src_y, cL0, 0, flx2, wp_fluct_y, wp_wave_y, store_w, o4, yfbx, l_pres);
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
+        const amrex::Array4<const Real> src_z = o4 ? amrex::Array4<const Real>(rq_z) : uin_arr;
         amrex::ParallelFor(wzbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            ps_wp_face(2, i, j, k, i, j, k-1, uin_arr, flx3, wp_fluct_z, wp_wave_z, store_w, zfbx, l_pres);
+            ps_wp_face(2, i, j, k, i, j, k-1, src_z, cL0, 0, flx3, wp_fluct_z, wp_wave_z, store_w, o4, zfbx, l_pres);
         });
 #endif
-        }
         BL_PROFILE_VAR_STOP(ps_wp_face_prof);
 
         // ---- Pass 2: LeVeque limited correction fluxes (docs §3). ----
@@ -955,17 +920,21 @@ PS_umeth(const Box& bx,
                 //  any level (including a uniform trace) keeps the full
                 //  correction, a jump ≥ α_cond drops it, and there is no
                 //  on/off contour to imprint a kink.  docs §3.4.
-                Real wc_keep = Real(1.0);
-                {
-                    const int li = i - ((idir==0)?1:0);
-                    const int lj = j - ((idir==1)?1:0);
-                    const int lk = k - ((idir==2)?1:0);
-                    const Real da = std::abs(uin_arr(li,lj,lk,UALPHA1)
-                                          - uin_arr(i, j, k, UALPHA1));
-                    Real t = da / amrex::max(l_pres.alpha_cond, Real(1.0e-30));
-                    if (t < Real(0.0)) t = Real(0.0);
-                    if (t > Real(1.0)) t = Real(1.0);
-                    wc_keep = Real(1.0) - t*t*(Real(3.0) - Real(2.0)*t);
+                const int oi = (idir == 0) ? 1 : 0;
+                const int oj = (idir == 1) ? 1 : 0;
+                const int ok2 = (idir == 2) ? 1 : 0;
+                const Real wc_keep = PS_RECON::contact_keep(
+                    uin_arr(i-oi, j-oj, k-ok2, UALPHA1) - uin_arr(i, j, k, UALPHA1), l_pres.alpha_cond);
+                //  Reference scales of the limiter's floor (O-32): the face
+                //  mean density, the contact speed and the half spread of
+                //  the acoustic speeds, from the stored waves of this face.
+                Real rho_bar = Real(0.0), vref = Real(0.0);
+                if (!unlim && lim_ref_eps > Real(0.0)) {
+                    rho_bar = Real(0.5) * (uin_arr(i-oi, j-oj, k-ok2, URHO) + uin_arr(i, j, k, URHO));
+                    const Real s_c  = std::abs(wv(i,j,k, 3*NVAR + 1));
+                    const Real c_bar = amrex::max(Real(0.5) * (wv(i,j,k, 3*NVAR + 2)
+                                                              - wv(i,j,k, 3*NVAR + 0)), Real(0.0));
+                    vref = s_c + c_bar;
                 }
                 Real Ft[NVAR];
                 for (int n = 0; n < NVAR; ++n) Ft[n] = Real(0.0);
@@ -997,20 +966,7 @@ PS_umeth(const Box& bx,
                     //  See docs/MODEL_AND_ALGORITHM.md §3.3.
                     Real phi = Real(1.0);
                     if (!unlim) {
-                        const int oi = (idir == 0) ? 1 : 0;
-                        const int oj = (idir == 1) ? 1 : 0;
-                        const int ok2 = (idir == 2) ? 1 : 0;
                         Real wdotw = Real(0.0), wdotu = Real(0.0);
-                        //  Reference scales for the floor (O-32): the face
-                        //  mean density, the contact speed and the half
-                        //  spread of the acoustic speeds, from the stored
-                        //  waves of this face.
-                        const Real rho_bar = Real(0.5) * (uin_arr(i-oi, j-oj, k-ok2, URHO)
-                                                         + uin_arr(i,    j,    k,    URHO));
-                        const Real s_c  = std::abs(wv(i,j,k, 3*NVAR + 1));
-                        const Real c_bar = amrex::max(Real(0.5) * (wv(i,j,k, 3*NVAR + 2)
-                                                                  - wv(i,j,k, 3*NVAR + 0)), Real(0.0));
-                        const Real vref = s_c + c_bar;
                         int ndrop = 0;
                         for (int n = 0; n < NVAR; ++n) {
                             if (n == UTEMP) continue;   // not a wave component
@@ -1228,33 +1184,21 @@ PS_umeth(const Box& bx,
         //  directions, n ∈ {UALPHA1, UE1, UE2}.  Low face of cell i is face
         //  index i (A⁺), high face i+1 (A⁻).  flx is 0 on these slots so
         //  consup adds nothing.
-        //  The in-cell term (ps_wp_order=4, docs/PLAN_high_order.pdf
-        //  section 4): the integral of A(q) q_x over the cell's own
-        //  reconstruction, between the cell's low edge (the R side of its
-        //  low face) and its high edge (the L side of its high face).  For
-        //  alpha it is u_bar (alpha_hi - alpha_lo) with the cell's mean
-        //  velocity; for the phase energies it is the physical-flux
-        //  difference F_k(q_hi) - F_k(q_lo) plus the non-conservative
-        //  product Sigma_1 = -Sigma_2 = -u_bar [Y_2 d(alpha_1 P) - Y_1
-        //  d(alpha_2 P)] with the cell's mean velocity and mass fractions
-        //  (Pelanti-Shyue 2014 eq. 2d at the mixture pressure, H-3).  The
-        //  face values are the ones the fluctuations used, so for a uniform
-        //  velocity the alpha update is the upwind difference of the
-        //  reconstructed edge values and stays consistent with the mass
-        //  update (the Abgrall condition); the cell-mean velocity makes the
-        //  product second order where the velocity varies, which bounds the
-        //  order of the non-conserved slots there (Stage 3 record).
-        //  The alpha term also carries the Kapila term -K (u_hi - u_lo),
-        //  K = alpha_1 alpha_2 (rho_2 c_2^2 - rho_1 c_1^2) / (alpha_1 rho_2
-        //  c_2^2 + alpha_2 rho_1 c_1^2) from the cell's own phase states:
-        //  the face solver's relaxed-alpha star states let the volume
-        //  fraction readjust under the common pressure rise of an acoustic
-        //  wave (each phase strained by its own bulk modulus, MODEL section
-        //  2.3), and the compression that the reconstruction places inside
-        //  the cell needs the same closure or the liquid's density follows
-        //  the mixture's (measured on B12: the liquid compressed like the
-        //  vapour, ratio 0.95 against the 0.25 bound, before this term).
-        //  Zero when a phase is absent or the velocity is uniform.
+        //  The in-cell term (ps_wp_order=4): the integral of A(q) q_x over
+        //  the cell's own reconstruction, between its low edge (the R side
+        //  of its low face) and its high edge (the L side of its high face),
+        //  with the cell's mean velocity u_bar and mass fractions Y_k: for
+        //  alpha, u_bar (alpha_hi - alpha_lo) - K (u_hi - u_lo) with the
+        //  Kapila K = alpha_1 alpha_2 (rho_2 c_2^2 - rho_1 c_1^2) /
+        //  (alpha_1 rho_2 c_2^2 + alpha_2 rho_1 c_1^2) from the cell's own
+        //  phase states (the closure the face solver's star states carry,
+        //  MODEL section 2.3); for the phase energies, F_k(q_hi) - F_k(q_lo)
+        //  plus Sigma_1 = -Sigma_2 = -u_bar [Y_2 d(alpha_1 P) - Y_1
+        //  d(alpha_2 P)] at the mixture pressure (Pelanti-Shyue 2014 eq. 2d,
+        //  H-3).  The edge values are the ones the fluctuations used, so for
+        //  a uniform velocity the alpha update is the upwind difference of
+        //  the edges and consistent with the mass update (the Abgrall
+        //  condition).  docs/PLAN_high_order.pdf section 4, Stage 3.
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
             Real da = Real(0.0), de1 = Real(0.0), de2 = Real(0.0);
@@ -1292,12 +1236,14 @@ PS_umeth(const Box& bx,
             auto incell = [&] (amrex::Array4<amrex::Real> const& w,
                                int li, int lj, int lk, int hi_, int hj, int hk,
                                Real u_bar, Real inv) noexcept {
-                const Real dalpha = w(hi_,hj,hk,14) - w(li,lj,lk,15);
-                const Real du     = w(hi_,hj,hk,16) - w(li,lj,lk,17);
+                const Real aH = w(hi_,hj,hk,12), aL = w(li,lj,lk,13);
+                const Real PH = w(hi_,hj,hk,10), PL = w(li,lj,lk,11);
+                const Real dalpha = aH - aL;
+                const Real du     = w(hi_,hj,hk,14) - w(li,lj,lk,15);
                 const Real dF1    = w(hi_,hj,hk,6)  - w(li,lj,lk,8);
                 const Real dF2    = w(hi_,hj,hk,7)  - w(li,lj,lk,9);
-                const Real da1P   = w(hi_,hj,hk,10) - w(li,lj,lk,11);
-                const Real da2P   = w(hi_,hj,hk,12) - w(li,lj,lk,13);
+                const Real da1P   = ps_finite_or(aH * PH, Real(0.0)) - ps_finite_or(aL * PL, Real(0.0));
+                const Real da2P   = ps_finite_or((Real(1.0) - aH) * PH, Real(0.0)) - ps_finite_or((Real(1.0) - aL) * PL, Real(0.0));
                 const Real sig1   = -u_bar * (Y2b * da1P - Y1b * da2P);
                 da  -= (u_bar * dalpha - Kap * du) * inv;
                 de1 -= (dF1 + sig1) * inv;
