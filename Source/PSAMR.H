@@ -168,6 +168,10 @@ public:
   void rk_store_coarse (amrex::Real time, amrex::Real dt,
                         const amrex::MultiFab& S_old,
                         amrex::Array<amrex::MultiFab,4> const& rkk);
+  //  The repair pass of expand_state (clean_state: the alpha clamp, the
+  //  mass and energy repairs, the density floor, the species) on the
+  //  ghost cells of a stage state, the valid region left untouched.
+  void rk_repair_ghosts (amrex::MultiFab& S);
 
   //
   // Build the old-time source terms on the valid region plus ng ghost cells.
@@ -427,6 +431,7 @@ protected:
       bool have = false;
   };
   RkCoarse4 rk4_crse;
+  amrex::MultiFab rk_interior;   // the valid region kept across the ghost repair
 
   // Non-hydro source terms.
   amrex::Vector<std::unique_ptr<amrex::MultiFab>> old_sources;

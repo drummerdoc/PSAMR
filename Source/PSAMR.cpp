@@ -1924,6 +1924,7 @@ PSAMR::rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
     if (level == 0) {
         S.FillBoundary(geom.periodicity());
         physbcf(S, 0, S.nComp(), S.nGrowVect(), t, 0);
+        rk_repair_ghosts(S);
         return;
     }
     PSAMR& crse = static_cast<PSAMR&>(parent->getLevel(level-1));
@@ -1935,6 +1936,7 @@ PSAMR::rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
         }
         fp->fillRK(stage, iteration, ncycle, S, t, physbcf_crse, physbcf,
                    desc_lst[State_Type].getBCs());
+        rk_repair_ghosts(S);
         return;
     }
     if (!rk4_crse.have || rk4_crse.k[0].boxArray() != crse.grids
@@ -1968,6 +1970,22 @@ PSAMR::rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
                               crse.geom, geom, physbcf_crse, 0, physbcf, 0,
                               parent->refRatio(level-1), desc.interp(0),
                               desc.getBCs(), 0);
+    rk_repair_ghosts(S);
+}
+
+//  The stage ghost cells get the repair pass expand_state gives the first
+//  stage's (18 Nov 2026, the audit's B3): the valid region is kept aside
+//  and put back, so a stage state's interior is what the stage made it.
+void
+PSAMR::rk_repair_ghosts (amrex::MultiFab& S)
+{
+    BL_PROFILE("PSAMR::rk_repair_ghosts()");
+    if (!rk_interior.ok() || rk_interior.boxArray() != grids || rk_interior.DistributionMap() != dmap) {
+        rk_interior.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+    }
+    amrex::MultiFab::Copy(rk_interior, S, 0, 0, NVAR, 0);
+    clean_state(S, S.nGrow(), false);
+    amrex::MultiFab::Copy(S, rk_interior, 0, 0, NVAR, 0);
 }
 
 void
