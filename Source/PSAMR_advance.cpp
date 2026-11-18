@@ -77,9 +77,6 @@ PSAMR::PSAMR_advance (Real time,
 {
     BL_PROFILE("PSAMR::PSAMR_advance()");
 
-    amrex::ignore_unused(amr_iteration);
-    amrex::ignore_unused(amr_ncycle);
-
     Real dt_new = dt;
 
     int finest_level = parent->finestLevel();
@@ -122,14 +119,10 @@ PSAMR::PSAMR_advance (Real time,
     //     (ps_apply_relaxation, the whole mechanical/thermal/mass-transfer
     //     kernel selected by ps_relax_mode); 0 = frozen, for no-relaxation
     //     tests.
-    //   PSAMR.ps_strang (0; 1 under ps_wp_order=4): 0 = Lie (full-step
-    //     reaction after hydro, first order in time); 1 = Strang (half
-    //     steps before and after hydro, second order; needed to keep
-    //     do_mol=1 second order with relaxation/sources on).  The
-    //     order-4 path defaults to Strang with the stage projection
-    //     (Marc's decision, 16 Nov 2026; docs/PLAN_high_order.pdf
-    //     Stage 4): Strang is the more accurate splitting at every step
-    //     and mirror-symmetric only with the projection.
+    //   PSAMR.ps_strang (0; 1 under the order-4 configuration, 0 under
+    //     ps_imex=3): 0 = Lie (the whole reaction step after the hydro,
+    //     first order in time); 1 = Strang (half steps before and after,
+    //     second order with do_mol=1).  DESIGN H-8.
     //   PSAMR.ps_class_compact (1): the launch form of the reaction step's
     //     per-cell operators (PS_classes.H): 1 = one class pass and one
     //     compact launch per operator over the admitted cells only; 0 = the
@@ -155,64 +148,47 @@ PSAMR::PSAMR_advance (Real time,
 #endif
         return v;
     }();
-    //   The order-4 default of the two splitting dials: read without
-    //   adding back, PS_umeth.cpp owns and validates ps_wp_order.
+    //   The default of the two splitting dials under the order-4
+    //   configuration (ps_wp_order=4 with rk_order=3; the dial read without
+    //   adding back, PS_umeth.cpp owns and validates ps_wp_order).
     static const int ps_order4_default = []() -> int {
         int wpo = 2; amrex::ParmParse("PSAMR").query("ps_wp_order", wpo);
-        return (wpo == 4) ? 1 : 0; }();
-    //   PSAMR.ps_rk_project (0; 1 under ps_wp_order=4): under rk_order=3,
-    //     1 = each Runge-Kutta
-    //     stage state is folded, mass-resynced and projected onto
-    //     mechanical equilibrium (ps_apply_mechanical_projection, the
-    //     constraint part of the relaxation operator) before it feeds the
-    //     next stage, so every stage is a convex combination of
-    //     admissible forward Euler steps (docs/PLAN_high_order.pdf section
-    //     4.3, Stage 4); the finite-rate legs stay in the reaction step
-    //     (Strang halves under ps_strang=1, one Lie step under 0).  0 = the
-    //     stages carry the fold only (the Stage 1-3 behaviour).  Default 1
-    //     with ps_strang under ps_wp_order=4 (see ps_strang above); set
-    //     either to 0 explicitly to recover the Stage 1-3 behaviour.
+        return (wpo == 4 && rk_order == 3) ? 1 : 0; }();
+    //   PSAMR.ps_rk_project (0; 1 under the order-4 configuration): under
+    //     rk_order=3, 1 = each stage state is folded, mass-resynced and
+    //     projected onto mechanical equilibrium before it feeds the next
+    //     stage (every stage a convex combination of admissible forward
+    //     Euler steps; DESIGN H-8); 0 = the stages carry the fold only.
     static const int ps_rk_project_cached = []() -> int {
         const int v = ps_dial_int("ps_rk_project", ps_order4_default);
         if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project must be 0 or 1"); }
         return v; }();
     //   PSAMR.ps_rk_project_tol (1e-10): the stage projection's Newton
-    //     stopping tolerance on |P1-P2|/max(P1,P2); the X3F residual
-    //     tolerance by default, so the stage state sits on the constraint
-    //     to the precision the production operator solves it (the mode-0
-    //     kernel's 1e-4 floored the Stage 4 self-convergence at 3e-5 of
-    //     P; docs/PLAN_high_order.pdf, follow-up 1).  1e-4 recovers the
-    //     Stage 4 behaviour for A/B.
+    //     stopping tolerance on |P1-P2|/max(P1,P2), the X3F residual
+    //     tolerance by default (the mode-0 kernel's own 1e-4 floors the
+    //     self-convergence; docs/PLAN_high_order.pdf follow-up 1).
     static const amrex::Real ps_rk_project_tol_cached = []() -> amrex::Real {
         const amrex::Real v = ps_dial_real("ps_rk_project_tol", amrex::Real(1.0e-10));
         if (!(v > amrex::Real(0.0)) || v >= amrex::Real(1.0)) {
             amrex::Abort("PSAMR.ps_rk_project_tol must lie in (0, 1)");
         }
         return v; }();
-    //   PSAMR.ps_imex (0): 3 = IMEX-SSP3(4,3,3) (Pareschi-Russo 2005,
-    //     Table 6; docs/PLAN_high_order.pdf follow-up 4, step B): the
-    //     finite-rate terms inside the Runge-Kutta stages as backward-Euler
-    //     solves of the X3F kernel, the explicit part SSPRK(3,3) behind a
-    //     dummy first stage, the stage transfers combined in the reaction
-    //     step with a per-cell fallback to the present operator, the flash
-    //     once after the combination.  Needs do_mol=1, rk_order=3,
-    //     rk_stages=3, ps_rk_project=1, ps_relax_mode 6 or 0 with a finite
-    //     ps_theta_tau; sets ps_strang=0 (an explicit 1 aborts).  Under
-    //     ps_do_relax=0 the stages carry the projection only (as the
-    //     SSPRK stages do) and the reaction step applies no operator, so
-    //     a no-relaxation deck runs the explicit part in its Butcher form.
-    //     0 = the rate terms outside the stages (Strang or Lie per
-    //     ps_strang).
+    //   PSAMR.ps_imex (0): 3 = the IMEX pairing IMEX-SSP3(4,3,3): the X3F
+    //     kernel's backward-Euler solves inside the stages, the stage
+    //     transfers combined in the reaction step with a per-cell fallback,
+    //     the flash once after (MODEL 5.1, DESIGN R-18).  Needs do_mol=1,
+    //     rk_order=3, rk_stages=3, ps_rk_project=1, ps_hydro=1 and
+    //     ps_relax_mode 6 (a finite ps_theta_tau) or 0; sets ps_strang=0.
+    //     Under ps_do_relax=0 the stages carry the projection only.
     static const int ps_imex_cached = [&]() -> int {
         const int v = ps_dial_int("ps_imex", 0);
         if (v != 0 && v != 3) { amrex::Abort("PSAMR.ps_imex must be 0 or 3 (IMEX-SSP3(4,3,3))"); }
         if (v == 3) {
             amrex::ParmParse pp("PSAMR");
-            int rks = 3; pp.query("rk_stages", rks);
             int sv = 0;  pp.query("ps_strang", sv);
             const int mode = ps_relax_mode();
-            if (do_mol == 0 || rk_order != 3 || rks != 3) {
-                amrex::Abort("PSAMR.ps_imex=3 needs do_mol=1, rk_order=3 and rk_stages=3 (the explicit part is SSPRK(3,3))");
+            if (do_mol == 0 || rk_order != 3 || rk_stages != 3 || ps_hydro == 0) {
+                amrex::Abort("PSAMR.ps_imex=3 needs do_mol=1, rk_order=3, rk_stages=3 and ps_hydro=1 (the explicit part is SSPRK(3,3))");
             }
             if (ps_rk_project_cached != 1) { amrex::Abort("PSAMR.ps_imex=3 needs ps_rk_project=1"); }
             if (mode != 6 && mode != 0) { amrex::Abort("PSAMR.ps_imex=3 needs ps_relax_mode 6 or 0 (modes 2 and 5 are not backward-Euler stage solves)"); }
@@ -566,11 +542,8 @@ PSAMR::PSAMR_advance (Real time,
         }
 #endif
     };
-    //  The IMEX stage transfers (q, dm per stage), the per-cell stage
-    //  status and the final weights b_j / alpha (ps_imex=3; defined by the
-    //  stage loop below, consumed by the reaction step).
-    amrex::MultiFab  imex_D;
-    amrex::iMultiFab imex_st;
+    //  The IMEX final weights b_j / alpha (ps_imex=3), set by the stage loop
+    //  and consumed by the reaction step with the stage transfers imex_D.
     amrex::GpuArray<amrex::Real,4> imex_bw = {0.0, 0.0, 0.0, 0.0};
     auto apply_ps_reaction = [&](amrex::MultiFab& S, amrex::Real dt_r,
                                  int ng, bool do_print) {
@@ -673,236 +646,139 @@ PSAMR::PSAMR_advance (Real time,
     // Initialize the new-time data.
     MultiFab::Copy(S_new, Sborder, 0, 0, NVAR, S_new.nGrow());
 
-    // Build sources at t_old, then add them to S_new.
+    // Build sources at t_old, then add them to S_new (under rk_order=3 the
+    // stages build them on every stage state instead).
     //
     // The Godunov hydro reads these sources (via sources_for_hydro --> srcQ) in
     // the ghost cells as well, so we must build them over the full numGrow()
     // footprint, using Sborder since the state itself carries no ghost cells.
     // The MOL hydro never builds srcQ, so there we only need the valid region.
-    int ng_src = (do_mol) ? 0 : numGrow();
-    for (int n = 0; n < src_list.size(); ++n) {
-        construct_old_source(src_list[n], Sborder, time, dt, ng_src);
-        MultiFab::Saxpy(S_new, dt, *old_sources[src_list[n]], 0, 0, NVAR, 0);
+    if (!(do_mol && rk_order == 3)) {
+        const int ng_src = (do_mol) ? 0 : numGrow();
+        for (int n = 0; n < src_list.size(); ++n) {
+            construct_old_source(src_list[n], Sborder, time, dt, ng_src);
+            MultiFab::Saxpy(S_new, dt, *old_sources[src_list[n]], 0, 0, NVAR, 0);
+        }
     }
 
     //
     // Now build and add the hydro source term(s) to S_new
     //
-    //   PSAMR.rk_stages (3): 4 = SSPRK(4,3) in place of SSPRK(3,3) under
-    //     rk_order=3 (PSAMR.cpp validates; docs/PLAN_high_order.pdf
-    //     follow-up 6).
-    static const int rk_stages_cached = ps_dial_int("rk_stages", 3);
-    if (do_mol && rk_order == 3 && rk_stages_cached == 3) {
-        // SSPRK(3,3), Shu-Osher form, on the method-of-lines hydro with the
-        // old-time sources rebuilt on every stage state (so the "new source"
-        // correction below does not apply).  Stage ghost cells come from
-        // rk_fill: the coarse level's stored stages through
-        // FillPatcher::fillRK, the physical BCs at the stage time.  The
-        // vanished-phase fold is applied to the stage states as the Heun
-        // path applies it to its intermediate.  docs/PLAN_high_order.pdf
-        // section 4.3.
-        amrex::Array<amrex::MultiFab,3> rkk;
-        for (auto& k : rkk) {
-            k.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
+    if (do_mol && rk_order == 3) {
+        //  SSPRK(3,3) (Shu-Osher), SSPRK(4,3) (Spiteri-Ruuth, rk_stages=4) and
+        //  the IMEX pairing (ps_imex=3, its explicit part SSPRK(3,3)) as one
+        //  loop over a stage table: stage s evaluates k_s = L(S_new) on the
+        //  stage state with its ghost cells filled at t_s (rk_fill), then
+        //  S_new <- a_s S_old + b_s (S_new + c_s dt k_s), then the post-stage
+        //  map, the fold with the mass resync and the mechanical projection
+        //  under ps_rk_project (every stage a convex combination of
+        //  admissible forward Euler steps, DESIGN H-8) or the next IMEX stage
+        //  solve; the last stage is left to the reaction step.  The flux
+        //  registers take the stage weights; the old-time sources are
+        //  rebuilt on every stage state.  docs/PLAN_high_order.pdf sections
+        //  4.3 and 4.4, follow-ups 4 and 6.
+        struct Stage { amrex::Real a, b, c, t; };
+        static const Stage tab3[3] = { {0.0, 1.0, 1.0, 0.0}, {0.75, 0.25, 1.0, 1.0}, {1.0/3.0, 2.0/3.0, 1.0, 0.5} };
+        static const Stage tab4[4] = { {0.0, 1.0, 0.5, 0.0}, {0.0, 1.0, 0.5, 0.5}, {2.0/3.0, 1.0/3.0, 0.5, 1.0}, {0.0, 1.0, 0.5, 0.5} };
+        static const amrex::Real wgt3[3] = { 1.0/6.0, 1.0/6.0, 2.0/3.0 };
+        static const amrex::Real wgt4[4] = { 1.0/6.0, 1.0/6.0, 1.0/6.0, 0.5 };
+        const int ns = rk_stages;
+        const Stage* tab = (ns == 4) ? tab4 : tab3;
+        const amrex::Real* wgt = (ns == 4) ? wgt4 : wgt3;
+        auto fresh = [&](auto const& mf) { return !mf.ok() || mf.boxArray() != grids || mf.DistributionMap() != dmap; };
+        amrex::MultiFab* rkk[4] = { nullptr, nullptr, nullptr, nullptr };
+        for (int s = 0; s < ns; ++s) {
+            amrex::MultiFab& k = (ns == 4) ? rk_k4[s] : rk_k3[s];
+            if (fresh(k)) { k.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory()); }
+            rkk[s] = &k;
         }
-        const amrex::Real wgt[3] = { amrex::Real(1.0/6.0), amrex::Real(1.0/6.0),
-                                     amrex::Real(2.0/3.0) };
         auto rhs = [&](int s, amrex::MultiFab& Sb, amrex::Real t) {
-            rk_reflux_fac = wgt[s-1];
-            construct_hydro_source(Sb, rkk[s-1], t, dt);
-            rk_reflux_fac = amrex::Real(-1.0);
+            construct_hydro_source(Sb, *rkk[s], t, dt, wgt[s]);
             for (int n = 0; n < src_list.size(); ++n) {
                 construct_old_source(src_list[n], Sb, t, dt, 0);
-                MultiFab::Add(rkk[s-1], *old_sources[src_list[n]], 0, 0, NVAR, 0);
+                MultiFab::Add(*rkk[s], *old_sources[src_list[n]], 0, 0, NVAR, 0);
             }
         };
-        //  The per-stage post-processing Pi: the vanished-phase fold, and
-        //  under ps_rk_project=1 the mixture-mass resync and the mechanical
-        //  equilibrium projection (the final stage is left to the reaction
-        //  step, which applies the whole operator).
-        auto fold = [&](amrex::MultiFab& S) {
+        bool imex = false;
 #ifdef USE_PS_HYDRO
-            if (ps_hydro != 0) {
-                ps_apply_vanish_fold(S, 0);
-                if (ps_rk_project_cached != 0) {
-                    ps_resync_mixture_mass(S, 0);
-                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);
-                }
+        imex = (ps_imex_cached == 3 && ps_hydro != 0);
+        //  IMEX-SSP3(4,3,3) (Pareschi-Russo 2005, Table 6) in Shu-Osher form:
+        //  four backward-Euler solves of the kernel over alpha dt, the first
+        //  two on the old state, the others on the SSPRK(3,3) stage bases
+        //  formed from the relaxed stage states; the kernel's offsets on the
+        //  earlier stages' transfers D_j are the tableau's a_ij/alpha
+        //  rewritten for those bases (a stage state carries its own implicit
+        //  content, which the rewrite subtracts); the final weights likewise.
+        //  The transfers never form a grid state.  DESIGN R-18.
+        constexpr amrex::Real al = amrex::Real(0.24169426078821);
+        constexpr amrex::Real be = amrex::Real(0.06042356519705);
+        constexpr amrex::Real et = amrex::Real(0.12915286960590);
+        constexpr amrex::Real a43 = amrex::Real(0.5) - be - et - al;
+        const amrex::Real w6 = amrex::Real(1.0) / (amrex::Real(6.0) * al);
+        const amrex::Real t23 = amrex::Real(2.0/3.0);
+        const amrex::GpuArray<amrex::Real,4> coff[5] = {
+            { amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0) },
+            { amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0) },                       // stage 1: no earlier stage
+            { amrex::Real(-1.0), amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0) },                      // stage 2 on U^n: -D_1
+            { amrex::Real(1.0), (amrex::Real(1.0) - amrex::Real(2.0) * al) / al, amrex::Real(0.0), amrex::Real(0.0) },   // stage 3 on U_2 + dt k_2
+            { be / al, et / al - (amrex::Real(1.0) - al) / (amrex::Real(4.0) * al), a43 / al - amrex::Real(0.25), amrex::Real(0.0) } };   // stage 4 on 3/4 U^n + 1/4 (U_3 + dt k_3)
+        if (imex) {
+            imex_bw = { -t23 * be / al, w6 - t23 * et / al, w6 - t23 * a43 / al, amrex::Real(4.0) * w6 - t23 };   // the final on 1/3 U^n + 2/3 (U_4 + dt k_4)
+            if (fresh(imex_D))  { imex_D.define(grids, dmap, 8, 0, amrex::MFInfo(), Factory()); }
+            if (fresh(imex_st)) { imex_st.define(grids, dmap, 1, 0); }
+            imex_st.setVal(0);
+        }
+        auto imex_stage = [&](int s) {
+            ps_apply_vanish_fold(S_new, 0);
+            ps_resync_mixture_mass(S_new, 0);
+            if (ps_do_relax_cached != 0) {
+                ps_apply_imex_stage(S_new, imex_D, imex_st, s, coff[s], al * dt, ps_rk_project_tol_cached);
+            } else {
+                ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
+            }
+        };
+#endif
+        auto post = [&](int s) {
+#ifdef USE_PS_HYDRO
+            if (ps_hydro == 0) return;
+            if (imex) { imex_stage(s + 3); return; }
+            ps_apply_vanish_fold(S_new, 0);
+            if (ps_rk_project_cached != 0) {
+                ps_resync_mixture_mass(S_new, 0);
+                ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
             }
 #else
-            amrex::ignore_unused(S);
+            amrex::ignore_unused(s);
 #endif
         };
+        MultiFab::Copy(S_new, S_old, 0, 0, NVAR, 0);
 #ifdef USE_PS_HYDRO
-        if (ps_imex_cached == 3 && ps_hydro != 0) {
-            //  IMEX-SSP3(4,3,3) (Pareschi-Russo 2005, Table 6;
-            //  docs/PLAN_high_order.pdf follow-up 4, step B), in Shu-Osher
-            //  form.  The explicit part is SSPRK(3,3) behind a dummy first
-            //  stage, so the hydro is evaluated at the stage times, with
-            //  the flux-register weights and the coarse-fine stage fill of
-            //  SSPRK(3,3).  The implicit part is four backward-Euler solves
-            //  of the X3F kernel over alpha dt (ps_apply_imex_stage), each
-            //  from a base that is a convex combination of the old state
-            //  and forward Euler steps of admissible stage states (folded
-            //  and mass-resynced as the SSPRK stages are), with the earlier
-            //  stages' transfers D_j as constants in the rate residuals; the
-            //  offset factors are the tableau's a_ij / alpha rewritten for
-            //  these bases (the stage state U_j already carries its own
-            //  implicit content, which the rewrite subtracts).  The final
-            //  combination applies the stage transfers in the reaction
-            //  step (ps_apply_imex_final, the per-cell fallback), the flash
-            //  after it.  The stage transfers never form a grid state.  In
-            //  Butcher form (built first) the bases U^n + dt sum a~_ij k_j
-            //  are not convex combinations of the projected stage states
-            //  and XC2D, which runs no relaxation, moved 0.46 of its level-0
-            //  velocity range from the SSPRK(3,3) stepping in 40 steps (the
-            //  derivative at the projected state added to the unprojected
-            //  base); in this form 3e-2, which is the projection of the old
-            //  state before the first hydro evaluation (every stage state on
-            //  the manifold) against the SSPRK path's raw old state, left off
-            //  the manifold when the reaction step applies no operator.
-            constexpr amrex::Real al = amrex::Real(0.24169426078821);
-            constexpr amrex::Real be = amrex::Real(0.06042356519705);
-            constexpr amrex::Real et = amrex::Real(0.12915286960590);
-            constexpr amrex::Real a43 = amrex::Real(0.5) - be - et - al;    // a_43 of the implicit tableau
-            //  Stage 2 base U^n: offset a_21/alpha = -1 on D_1.
-            const amrex::GpuArray<amrex::Real,4> c2 = { amrex::Real(-1.0), amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0) };
-            //  Stage 3 base U_2 + dt k_2 = U^n + dt k_2 + (-D_1 + D_2): offsets 1 on D_1 and (1 - 2 alpha)/alpha on D_2.
-            const amrex::GpuArray<amrex::Real,4> c3 = { amrex::Real(1.0), (amrex::Real(1.0) - amrex::Real(2.0) * al) / al, amrex::Real(0.0), amrex::Real(0.0) };
-            //  Stage 4 base 3/4 U^n + 1/4 (U_3 + dt k_3): offsets beta/alpha, eta/alpha - (1 - alpha)/(4 alpha), a_43/alpha - 1/4.
-            const amrex::GpuArray<amrex::Real,4> c4 = { be / al, et / al - (amrex::Real(1.0) - al) / (amrex::Real(4.0) * al), a43 / al - amrex::Real(0.25), amrex::Real(0.0) };
-            //  Final base 1/3 U^n + 2/3 (U_4 + dt k_4): weights b_j/alpha less 2/3 of U_4's implicit content.
-            const amrex::Real w6 = amrex::Real(1.0) / (amrex::Real(6.0) * al);
-            const amrex::Real t23 = amrex::Real(2.0/3.0);
-            imex_bw = { -t23 * be / al, w6 - t23 * et / al, w6 - t23 * a43 / al, amrex::Real(4.0) * w6 - t23 };
-            imex_D.define(grids, dmap, 8, 0, amrex::MFInfo(), Factory());
-            imex_D.setVal(amrex::Real(0.0));
-            imex_st.define(grids, dmap, 1, 0);
-            imex_st.setVal(0);
-            auto stage = [&](amrex::MultiFab& S, int s, amrex::GpuArray<amrex::Real,4> const& c) {
-                ps_apply_vanish_fold(S, 0);
-                ps_resync_mixture_mass(S, 0);
-                if (ps_do_relax_cached != 0) {
-                    ps_apply_imex_stage(S, imex_D, imex_st, s, c, al * dt, ps_rk_project_tol_cached);
-                } else {
-                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);   // no rate terms: the SSPRK stage's own projection
-                }
-            };
-            // Stage 1: U_1 = BE(U^n), no hydro (b~_1 = 0 and a~_i1 = 0).
-            MultiFab::Copy(S_new, S_old, 0, 0, NVAR, 0);
-            stage(S_new, 1, c2);
-            // Stage 2 at t: the base U^n, the offset -D_1.
-            MultiFab::Copy(S_new, S_old, 0, 0, NVAR, 0);
-            stage(S_new, 2, c2);
-            MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-            rk_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle);
-            rhs(1, Sborder, prev_time);                                   // k_2 = L(U_2)
-            // Stage 3 at t + dt: the base U_2 + dt k_2.
-            MultiFab::Saxpy(S_new, dt, rkk[0], 0, 0, NVAR, 0);
-            stage(S_new, 3, c3);
-            MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-            rk_fill(Sborder, prev_time + dt, 2, amr_iteration, amr_ncycle);
-            rhs(2, Sborder, prev_time + dt);                               // k_3 = L(U_3)
-            // Stage 4 at t + dt/2: the base 3/4 U^n + 1/4 (U_3 + dt k_3).
-            MultiFab::Saxpy(S_new, dt, rkk[1], 0, 0, NVAR, 0);
-            S_new.mult(amrex::Real(0.25), 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, amrex::Real(0.75), S_old, 0, 0, NVAR, 0);
-            stage(S_new, 4, c4);
-            MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-            rk_fill(Sborder, prev_time + amrex::Real(0.5)*dt, 3, amr_iteration, amr_ncycle);
-            rhs(3, Sborder, prev_time + amrex::Real(0.5)*dt);             // k_4 = L(U_4)
-            // The explicit final combination 1/3 U^n + 2/3 (U_4 + dt k_4);
-            // the stage transfers and the flash follow in the reaction step.
-            MultiFab::Saxpy(S_new, dt, rkk[2], 0, 0, NVAR, 0);
-            S_new.mult(amrex::Real(2.0/3.0), 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, amrex::Real(1.0/3.0), S_old, 0, 0, NVAR, 0);
-        } else
+        if (imex) {
+            //  Stages 1 and 2 on the old state (no hydro: b~_1 = 0, a~_i1 = 0);
+            //  stage 1 only where it can produce a transfer.
+            if (ps_do_relax_cached != 0 && ps_relax_mode() == 6) {
+                imex_stage(1);
+                MultiFab::Copy(S_new, S_old, 0, 0, NVAR, 0);
+            }
+            imex_stage(2);
+        }
 #endif
-        {
-        // Stage 1 on the old state.  Sborder holds S_old with FillPatch
-        // ghosts; on a fine level replace the coarse-fine ghosts by the
-        // RK-consistent ones.
-        if (level > 0) { rk_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle); }
-        rhs(1, Sborder, prev_time);
-        MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
-        MultiFab::Saxpy(S_new, dt, rkk[0], 0, 0, NVAR, 0);           // S1 = S0 + dt k1
-        fold(S_new);
-        // Stage 2 at t + dt
-        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-        rk_fill(Sborder, prev_time + dt, 2, amr_iteration, amr_ncycle);
-        rhs(2, Sborder, prev_time + dt);
-        MultiFab::Saxpy(S_new, dt, rkk[1], 0, 0, NVAR, 0);           // S1 + dt k2
-        S_new.mult(amrex::Real(0.25), 0, NVAR, 0);
-        MultiFab::Saxpy(S_new, amrex::Real(0.75), S_old, 0, 0, NVAR, 0); // S2 = 3/4 S0 + 1/4 (S1 + dt k2)
-        fold(S_new);
-        // Stage 3 at t + dt/2
-        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-        rk_fill(Sborder, prev_time + amrex::Real(0.5)*dt, 3, amr_iteration, amr_ncycle);
-        rhs(3, Sborder, prev_time + amrex::Real(0.5)*dt);
-        MultiFab::Saxpy(S_new, dt, rkk[2], 0, 0, NVAR, 0);           // S2 + dt k3
-        S_new.mult(amrex::Real(2.0/3.0), 0, NVAR, 0);
-        MultiFab::Saxpy(S_new, amrex::Real(1.0/3.0), S_old, 0, 0, NVAR, 0); // S3 = 1/3 S0 + 2/3 (S2 + dt k3)
+        for (int s = 0; s < ns; ++s) {
+            const amrex::Real ts = prev_time + tab[s].t * dt;
+            //  Sborder holds the old state with its FillPatch ghosts; a later
+            //  stage (or the relaxed old state under IMEX) replaces its valid
+            //  region, and the coarse-fine ghosts come from rk_fill.
+            if (s > 0 || imex) { MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0); }
+            if (s > 0 || imex || level > 0) { rk_fill(Sborder, ts, s + 1, amr_iteration, amr_ncycle); }
+            rhs(s, Sborder, ts);
+            MultiFab::Saxpy(S_new, tab[s].c * dt, *rkk[s], 0, 0, NVAR, 0);
+            if (tab[s].b != amrex::Real(1.0)) { S_new.mult(tab[s].b, 0, NVAR, 0); }
+            if (tab[s].a != amrex::Real(0.0)) { MultiFab::Saxpy(S_new, tab[s].a, S_old, 0, 0, NVAR, 0); }
+            if (s < ns - 1) { post(s); }
         }
         // The next finer level's stage ghosts come from these.
-        rk_store_coarse(prev_time, dt, S_old, rkk);
-
-    } else if (do_mol && rk_order == 3) {
-        // SSPRK(4,3) (Spiteri-Ruuth), the four-stage third-order scheme
-        // with SSP coefficient 2: stages at t, t + dt/2, t + dt, t + dt/2,
-        // flux-register weights 1/6, 1/6, 1/6, 1/2.  Same operator, same
-        // per-stage fold and projection as above; the coarse-fine stage
-        // ghosts from rk4_fill.  docs/PLAN_high_order.pdf follow-up 6.
-        amrex::Array<amrex::MultiFab,4> rkk;
-        for (auto& k : rkk) {
-            k.define(grids, dmap, NVAR, 0, amrex::MFInfo(), Factory());
-        }
-        const amrex::Real wgt[4] = { amrex::Real(1.0/6.0), amrex::Real(1.0/6.0),
-                                     amrex::Real(1.0/6.0), amrex::Real(0.5) };
-        auto rhs = [&](int s, amrex::MultiFab& Sb, amrex::Real t) {
-            rk_reflux_fac = wgt[s-1];
-            construct_hydro_source(Sb, rkk[s-1], t, dt);
-            rk_reflux_fac = amrex::Real(-1.0);
-            for (int n = 0; n < src_list.size(); ++n) {
-                construct_old_source(src_list[n], Sb, t, dt, 0);
-                MultiFab::Add(rkk[s-1], *old_sources[src_list[n]], 0, 0, NVAR, 0);
-            }
-        };
-        auto fold = [&](amrex::MultiFab& S) {
-#ifdef USE_PS_HYDRO
-            if (ps_hydro != 0) {
-                ps_apply_vanish_fold(S, 0);
-                if (ps_rk_project_cached != 0) {
-                    ps_resync_mixture_mass(S, 0);
-                    ps_apply_mechanical_projection(S, 0, ps_rk_project_tol_cached);
-                }
-            }
-#else
-            amrex::ignore_unused(S);
-#endif
-        };
-        const amrex::Real hdt = amrex::Real(0.5) * dt;
-        if (level > 0) { rk4_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle); }
-        rhs(1, Sborder, prev_time);
-        MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
-        MultiFab::Saxpy(S_new, hdt, rkk[0], 0, 0, NVAR, 0);          // S1 = S0 + dt/2 k1
-        fold(S_new);
-        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-        rk4_fill(Sborder, prev_time + hdt, 2, amr_iteration, amr_ncycle);
-        rhs(2, Sborder, prev_time + hdt);
-        MultiFab::Saxpy(S_new, hdt, rkk[1], 0, 0, NVAR, 0);          // S2 = S1 + dt/2 k2
-        fold(S_new);
-        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-        rk4_fill(Sborder, prev_time + dt, 3, amr_iteration, amr_ncycle);
-        rhs(3, Sborder, prev_time + dt);
-        MultiFab::Saxpy(S_new, hdt, rkk[2], 0, 0, NVAR, 0);          // S2 + dt/2 k3
-        S_new.mult(amrex::Real(1.0/3.0), 0, NVAR, 0);
-        MultiFab::Saxpy(S_new, amrex::Real(2.0/3.0), S_old, 0, 0, NVAR, 0); // S3 = 2/3 S0 + 1/3 (S2 + dt/2 k3)
-        fold(S_new);
-        MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
-        rk4_fill(Sborder, prev_time + hdt, 4, amr_iteration, amr_ncycle);
-        rhs(4, Sborder, prev_time + hdt);
-        MultiFab::Saxpy(S_new, hdt, rkk[3], 0, 0, NVAR, 0);          // S4 = S3 + dt/2 k4
-        rk4_store_coarse(dt, S_old, rkk);
+        if (ns == 4) { rk_store_coarse(prev_time, dt, S_old, rk_k4); }
+        else         { rk_store_coarse(prev_time, dt, S_old, rk_k3); }
 
     } else if (do_mol) {
         construct_hydro_source(Sborder, hydro_source, time, dt);

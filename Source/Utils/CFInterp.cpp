@@ -38,10 +38,10 @@ void quartic_limited_cell (int ic, int jc, int kc, int n,
     // and the pair average is q_c exactly.  AMReX's own evaluation
     // leaves a round-off asymmetry on uniform data, which the 2-D
     // scheme amplified on the T-Blowdown tube (Stage 2b record).
-    // Stage 1 (z then y then x in 3-D; y then x in 2-D; x in 1-D):
-    // at each stage the pair (low, high) = (c + d, c - d) with d from the
+    // The sweep (z then y then x in 3-D; y then x in 2-D; x in 1-D):
+    // at each direction the pair (low, high) = (c + d, c - d) with d from the
     // five values along that direction, applied to the values the
-    // previous stage produced.
+    // previous direction produced.
     Real v[NF];
     {
 #if (AMREX_SPACEDIM == 3)
@@ -65,18 +65,15 @@ void quartic_limited_cell (int ic, int jc, int kc, int n,
                 cy[ii+2][1][kz] = q0 - d;
             }
         }
-        int m = 0;
         for (int kz = 0; kz < 2; ++kz) {
             for (int ky = 0; ky < 2; ++ky) {
                 const Real q0 = cy[2][ky][kz];
                 const Real d  = dev1(cy[0][ky][kz], cy[1][ky][kz], q0, cy[3][ky][kz], cy[4][ky][kz]);
-                // m ordering must match the write loop: kk outer, jj, ii inner
+                // the index order must match the write loop: kk outer, jj, ii inner
                 v[(kz*2 + ky)*2 + 0] = q0 + d;
                 v[(kz*2 + ky)*2 + 1] = q0 - d;
-                ++m;
             }
         }
-        amrex::ignore_unused(m);
 #elif (AMREX_SPACEDIM == 2)
         Real cy[5][2];      // [ii][ky]
         for (int ii = -2; ii <= 2; ++ii) {

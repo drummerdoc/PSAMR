@@ -15,7 +15,8 @@ void
 PSAMR::construct_hydro_source (const MultiFab& S,
                               MultiFab& src_to_fill,
                               Real /*time*/,
-                              Real dt)
+                              Real dt,
+                              Real reflux_fac)
 {
     BL_PROFILE("PSAMR::construct_hydro_source()");
     src_to_fill.setVal(0);
@@ -36,10 +37,10 @@ PSAMR::construct_hydro_source (const MultiFab& S,
         }
     }
 
-    // Per-stage weight under rk_order=3 (set by the advance), else the
-    // two-stage Heun half or the single-step whole.
-    Real fac_for_reflux = (rk_reflux_fac >= Real(0.0)) ? rk_reflux_fac
-                        : ((do_mol) ? Real(0.5) : Real(1.0));
+    // The stage weight under rk_order=3, else the Heun half or the
+    // single-step whole.
+    const Real fac_for_reflux = (reflux_fac >= Real(0.0)) ? reflux_fac
+                              : ((do_mol) ? Real(0.5) : Real(1.0));
 
     AMREX_ASSERT(S.nGrow() == numGrow());
 

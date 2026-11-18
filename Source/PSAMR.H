@@ -146,36 +146,28 @@ public:
 
   static void react (amrex::MultiFab& S);
 
+  //  reflux_fac: the weight of this evaluation's fluxes on the flux
+  //  registers (a Runge-Kutta stage's); negative = the do_mol rule
+  //  (0.5 Heun, 1.0 Godunov).
   void construct_hydro_source ( const amrex::MultiFab& S,
                                       amrex::MultiFab& src,
                                       amrex::Real time,
-                                      amrex::Real dt);
+                                      amrex::Real dt,
+                                      amrex::Real reflux_fac = -1.0);
 
-  // SSPRK(3,3) support (PSAMR.rk_order=3 under do_mol=1): fill the ghost
-  // cells of a stage state consistently with the coarse level's stored RK
-  // stages (AMReX FillPatcher::fillRK; level 0 fills from the state and the
-  // physical BCs), and store this level's stages for the next finer level.
-  // docs/PLAN_high_order.pdf section 4.4.
+  // The coarse-fine stage fills of rk_order=3 (PSAMR.cpp): the ghost
+  // cells of a stage state consistently with the coarse level's stored
+  // stages, and this level's stages stored for the next finer level; the
+  // three-stage overload through AMReX's FillPatcher, the four-stage one
+  // through this level's own dense output (rk4_crse).
   void rk_fill (amrex::MultiFab& S, amrex::Real t, int stage,
                 int iteration, int ncycle);
   void rk_store_coarse (amrex::Real time, amrex::Real dt,
                         const amrex::MultiFab& S_old,
                         amrex::Array<amrex::MultiFab,3> const& rkk);
-  // SSPRK(4,3) (PSAMR.rk_stages=4 under rk_order=3): the coarse level's
-  // old state and its four stage derivatives, held by the fine level on
-  // the coarse grids, and the stage ghost fill from their dense output
-  // through the two-level FillPatch with this level's interpolater.
-  // AMReX's fillRK keys its coefficients to the stage count and would
-  // apply the classical RK4 set to four stages, so the four-stage scheme
-  // carries its own.  docs/PLAN_high_order.pdf follow-up 6.
-  void rk4_fill (amrex::MultiFab& S, amrex::Real t, int stage,
-                 int iteration, int ncycle);
-  void rk4_store_coarse (amrex::Real dt, const amrex::MultiFab& S_old,
-                         amrex::Array<amrex::MultiFab,4> const& rkk);
-  amrex::MultiFab rk4_u0;
-  amrex::Array<amrex::MultiFab,4> rk4_k;
-  amrex::Real rk4_dtc = 0.0;
-  bool rk4_have = false;
+  void rk_store_coarse (amrex::Real time, amrex::Real dt,
+                        const amrex::MultiFab& S_old,
+                        amrex::Array<amrex::MultiFab,4> const& rkk);
 
   //
   // Build the old-time source terms on the valid region plus ng ghost cells.
@@ -420,10 +412,21 @@ protected:
   amrex::MultiFab     hydro_source;
   amrex::MultiFab new_hydro_source;
 
-  // Per-stage weight on the flux registers under rk_order=3 (the Shu-Osher
-  // Butcher weights 1/6, 1/6, 2/3), set by the advance around each stage's
-  // construct_hydro_source; negative = the do_mol rule (0.5 MOL, 1.0 Godunov).
-  amrex::Real rk_reflux_fac = -1.0;
+  // The work arrays of rk_order=3, defined on this level's grids when they
+  // change: the stage derivatives, the IMEX stage transfers (two per stage)
+  // and stage status (ps_imex=3), and the coarse level's four-stage data
+  // held by this level for its stage fills.
+  amrex::Array<amrex::MultiFab,3> rk_k3;
+  amrex::Array<amrex::MultiFab,4> rk_k4;
+  amrex::MultiFab  imex_D;
+  amrex::iMultiFab imex_st;
+  struct RkCoarse4 {
+      amrex::Array<amrex::MultiFab,4> k;
+      amrex::MultiFab scratch;
+      amrex::Real dtc = 0.0;
+      bool have = false;
+  };
+  RkCoarse4 rk4_crse;
 
   // Non-hydro source terms.
   amrex::Vector<std::unique_ptr<amrex::MultiFab>> old_sources;

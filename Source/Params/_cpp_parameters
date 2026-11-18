@@ -45,9 +45,13 @@ do_mol                       int          0
 # time integrator under do_mol=1: 2 = Heun (two stages, second order);
 # 3 = SSPRK(3,3) Shu-Osher, three stages, coarse-fine ghost cells of each
 # stage from the coarse level's stored stages (AMReX FillPatcher::fillRK),
-# flux registers weighted 1/6, 1/6, 2/3.  Ignored under do_mol=0.
+# flux registers weighted by the stage.  rk_order=3 needs do_mol=1.
 # docs/PLAN_high_order.pdf section 4.
 rk_order                     int          2
+
+# under rk_order=3: 3 = SSPRK(3,3) (CFL cap 1/DIM), 4 = SSPRK(4,3)
+# (Spiteri-Ruuth, cap 2/DIM).  docs/PLAN_high_order.pdf follow-up 6.
+rk_stages                    int          3
 
 # coarse-to-fine interpolater for the state: "cons" = cell_cons_interp
 # (limited linear, second order); "quartic" = quartic_interp (conservative
