@@ -1381,6 +1381,40 @@ gate and B's worth is then the third order on B5 against four kernel
 solves per step and the fallback where the transfer is stiff.  Nothing
 pushed; the defaults are Marc's to set on the record.
 
+\subsection*{Follow-up 9: the class-compacted launch of the IMEX stage sweeps (planned 18 November 2026)}
+
+The five sweeps of \code{ps\_imex=3} (four stage solves and the final
+apply) are whole-box launches of the X3F kernel over every cell, with
+the kernel's entry gate refusing the single-phase ones; the relaxation
+sweep itself has had the class-compacted launch of \code{FUTURE\_WORK.md}
+\S12 since October (\code{PSAMR.ps\_class\_compact}: the gate once per
+cell in a class pass on the projected state, the operator over the
+compact list of admitted cells in box order, bitwise the whole-box
+form).  This follow-up gives the stage sweeps the same three forms
+under the same dial.  The stage's own transfer slot is zeroed and the
+dropped-transfer census taken in the class pass, which visits every
+cell, so a cell the list does not reach carries no stale transfer.
+Predictions:
+\begin{enumerate}[nosep]
+\item Forms 0, 1 and 2 bitwise identical under \code{ps\_imex=3} on B5
+      at \code{cfl} 0.25, on the tube at 300 steps and on XC2D at 40
+      steps (which runs no relaxation, so its stages are the projection
+      under every form), on the Mac; form 0 bitwise the present code.
+      Falsifier: any byte.
+\item GPU cost: the tube 300 steps under the pairing on peart, form 1
+      against form 0 (169.8\,s at \code{3cb16ec3}): a saving between 5
+      and 25\,\% (the five sweeps visit 8192 cells for about 900
+      admitted; the kernel's Newton is the divergent part a compact
+      launch packs; the hydro, which is most of the step, is
+      untouched).  Falsifier: no saving, or a loss above 2\,\%.
+\item The GPU result bitwise the GPU's own form-0 run (the per-cell
+      arithmetic does not depend on the launch), and so at the Mac line
+      of the step B record.
+\item Mac cost: the tube under the pairing, form 1 against form 0,
+      within $\pm3\,\%$ (on the host the class pass costs what the idle
+      lanes saved).
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
