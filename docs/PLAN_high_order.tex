@@ -3278,4 +3278,54 @@ the default is Marc's to set on this record.
 sub-step remains the order-4 path, and the pairing is an option for
 the mid regime.  No code or deck changes.
 
+\subsection{The audit's cleanups and the stage-ghost repair (18 November 2026, Mac \code{llvm}; commits \code{328dcbbd}, \code{194910d8}, \code{35df4cc2}, \code{bd0389b8})}
+\label{sec:audit}
+
+Three independent reads of the branch's source against \code{main}
+(\code{docs/AUDIT\_high\_order.md}: no defect that changes a recorded
+result; the volume of duplicated constructions, hand-unrolled stage
+loops and history-carrying comments) and, on Marc's word, their
+cleanups in three batches, each built and rerun on a reference set of
+22 runs made on the binaries of the tip before them: B5 at eight
+settings (the order-2 Strang step with and without the step-doubling
+control, the pairing, the four-stage integrator, Heun, mode 2, Lie
+without the projection, the order-1 sub-step), the tube bare, at order
+4, under the pairing and with four stages, XC2D on four ranks at the
+same four, the fine box at order 4, four stages and the unlimited
+interpolater, and the 21-case fingerprint; every plotfile compared byte
+for byte.  Every run is bitwise after every batch except the two runs
+of the pairing with relaxation, which move by $4\times10^{-11}$ of
+range on the tube and $2\times10^{-8}$ in $P$ on B5 after batch A and
+not again after B or C: the IMEX predictor brought to the SDIRK form
+(the audit's B6), a different initial guess converging to the same
+solution within the Newton tolerance.  The new source code is about
+500 lines shorter.
+
+\paragraph{The stage-ghost repair (the audit's B3).}  The stage fills of
+\code{rk\_order=3} handed the hydro ghost cells that had not passed the
+repair pass the first stage's ghosts get from \code{expand\_state} (the
+alpha clamp, the mass and energy repairs, the density floor, the
+species).  On Marc's word they now do (\code{rk\_repair\_ghosts} after
+every stage fill, the valid region kept aside and put back so a stage
+state's interior is what the stage made it).  It fires on no recorded
+case: the 22-run set is bitwise, XC2D at four settings and the fine box
+at three among them; demo3 at three levels on six ranks is bitwise the
+same commit without it; B11 as the follow-ups ran it tags no fine level
+and is bitwise at level 0.  The multi-level records stand as written.
+
+\paragraph{Finding: a last bit on demo3.}  demo3 at the tip differs from
+the step A record's run by $10^{-15}$ of range on every level (one unit
+in the last place of the density), with the contact and front metrics
+and the symmetry equal to every printed digit ($8.7917\times10^{-5}$,
+$7.7612\times10^{-3}$, $1.31\times10^{-6}$\,Pa).  A bisect over the
+eight code commits since that run (each built in a worktree, demo3 to
+step 50 on six ranks) puts it at batch B, the advance rewritten as one
+table-driven stage loop: bitwise through \code{328dcbbd}, different
+from \code{194910d8} on.  The reference set had no three-level case and
+no case on six ranks, so it did not see it; which of batch B's changes
+reorders an operation there is not located (a candidate is the
+compiler's fused multiply-add contraction across the restructured
+loop).  One unit in the last place, recorded for the register, not
+chased.
+
 \end{document}

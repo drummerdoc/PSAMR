@@ -88,7 +88,9 @@ Three batches, each built and rerun on a reference set of 22 runs on the binarie
 - Batch A (the kernel and its sweeps): B6, C1, C2, C3, C4, C5, D5, D6, D7, F1, F2, F9, F10, F11. B7's comment fixed, its arithmetic kept (the shrink toward the offset is untested).
 - Batch B (the advance and the fills): B1, B2 (an abort), B4, B5, C10, C11, C12, C13, D3, D4, D5, D7, E1, E2, E3 (the coarse old data read in place, the scratch persistent, the fine copy gone; the derivatives still copied once per coarse step), F3, F4, F5, F6, F7.
 - Batch C (the hydro): C6, C7, C8, C9 (the flux side; the HLLC face still forms its own state, E7's other half), D1, D2, D5, E4, E5, F2, F8, and the edge stores allocated under order 4 only.
-- Not applied, as listed: B3 (a decision that changes `rk_order=3` results), E6, E8, E9, E10 (measurements or design calls), the HLLC half of E7.
+- B3, applied on Marc's word (bd0389b8): `rk_repair_ghosts` after every stage fill, the valid region kept aside and put back. It fires on no recorded case: bitwise on the 22-run set, on demo3 at three levels on six ranks, and on B11.
+- Not applied, as listed: E6, E8, E9, E10 (measurements or design calls), the HLLC half of E7.
+- A finding of the re-run: demo3 at the tip differs from the step A record's run by one unit in the last place of the density ($10^{-15}$ of range), with its recorded metrics equal to every printed digit; a bisect puts it at batch B (194910d8), which the reference set, with no three-level or six-rank case, did not see. Not located within the batch; a register item.
 
 The new source code of the branch is shorter by about 500 lines after the three batches, with no output changed.
 
