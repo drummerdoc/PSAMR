@@ -754,9 +754,13 @@ PSAMR::PSAMR_advance (Real time,
             //  after it.  The stage transfers never form a grid state.  In
             //  Butcher form (built first) the bases U^n + dt sum a~_ij k_j
             //  are not convex combinations of the projected stage states
-            //  and XC2D, which runs no relaxation, moved 7e-3 of range from
-            //  the SSPRK(3,3) stepping in 40 steps; in this form a
-            //  no-relaxation deck reduces to that stepping.
+            //  and XC2D, which runs no relaxation, moved 0.46 of its level-0
+            //  velocity range from the SSPRK(3,3) stepping in 40 steps (the
+            //  derivative at the projected state added to the unprojected
+            //  base); in this form 3e-2, which is the projection of the old
+            //  state before the first hydro evaluation (every stage state on
+            //  the manifold) against the SSPRK path's raw old state, left off
+            //  the manifold when the reaction step applies no operator.
             constexpr amrex::Real al = amrex::Real(0.24169426078821);
             constexpr amrex::Real be = amrex::Real(0.06042356519705);
             constexpr amrex::Real et = amrex::Real(0.12915286960590);
