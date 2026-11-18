@@ -24,6 +24,8 @@
 #include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include "PS_classes.H"    // cell classes, compact per-box launches (ps_class_compact)
 #include <AMReX_Array4.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Print.H>
 #include <AMReX_BLProfiler.H>
@@ -575,6 +577,312 @@ ps_x3f_grid_relax_cell(int i, int j, int k,
 }
 
 // -----------------------------------------------------------------
+//  ps_relax_report — the gated reports of a relaxation sweep ([PS-CLASS],
+//  [PS-PRES], [PS-CORRIDOR], [PS-GATE], [PS-DT], [PS-X3]/[PS-X3F]) and
+//  the reset of the X3 outcome counters.  n_relax is the class pass's
+//  admitted count (-1 when not formed), n_cells its cell total, form the
+//  launch form.  Called by ps_apply_relaxation and by the IMEX final
+//  sweep (ps_apply_imex_final), whose stage sweeps feed the same
+//  counters.
+// -----------------------------------------------------------------
+inline void
+ps_relax_report(amrex::Long n_relax, amrex::Long n_cells, int form)
+{
+    // [PS-PRES] (ps_pres_diag): the post-thermal P1 != P2 residual by cause.
+    if (ps_pres_diag() != 0) {
+        //  [PS-CLASS]: the relaxation population from the class pass, on
+        //  every build (the device has no other census).
+        if (n_relax >= 0) {
+            amrex::AllPrint()
+                << "[PS-CLASS] relax: admitted=" << n_relax << " of " << n_cells
+                << " cells (" << (n_cells > 0 ? 100.0 * double(n_relax) / double(n_cells) : 0.0)
+                << " %), launch form " << form << "\n";
+        }
+        const PsPresDiag& pd = ps_pres_diag_data();
+        auto mean = [](double s, long n) { return n > 0 ? s/double(n) : 0.0; };
+        amrex::AllPrint()
+            << "[PS-PRES] thermal RAN+moved(>1K): n=" << pd.n_run_moved
+            << " max=" << pd.dp_moved_max
+            << " mean=" << mean(pd.dp_moved_sum, pd.n_run_moved)
+            << " | RAN+still: n=" << pd.n_run_still
+            << " max=" << pd.dp_still_max
+            << " mean=" << mean(pd.dp_still_sum, pd.n_run_still)
+            << " | gate-SKIPPED: n=" << pd.n_skipped
+            << " max=" << pd.dp_skip_max
+            << " mean=" << mean(pd.dp_skip_sum, pd.n_skipped)
+            << " | post-invalid=" << pd.n_postinval
+            << "   (|P1-P2|/max(P1,P2) at chain exit)\n";
+        //  [PS-GATE]: presence-gate refusals this sweep, all modes (cells
+        //  [PS-X3] never sees).  Not an anomaly — the gate doing its job —
+        //  but a stall routed through it must be visible.
+        //  [PS-CORRIDOR]: the saturation projection's census, with the count
+        //  of own-branch probes (one EOS inversion per (Corridor, Independent)
+        //  cell per sweep, the whole-grid EOS cost of this stage).
+        if (ps_counters().corridor_probed + ps_counters().corridor_projected
+            + ps_counters().corridor_host_fail + ps_counters().corridor_noroot > 0) {
+            amrex::AllPrint()
+                << "[PS-CORRIDOR] probed=" << ps_counters().corridor_probed
+                << " projected=" << ps_counters().corridor_projected
+                << " host_fail=" << ps_counters().corridor_host_fail
+                << " noroot=" << ps_counters().corridor_noroot << "\n";
+        }
+        if (ps_counters().n_gate_presence > 0) {
+            amrex::AllPrint()
+                << "[PS-GATE] S4 presence relax gate refused n="
+                << ps_counters().n_gate_presence
+                << " in-band cells this sweep (phase pair not "
+                   "Independent+Independent; all modes)\n";
+        }
+        //  [PS-DT]: thermal completeness, |T1-T2| at entry vs exit over the
+        //  cells whose thermal leg ran.
+        if (pd.n_dt > 0) {
+            amrex::AllPrint()
+                << "[PS-DT] n=" << pd.n_dt
+                << " dTpre: max=" << pd.dtpre_max
+                << " mean=" << mean(pd.dtpre_sum, pd.n_dt)
+                << " | dTpost: max=" << pd.dtpost_max
+                << " mean=" << mean(pd.dtpost_sum, pd.n_dt)
+                << "   (K; residual ratio max-based="
+                << (pd.dtpre_max > 0.0 ? pd.dtpost_max / pd.dtpre_max : 0.0)
+                << ")\n";
+        }
+    }
+    //  [PS-X3]: the coupled operator's outcome and the P1 = P2 constraint's
+    //  failures, by cause.  Modes 5 and 6 (mode 6 fills the outcome and
+    //  cost fields from the flattened operator's per-cell codes; its
+    //  constraint-cause and path fields stay zero); 'dead' counts
+    //  structural refusals, and a sweep in which every cell is dead is
+    //  banner-flagged.
+    if (ps_relax_owns_mt()) {
+        hem::PsX3Stats& xs = hem::ps_x3_stats();
+        if (ps_pres_diag() != 0 && xs.n_calls > 0) {
+            amrex::AllPrint()
+                << (ps_relax_mode() == 6 ? "[PS-X3F] calls=" : "[PS-X3] calls=") << xs.n_calls
+                << " ok=" << xs.n_ok
+                << " gate_stood=" << xs.n_gate_stood
+                << " entry_refused=" << xs.n_entry_refused
+                << " | dead(rc2)=" << xs.n_dead
+                << " newton_nonconv=" << xs.n_newton
+                << " tiny_nonconv=" << xs.n_tiny_nonconv
+                << " subcap=" << xs.n_subcap
+                << " | constraint: entry_fail=" << xs.n_proj_entry
+                << " (input=" << xs.n_pr_input
+                << " eos=" << xs.n_pr_eos
+                << " slope=" << xs.n_pr_slope
+                << " maxiter=" << xs.n_pr_maxiter << ")"
+                << " path_fail=" << xs.n_proj_path
+                << " | cost: sub=" << xs.n_sub
+                << " newton_it=" << xs.n_nit
+                << " path=" << xs.n_path
+                << " proj_it=" << hem::ps_mt_stats().pr_iters
+                << " (cumulative)";
+            if (xs.n_dead > 0 && xs.n_ok == 0) {
+                amrex::AllPrint()
+                    << "   *** EVERY cell structurally dead: the operator "
+                       "is a NO-OP this sweep";
+            }
+            amrex::AllPrint() << "\n";
+        }
+#if !defined(AMREX_USE_GPU)
+        //  The class pass admits exactly the cells the kernel counts as
+        //  calls; a difference would mean the two forms gate differently.
+        if (n_relax >= 0 && ps_pres_diag() != 0 && n_relax != amrex::Long(xs.n_calls)) {
+            amrex::AllPrint() << "[PS-CLASS] *** MISMATCH: class pass admitted " << n_relax
+                              << " cells, the kernel counted " << xs.n_calls << " calls\n";
+        }
+#endif
+        xs.reset();
+    }
+}
+
+// -----------------------------------------------------------------
+//  The IMEX stage sweeps (PSAMR.ps_imex=3; docs/PLAN_high_order.pdf
+//  follow-up 4, step B; the stepping in PSAMR_advance.cpp).  D holds the
+//  stage transfers (q, dm) of the four implicit stages, two components
+//  per stage, each written by that stage's own solve; st the per-cell
+//  stage status, 0 while every stage was OK, else the bits of the first
+//  cause met (1 stood at the band, 2 a Newton failure, 4 a base refusal:
+//  entry refused, entry projection, dead rates; 8 the final apply), which
+//  marks the cell for the fallback of the final sweep.  c[j] is the
+//  tableau factor a_sj / alpha of the earlier stage j (the kernel's
+//  offsets are sum_j c[j] D_j); dt_s = alpha dt, and 0 for the final
+//  apply (stage 5, with c the weights b_j / alpha).  Mode 6; under mode 0
+//  the stage is the mechanical projection (no rate terms, D stays zero).
+//  Whole-box launches only (the class-compact forms are the relaxation
+//  sweep's; the two forms are bitwise identical by construction).
+// -----------------------------------------------------------------
+AMREX_GPU_HOST_DEVICE
+inline void
+ps_x3f_imex_stage_cell(int i, int j, int k,
+                       amrex::Array4<amrex::Real> const& U,
+                       amrex::Array4<amrex::Real> const& D,
+                       amrex::Array4<int> const& st,
+                       hem::PsPhaseAPI const& eos, const PsPres& pr,
+                       const hem::PsX3fParams& xf0, int stage,
+                       amrex::GpuArray<amrex::Real,4> const& c, amrex::Real dt_s)
+{
+    const int nprev = (stage <= 4) ? stage - 1 : 4;
+    if (stage <= 4) { D(i,j,k,2*(stage-1)) = amrex::Real(0.0); D(i,j,k,2*(stage-1)+1) = amrex::Real(0.0); }
+    amrex::Real alpha1_in, m1, m2;
+    if (!ps_relax_entry_gate(i, j, k, U, pr, alpha1_in, m1, m2)) {
+#if !defined(AMREX_USE_GPU)
+        if (stage == 5) {
+            bool any = false;
+            for (int s = 0; s < 8; ++s) any = any || (D(i,j,k,s) != amrex::Real(0.0));
+            if (any) ++hem::ps_x3_stats().n_imex_dropped;
+        }
+#endif
+        return;
+    }
+    double q_off = 0.0, dm_off = 0.0;
+    for (int s = 0; s < nprev; ++s) {
+        q_off  += double(c[s]) * double(D(i,j,k,2*s));
+        dm_off += double(c[s]) * double(D(i,j,k,2*s+1));
+    }
+    hem::V6 Uv = ps_pack_v6(U, i, j, k, alpha1_in, m1, m2);
+    hem::PsX3fParams xf = xf0;
+    int status = 0, nit = 0, nsub = 0;
+    double qo = 0.0, dmo = 0.0;
+    xf.imex = 1; xf.imex_q_off = q_off; xf.imex_dm_off = dm_off;
+    xf.imex_q_out = &qo; xf.imex_dm_out = &dmo;
+    xf.status = &status; xf.it_out = &nit; xf.sub_out = &nsub;
+    hem::ps_x3f_relax_cell(Uv, eos, double(dt_s), xf);
+    //  A stand at the final apply is the state the fallback would reach
+    //  (the projected base), so it is not a fallback.
+    if (status == hem::X3_OK || (stage == 5 && status == hem::X3_STOOD)) {
+        if (stage <= 4) { D(i,j,k,2*(stage-1)) = amrex::Real(qo); D(i,j,k,2*(stage-1)+1) = amrex::Real(dmo); }
+    } else if (st(i,j,k) == 0) {
+        st(i,j,k) = (stage == 5) ? 8
+                  : (status == hem::X3_STOOD) ? 1
+                  : (status == hem::X3_NEWTON || status == hem::X3_FIXED_NONCONV) ? 2 : 4;
+    }
+#if !defined(AMREX_USE_GPU)
+    {
+        hem::PsX3Stats& xs = hem::ps_x3_stats();
+        ++xs.n_calls;
+        switch (status) {
+            case hem::X3_OK:            ++xs.n_ok; break;
+            case hem::X3_ENTRY_REFUSED: ++xs.n_entry_refused; break;
+            case hem::X3_STOOD:         ++xs.n_gate_stood; break;
+            case hem::X3_PROJ_ENTRY:    ++xs.n_proj_entry; break;
+            case hem::X3_NEWTON:        ++xs.n_newton; break;
+            case hem::X3_DEAD:          ++xs.n_dead; break;
+            default:                    ++xs.n_newton; break;
+        }
+        xs.n_sub += nsub; xs.n_nit += nit;
+    }
+#endif
+    ps_unpack_v6(U, i, j, k, Uv);
+}
+
+//  The final sweep's cell: the corridor projection, then the final apply
+//  of the stage transfers on a cell every stage solved, else the present
+//  operator over the whole step from the explicit final state (the
+//  fallback, counted by cause on the host).
+AMREX_GPU_HOST_DEVICE
+inline void
+ps_x3f_imex_final_cell(int i, int j, int k,
+                       amrex::Array4<amrex::Real> const& U,
+                       amrex::Array4<amrex::Real> const& D,
+                       amrex::Array4<int> const& st,
+                       hem::PsPhaseAPI const& eos, const PsPres& pr,
+                       const hem::PsX3fParams& xf0, int pres_diag,
+                       amrex::GpuArray<amrex::Real,4> const& bw, amrex::Real dt)
+{
+    ps_corridor_project(i, j, k, U, pr);
+    if (st(i,j,k) == 0) {
+        ps_x3f_imex_stage_cell(i, j, k, U, D, st, eos, pr, xf0, 5, bw, amrex::Real(0.0));
+        if (st(i,j,k) == 0) return;
+    }
+#if !defined(AMREX_USE_GPU)
+    {
+        hem::PsX3Stats& xs = hem::ps_x3_stats();
+        const int bits = st(i,j,k);
+        if      (bits & 2) ++xs.n_imex_fb_newton;
+        else if (bits & 4) ++xs.n_imex_fb_base;
+        else if (bits & 1) ++xs.n_imex_fb_stand;
+        else               ++xs.n_imex_fb_final;
+    }
+#endif
+    ps_x3f_grid_relax_cell(i, j, k, U, eos, pr, xf0, pres_diag, dt);
+}
+
+inline void
+ps_apply_imex_stage(amrex::MultiFab& S, amrex::MultiFab& D, amrex::iMultiFab& st,
+                    int stage, amrex::GpuArray<amrex::Real,4> const& c,
+                    amrex::Real dt_s, double proj_tol)
+{
+    BL_PROFILE("PS::ps_apply_imex_stage()");
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
+    const PsPres l_pres = ps_presence_params();
+    const hem::PsX3fParams xf = ps_x3f_params_from_dials();
+    const int relax_mode = ps_relax_mode();
+    if (stage == 1) {
+        //  The per-step counters of the relaxation sweep, reset once; the
+        //  final sweep reports and resets them.
+        ps_counters().n_gate_presence = 0;
+        ps_counters().corridor_projected = ps_counters().corridor_host_fail = ps_counters().corridor_noroot = 0;
+        ps_counters().corridor_probed = 0;
+        ps_pres_diag_data().reset();
+    }
+    for (amrex::MFIter mfi(S); mfi.isValid(); ++mfi) {
+        const amrex::Box bx = mfi.tilebox();
+        amrex::Array4<amrex::Real> const& U  = S.array(mfi);
+        amrex::Array4<amrex::Real> const& Da = D.array(mfi);
+        amrex::Array4<int>         const& sa = st.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            ps_corridor_project(i, j, k, U, l_pres);
+            if (relax_mode == 6) {
+                ps_x3f_imex_stage_cell(i, j, k, U, Da, sa, eos, l_pres, xf, stage, c, dt_s);
+            } else {
+                ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, proj_tol);
+            }
+        });
+    }
+}
+
+inline void
+ps_apply_imex_final(amrex::MultiFab& S, amrex::MultiFab& D, amrex::iMultiFab& st,
+                    amrex::GpuArray<amrex::Real,4> const& bw, amrex::Real dt,
+                    double proj_tol)
+{
+    BL_PROFILE("PS::ps_apply_imex_final()");
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
+    const PsPres l_pres = ps_presence_params();
+    const hem::PsX3fParams xf = ps_x3f_params_from_dials();
+    const int relax_mode = ps_relax_mode();
+    const int pres_diag = ps_pres_diag();
+    for (amrex::MFIter mfi(S); mfi.isValid(); ++mfi) {
+        const amrex::Box bx = mfi.tilebox();
+        amrex::Array4<amrex::Real> const& U  = S.array(mfi);
+        amrex::Array4<amrex::Real> const& Da = D.array(mfi);
+        amrex::Array4<int>         const& sa = st.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (relax_mode == 6) {
+                ps_x3f_imex_final_cell(i, j, k, U, Da, sa, eos, l_pres, xf, pres_diag, bw, dt);
+            } else {
+                ps_corridor_project(i, j, k, U, l_pres);
+                ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, proj_tol);
+            }
+        });
+    }
+#if !defined(AMREX_USE_GPU)
+    if (pres_diag != 0 && relax_mode == 6) {
+        const hem::PsX3Stats& xs = hem::ps_x3_stats();
+        amrex::AllPrint() << "[PS-IMEX] fallback: newton=" << xs.n_imex_fb_newton
+                          << " base=" << xs.n_imex_fb_base
+                          << " stand=" << xs.n_imex_fb_stand
+                          << " final=" << xs.n_imex_fb_final
+                          << " dropped=" << xs.n_imex_dropped
+                          << "   (cells of this step; the [PS-X3F] line counts every stage solve)\n";
+    }
+#endif
+    ps_relax_report(-1, 0, 0);
+}
+
+// -----------------------------------------------------------------
 //  ps_apply_mechanical_projection — the constraint part of the
 //  relaxation operator alone (instantaneous P1 = P2 by the mode-0 kernel
 //  ps_mechanical_relax_cell, past the same entry gate), on every cell of
@@ -743,111 +1051,7 @@ ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
         if (want_census) n_relax = ws.total();
     }
 
-    // [PS-PRES] (ps_pres_diag): the post-thermal P1 != P2 residual by cause.
-    if (ps_pres_diag() != 0) {
-        //  [PS-CLASS]: the relaxation population from the class pass, on
-        //  every build (the device has no other census).
-        if (n_relax >= 0) {
-            amrex::AllPrint()
-                << "[PS-CLASS] relax: admitted=" << n_relax << " of " << n_cells
-                << " cells (" << (n_cells > 0 ? 100.0 * double(n_relax) / double(n_cells) : 0.0)
-                << " %), launch form " << form << "\n";
-        }
-        const PsPresDiag& pd = ps_pres_diag_data();
-        auto mean = [](double s, long n) { return n > 0 ? s/double(n) : 0.0; };
-        amrex::AllPrint()
-            << "[PS-PRES] thermal RAN+moved(>1K): n=" << pd.n_run_moved
-            << " max=" << pd.dp_moved_max
-            << " mean=" << mean(pd.dp_moved_sum, pd.n_run_moved)
-            << " | RAN+still: n=" << pd.n_run_still
-            << " max=" << pd.dp_still_max
-            << " mean=" << mean(pd.dp_still_sum, pd.n_run_still)
-            << " | gate-SKIPPED: n=" << pd.n_skipped
-            << " max=" << pd.dp_skip_max
-            << " mean=" << mean(pd.dp_skip_sum, pd.n_skipped)
-            << " | post-invalid=" << pd.n_postinval
-            << "   (|P1-P2|/max(P1,P2) at chain exit)\n";
-        //  [PS-GATE]: presence-gate refusals this sweep, all modes (cells
-        //  [PS-X3] never sees).  Not an anomaly — the gate doing its job —
-        //  but a stall routed through it must be visible.
-        //  [PS-CORRIDOR]: the saturation projection's census, with the count
-        //  of own-branch probes (one EOS inversion per (Corridor, Independent)
-        //  cell per sweep, the whole-grid EOS cost of this stage).
-        if (ps_counters().corridor_probed + ps_counters().corridor_projected
-            + ps_counters().corridor_host_fail + ps_counters().corridor_noroot > 0) {
-            amrex::AllPrint()
-                << "[PS-CORRIDOR] probed=" << ps_counters().corridor_probed
-                << " projected=" << ps_counters().corridor_projected
-                << " host_fail=" << ps_counters().corridor_host_fail
-                << " noroot=" << ps_counters().corridor_noroot << "\n";
-        }
-        if (ps_counters().n_gate_presence > 0) {
-            amrex::AllPrint()
-                << "[PS-GATE] S4 presence relax gate refused n="
-                << ps_counters().n_gate_presence
-                << " in-band cells this sweep (phase pair not "
-                   "Independent+Independent; all modes)\n";
-        }
-        //  [PS-DT]: thermal completeness, |T1-T2| at entry vs exit over the
-        //  cells whose thermal leg ran.
-        if (pd.n_dt > 0) {
-            amrex::AllPrint()
-                << "[PS-DT] n=" << pd.n_dt
-                << " dTpre: max=" << pd.dtpre_max
-                << " mean=" << mean(pd.dtpre_sum, pd.n_dt)
-                << " | dTpost: max=" << pd.dtpost_max
-                << " mean=" << mean(pd.dtpost_sum, pd.n_dt)
-                << "   (K; residual ratio max-based="
-                << (pd.dtpre_max > 0.0 ? pd.dtpost_max / pd.dtpre_max : 0.0)
-                << ")\n";
-        }
-    }
-    //  [PS-X3]: the coupled operator's outcome and the P1 = P2 constraint's
-    //  failures, by cause.  Modes 5 and 6 (mode 6 fills the outcome and
-    //  cost fields from the flattened operator's per-cell codes; its
-    //  constraint-cause and path fields stay zero); 'dead' counts
-    //  structural refusals, and a sweep in which every cell is dead is
-    //  banner-flagged.
-    if (ps_relax_owns_mt()) {
-        hem::PsX3Stats& xs = hem::ps_x3_stats();
-        if (ps_pres_diag() != 0 && xs.n_calls > 0) {
-            amrex::AllPrint()
-                << (ps_relax_mode() == 6 ? "[PS-X3F] calls=" : "[PS-X3] calls=") << xs.n_calls
-                << " ok=" << xs.n_ok
-                << " gate_stood=" << xs.n_gate_stood
-                << " entry_refused=" << xs.n_entry_refused
-                << " | dead(rc2)=" << xs.n_dead
-                << " newton_nonconv=" << xs.n_newton
-                << " tiny_nonconv=" << xs.n_tiny_nonconv
-                << " subcap=" << xs.n_subcap
-                << " | constraint: entry_fail=" << xs.n_proj_entry
-                << " (input=" << xs.n_pr_input
-                << " eos=" << xs.n_pr_eos
-                << " slope=" << xs.n_pr_slope
-                << " maxiter=" << xs.n_pr_maxiter << ")"
-                << " path_fail=" << xs.n_proj_path
-                << " | cost: sub=" << xs.n_sub
-                << " newton_it=" << xs.n_nit
-                << " path=" << xs.n_path
-                << " proj_it=" << hem::ps_mt_stats().pr_iters
-                << " (cumulative)";
-            if (xs.n_dead > 0 && xs.n_ok == 0) {
-                amrex::AllPrint()
-                    << "   *** EVERY cell structurally dead: the operator "
-                       "is a NO-OP this sweep";
-            }
-            amrex::AllPrint() << "\n";
-        }
-#if !defined(AMREX_USE_GPU)
-        //  The class pass admits exactly the cells the kernel counts as
-        //  calls; a difference would mean the two forms gate differently.
-        if (n_relax >= 0 && ps_pres_diag() != 0 && n_relax != amrex::Long(xs.n_calls)) {
-            amrex::AllPrint() << "[PS-CLASS] *** MISMATCH: class pass admitted " << n_relax
-                              << " cells, the kernel counted " << xs.n_calls << " calls\n";
-        }
-#endif
-        xs.reset();
-    }
+    ps_relax_report(n_relax, n_cells, form);
     amrex::ignore_unused(do_print, n_cells);
 }
 

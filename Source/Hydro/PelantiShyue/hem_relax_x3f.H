@@ -96,6 +96,19 @@ struct PsX3fParams {
     //  (PSAMR.ps_x3f_order).  The step-doubling control below applies
     //  to either.
     int    order      = 1;
+    //  IMEX stage mode (PSAMR.ps_imex=3, docs/PLAN_high_order.pdf
+    //  follow-up 4, step B): imex != 0 makes the call one backward-Euler
+    //  Newton over dt from the entry-projected base with imex_q_off and
+    //  imex_dm_off (the earlier stages' transfers with their tableau
+    //  factors) as constants in F_4 and F_5, the stage's own transfer
+    //  (q - q_off, dm - dm_off) returned through imex_q_out / imex_dm_out;
+    //  dt = 0 is the final combination, the 3-residual apply of the
+    //  offsets.  No ladder, no step-doubling; the band gate at entry
+    //  stands the cell as at order 1.  The order dial is not read.
+    int    imex       = 0;
+    double imex_q_off = 0.0, imex_dm_off = 0.0;
+    double* imex_q_out  = nullptr;
+    double* imex_dm_out = nullptr;
     //  Temporal accuracy of a sub-step (B12 decision, 2026-10-27): a step
     //  that moves alpha_1 by more than step_tol_a or a phase energy by more
     //  than step_tol_e (relative to the energy scale) is re-taken as two
@@ -159,7 +172,8 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     auto set_status = [&](int st) { if (xp.status) *xp.status = st; };
     auto count = [](int* p) { if (p) ++*p; };
     set_status(X3_ENTRY_REFUSED);
-    if (!eos.valid() || !(dt > 0.0)) return false;
+    const bool dt_ok = (dt > 0.0) || (xp.imex != 0 && dt == 0.0);   // dt = 0: the IMEX final apply
+    if (!eos.valid() || !dt_ok) return false;
     constexpr double alpha_floor = ps_const::ALPHA_ROUNDOFF;
     if (!std::isfinite(U[0])) return false;
     if (U[0] <= alpha_floor || U[0] >= 1.0 - alpha_floor) return false;
@@ -217,7 +231,8 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
     auto residual = [&](const Base& b, double dtl, int n, const double z[5],
                         double F[5], Trial& t) -> bool {
         const double a = z[0], T1 = z[1], T2 = z[2];
-        const double q = (n == 5) ? z[3] : 0.0, dm = (n == 5) ? z[4] : 0.0;
+        //  n = 3: the transfers are the offsets (zero except in the IMEX final apply).
+        const double q = (n == 5) ? z[3] : q_off, dm = (n == 5) ? z[4] : dm_off;
         t.ok = false;
         if (!(a > 0.0) || !(a < 1.0)) return false;
         t.m1 = b.m1 - dm; t.m2 = b.m2 + dm;
@@ -345,8 +360,10 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
         double dm_lo = 0.0, dm_hi = 0.0, q_box = 0.0;
         const double E_s = std::abs(b.U1) + std::abs(b.U2) + 1.0;
         if (n == 5) {
-            if (z[4] > 0.0) dm_hi = std::min(0.9 * b.m1, 2.0 * b.m2);
-            if (z[4] < 0.0) dm_lo = -std::min(0.9 * b.m2, 2.0 * b.m1);
+            //  Under IMEX the total transfer carries the offsets and may
+            //  change sign, so the box is two-sided there.
+            if (z[4] > 0.0 || xp.imex != 0) dm_hi = std::min(0.9 * b.m1, 2.0 * b.m2);
+            if (z[4] < 0.0 || xp.imex != 0) dm_lo = -std::min(0.9 * b.m2, 2.0 * b.m1);
             q_box = 0.5 * E_s;
         }
         auto clamp = [&](double zz[5]) {
@@ -357,7 +374,8 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
                 if (zz[4] <  dm_lo) zz[4] =  dm_lo;
             }
             //  Domain barrier on alpha (rho_k in the EOS density window).
-            const double m1 = b.m1 - ((n == 5) ? zz[4] : 0.0), m2 = b.m2 + ((n == 5) ? zz[4] : 0.0);
+            const double dmc = (n == 5) ? zz[4] : dm_off;
+            const double m1 = b.m1 - dmc, m2 = b.m2 + dmc;
             double a_lo = ps_const::ALPHA_NEWTON_MIN, a_hi = 1.0 - ps_const::ALPHA_NEWTON_MIN;
             if (eos.has_rho_dom()) {
                 a_lo = std::max(a_lo, m1 / eos.rho_dom_hi);
@@ -497,6 +515,51 @@ inline bool ps_x3f_relax_cell(V6& U, const PsPhaseAPI& eos, double dt,
                 return true;
             }
         }
+    }
+
+    if (xp.imex != 0) {
+        //  IMEX stage solve (PSAMR.ps_imex=3; docs/PLAN_high_order.pdf
+        //  follow-up 4, step B): one backward-Euler Newton over dt from
+        //  the entry-projected base, the earlier stages' transfers as
+        //  constants in F_4 and F_5 (the offsets), the stage's own
+        //  transfer returned; dt = 0 is the final combination, the
+        //  3-residual apply of the offsets alone.  No ladder and no
+        //  step-doubling: the stage equation is one solve, and a cell it
+        //  cannot solve is the caller's fallback (the cell is left as it
+        //  came).  The band gate above stands the cell as at entry.
+        q_off = xp.imex_q_off; dm_off = xp.imex_dm_off;
+        double z[5] = { b.a, b.T1, b.T2, q_off, dm_off };
+        int nit = 0, rc = 0; Trial t{};
+        count(xp.sub_out);
+        if (dt > 0.0) {
+            //  The base rates and the predictor, as step_once forms them.
+            constexpr double two_pi = 6.283185307179586; const double R_u = eos.r_gas();
+            if (!(b.cv1 > 0.0) || !(b.cv2 > 0.0) || !(b.T2 > 0.0)) { q_off = 0.0; dm_off = 0.0; set_status(X3_DEAD); return false; }
+            const double inv = 1.0 / (b.m1 * b.cv1) + 1.0 / (b.m2 * b.cv2);
+            const double rT0 = joint_pt ? 0.0 : (b.T1 - b.T2) / (xp.theta * inv);
+            const double a2 = 1.0 - b.a;
+            const double a_geom = (b.g1 > b.g2) ? (a2 + xp.srt_delta) * b.a : (b.a + xp.srt_delta) * a2;
+            const double Sig = (32.0 / two_pi) * a_geom / xp.srt_D;
+            const double rM0 = Sig * (b.m2 / a2) * std::sqrt(eos.molar_mass() / (two_pi * R_u * b.T2)) * (b.g1 - b.g2);
+            if (!std::isfinite(rT0) || !std::isfinite(rM0)) { q_off = 0.0; dm_off = 0.0; set_status(X3_DEAD); return false; }
+            z[3] = joint_pt ? 0.0 : q_off + dt * rT0 / (1.0 + dt / xp.theta);
+            z[4] = dm_off + dt * rM0;
+            rc = newton(b, dt, 5, z, t, nit);
+        } else {
+            rc = newton(b, 0.0, 3, z, t, nit);
+        }
+        q_off = 0.0; dm_off = 0.0;
+        if (rc != 0) { set_status(rc == 2 ? X3_FIXED_NONCONV : X3_NEWTON); return false; }
+        const Base b1 = base_from(z[0], t.m1, t.m2, t.m1 * t.p1.e, t.m2 * t.p2.e, z[1], z[2]);
+        if (!b1.adm) { set_status(X3_NEWTON); return false; }
+        if (dt > 0.0) {
+            if (xp.imex_q_out)  *xp.imex_q_out  = z[3] - xp.imex_q_off;
+            if (xp.imex_dm_out) *xp.imex_dm_out = z[4] - xp.imex_dm_off;
+        }
+        set_status(X3_OK);
+        commit(b1);
+        if (xp.dT_post) *xp.dT_post = std::abs(b1.T1 - b1.T2);
+        return true;
     }
 
     // ---- sub-stepped backward Euler, X3's ladder, with step-doubling

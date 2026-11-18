@@ -176,11 +176,21 @@ struct PsX3Stats {
     long n_sub = 0;          // cost: sub-steps attempted
     long n_nit = 0;          // cost: Newton iterations over all sub-steps
     long n_path = 0;         // cost: path evaluations (each one P1=P2 projection)
+    //  [PS-IMEX] (PSAMR.ps_imex=3): cells the final sweep handed to the
+    //  present operator over the whole step, by the first cause met:
+    //  a Newton failure at a stage, a base refusal at a stage (entry
+    //  refused, entry projection, dead rates), a stand at a stage, the
+    //  final apply itself; and cells whose stage transfers were dropped
+    //  because the final's explicit state failed the presence gate.
+    long n_imex_fb_newton = 0, n_imex_fb_base = 0, n_imex_fb_stand = 0;
+    long n_imex_fb_final = 0, n_imex_dropped = 0;
     void reset() { n_calls = n_entry_refused = n_gate_stood = n_ok = 0;
                    n_newton = n_dead = n_subcap = n_tiny_nonconv = 0;
                    n_proj_entry = n_proj_path = 0;
                    n_pr_input = n_pr_eos = n_pr_slope = n_pr_maxiter = 0;
-                   n_sub = n_nit = n_path = 0; }
+                   n_sub = n_nit = n_path = 0;
+                   n_imex_fb_newton = n_imex_fb_base = n_imex_fb_stand = 0;
+                   n_imex_fb_final = n_imex_dropped = 0; }
 };
 
 } // namespace hem
