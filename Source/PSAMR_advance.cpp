@@ -736,27 +736,41 @@ PSAMR::PSAMR_advance (Real time,
 #ifdef USE_PS_HYDRO
         if (ps_imex_cached == 3 && ps_hydro != 0) {
             //  IMEX-SSP3(4,3,3) (Pareschi-Russo 2005, Table 6;
-            //  docs/PLAN_high_order.pdf follow-up 4, step B).  The explicit
-            //  part is SSPRK(3,3) behind a dummy first stage, so the hydro
-            //  is evaluated at the stage times, with the flux-register
-            //  weights and the coarse-fine stage fill of SSPRK(3,3).  The
-            //  implicit part is four backward-Euler solves of the X3F
-            //  kernel over alpha dt (ps_apply_imex_stage), each from the
-            //  base that carries the explicit increments (folded and
-            //  mass-resynced as the SSPRK stages are) with the earlier
-            //  stages' transfers as constants in the rate residuals, the
-            //  factors a_ij / alpha; the final combination applies the
-            //  stage transfers with b_j / alpha in the reaction step
-            //  (ps_apply_imex_final, the per-cell fallback), the flash
-            //  after it.  The stage transfers never form a grid state.
+            //  docs/PLAN_high_order.pdf follow-up 4, step B), in Shu-Osher
+            //  form.  The explicit part is SSPRK(3,3) behind a dummy first
+            //  stage, so the hydro is evaluated at the stage times, with
+            //  the flux-register weights and the coarse-fine stage fill of
+            //  SSPRK(3,3).  The implicit part is four backward-Euler solves
+            //  of the X3F kernel over alpha dt (ps_apply_imex_stage), each
+            //  from a base that is a convex combination of the old state
+            //  and forward Euler steps of admissible stage states (folded
+            //  and mass-resynced as the SSPRK stages are), with the earlier
+            //  stages' transfers D_j as constants in the rate residuals; the
+            //  offset factors are the tableau's a_ij / alpha rewritten for
+            //  these bases (the stage state U_j already carries its own
+            //  implicit content, which the rewrite subtracts).  The final
+            //  combination applies the stage transfers in the reaction
+            //  step (ps_apply_imex_final, the per-cell fallback), the flash
+            //  after it.  The stage transfers never form a grid state.  In
+            //  Butcher form (built first) the bases U^n + dt sum a~_ij k_j
+            //  are not convex combinations of the projected stage states
+            //  and XC2D, which runs no relaxation, moved 7e-3 of range from
+            //  the SSPRK(3,3) stepping in 40 steps; in this form a
+            //  no-relaxation deck reduces to that stepping.
             constexpr amrex::Real al = amrex::Real(0.24169426078821);
             constexpr amrex::Real be = amrex::Real(0.06042356519705);
             constexpr amrex::Real et = amrex::Real(0.12915286960590);
+            constexpr amrex::Real a43 = amrex::Real(0.5) - be - et - al;    // a_43 of the implicit tableau
+            //  Stage 2 base U^n: offset a_21/alpha = -1 on D_1.
             const amrex::GpuArray<amrex::Real,4> c2 = { amrex::Real(-1.0), amrex::Real(0.0), amrex::Real(0.0), amrex::Real(0.0) };
-            const amrex::GpuArray<amrex::Real,4> c3 = { amrex::Real(0.0), (amrex::Real(1.0) - al) / al, amrex::Real(0.0), amrex::Real(0.0) };
-            const amrex::GpuArray<amrex::Real,4> c4 = { be / al, et / al, (amrex::Real(0.5) - be - et - al) / al, amrex::Real(0.0) };
+            //  Stage 3 base U_2 + dt k_2 = U^n + dt k_2 + (-D_1 + D_2): offsets 1 on D_1 and (1 - 2 alpha)/alpha on D_2.
+            const amrex::GpuArray<amrex::Real,4> c3 = { amrex::Real(1.0), (amrex::Real(1.0) - amrex::Real(2.0) * al) / al, amrex::Real(0.0), amrex::Real(0.0) };
+            //  Stage 4 base 3/4 U^n + 1/4 (U_3 + dt k_3): offsets beta/alpha, eta/alpha - (1 - alpha)/(4 alpha), a_43/alpha - 1/4.
+            const amrex::GpuArray<amrex::Real,4> c4 = { be / al, et / al - (amrex::Real(1.0) - al) / (amrex::Real(4.0) * al), a43 / al - amrex::Real(0.25), amrex::Real(0.0) };
+            //  Final base 1/3 U^n + 2/3 (U_4 + dt k_4): weights b_j/alpha less 2/3 of U_4's implicit content.
             const amrex::Real w6 = amrex::Real(1.0) / (amrex::Real(6.0) * al);
-            imex_bw = { amrex::Real(0.0), w6, w6, amrex::Real(4.0) * w6 };
+            const amrex::Real t23 = amrex::Real(2.0/3.0);
+            imex_bw = { -t23 * be / al, w6 - t23 * et / al, w6 - t23 * a43 / al, amrex::Real(4.0) * w6 - t23 };
             imex_D.define(grids, dmap, 8, 0, amrex::MFInfo(), Factory());
             imex_D.setVal(amrex::Real(0.0));
             imex_st.define(grids, dmap, 1, 0);
@@ -779,27 +793,25 @@ PSAMR::PSAMR_advance (Real time,
             MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
             rk_fill(Sborder, prev_time, 1, amr_iteration, amr_ncycle);
             rhs(1, Sborder, prev_time);                                   // k_2 = L(U_2)
-            // Stage 3 at t + dt: the base U^n + dt k_2, the offset (1 - alpha)/alpha D_2.
-            MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
+            // Stage 3 at t + dt: the base U_2 + dt k_2.
             MultiFab::Saxpy(S_new, dt, rkk[0], 0, 0, NVAR, 0);
             stage(S_new, 3, c3);
             MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
             rk_fill(Sborder, prev_time + dt, 2, amr_iteration, amr_ncycle);
             rhs(2, Sborder, prev_time + dt);                               // k_3 = L(U_3)
-            // Stage 4 at t + dt/2: the base U^n + dt/4 (k_2 + k_3), the offsets (beta, eta, 1/2 - beta - eta - alpha)/alpha on D_1, D_2, D_3.
-            MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, amrex::Real(0.25) * dt, rkk[0], 0, 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, amrex::Real(0.25) * dt, rkk[1], 0, 0, NVAR, 0);
+            // Stage 4 at t + dt/2: the base 3/4 U^n + 1/4 (U_3 + dt k_3).
+            MultiFab::Saxpy(S_new, dt, rkk[1], 0, 0, NVAR, 0);
+            S_new.mult(amrex::Real(0.25), 0, NVAR, 0);
+            MultiFab::Saxpy(S_new, amrex::Real(0.75), S_old, 0, 0, NVAR, 0);
             stage(S_new, 4, c4);
             MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
             rk_fill(Sborder, prev_time + amrex::Real(0.5)*dt, 3, amr_iteration, amr_ncycle);
             rhs(3, Sborder, prev_time + amrex::Real(0.5)*dt);             // k_4 = L(U_4)
-            // The explicit final combination U^n + dt/6 (k_2 + k_3 + 4 k_4);
+            // The explicit final combination 1/3 U^n + 2/3 (U_4 + dt k_4);
             // the stage transfers and the flash follow in the reaction step.
-            MultiFab::Copy (S_new, S_old, 0, 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, dt / amrex::Real(6.0), rkk[0], 0, 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, dt / amrex::Real(6.0), rkk[1], 0, 0, NVAR, 0);
-            MultiFab::Saxpy(S_new, amrex::Real(2.0/3.0) * dt, rkk[2], 0, 0, NVAR, 0);
+            MultiFab::Saxpy(S_new, dt, rkk[2], 0, 0, NVAR, 0);
+            S_new.mult(amrex::Real(2.0/3.0), 0, NVAR, 0);
+            MultiFab::Saxpy(S_new, amrex::Real(1.0/3.0), S_old, 0, 0, NVAR, 0);
         } else
 #endif
         {
