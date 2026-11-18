@@ -602,7 +602,7 @@ ps_relax_reset_sweep_counters()
 //  the reset of the X3 outcome counters.  n_relax is the class pass's
 //  admitted count (-1 when not formed), n_cells its cell total, form the
 //  launch form.  Called by ps_apply_relaxation and by the IMEX final
-//  sweep (ps_apply_imex_final), whose stage sweeps feed the same
+//  sweep (ps_apply_imex_sweep at stage 5), whose stage sweeps feed the same
 //  counters.
 // -----------------------------------------------------------------
 inline void
@@ -727,30 +727,26 @@ ps_relax_report(amrex::Long n_relax, amrex::Long n_cells, int form)
 //  tableau factor a_sj / alpha of the earlier stage j (the kernel's
 //  offsets are sum_j c[j] D_j); dt_s = alpha dt, and 0 for the final
 //  apply (stage 5, with c the weights b_j / alpha).
+//
+//  Each operator comes in the two forms of the relaxation sweep: the
+//  _admitted body past the entry gate, and the gated wrapper (the gate,
+//  then the body), so the sweep's three launch forms (ps_class_compact)
+//  are bitwise interchangeable (PS_classes.H).  The stage's own transfer
+//  slot is zeroed, and the dropped-transfer census taken, for every cell
+//  of the box, in the wrapper or in the class pass.
 // -----------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE
 inline void
-ps_x3f_imex_stage_cell(int i, int j, int k,
-                       amrex::Array4<amrex::Real> const& U,
-                       amrex::Array4<amrex::Real> const& D,
-                       amrex::Array4<int> const& st,
-                       hem::PsPhaseAPI const& eos, const PsPres& pr,
-                       const hem::PsX3fParams& xf0, int stage,
-                       amrex::GpuArray<amrex::Real,4> const& c, amrex::Real dt_s)
+ps_x3f_imex_stage_admitted(int i, int j, int k,
+                           amrex::Array4<amrex::Real> const& U,
+                           amrex::Array4<amrex::Real> const& D,
+                           amrex::Array4<int> const& st,
+                           hem::PsPhaseAPI const& eos,
+                           amrex::Real alpha1_in, amrex::Real m1, amrex::Real m2,
+                           const hem::PsX3fParams& xf0, int stage,
+                           amrex::GpuArray<amrex::Real,4> const& c, amrex::Real dt_s)
 {
     const int nprev = (stage <= 4) ? stage - 1 : 4;
-    if (stage <= 4) { D(i,j,k,2*(stage-1)) = amrex::Real(0.0); D(i,j,k,2*(stage-1)+1) = amrex::Real(0.0); }
-    amrex::Real alpha1_in, m1, m2;
-    if (!ps_relax_entry_gate(i, j, k, U, pr, alpha1_in, m1, m2)) {
-#if !defined(AMREX_USE_GPU)
-        if (stage == 5) {
-            bool any = false;
-            for (int s = 0; s < 8; ++s) any = any || (D(i,j,k,s) != amrex::Real(0.0));
-            if (any) ++hem::ps_x3_stats().n_imex_dropped;
-        }
-#endif
-        return;
-    }
     double q_off = 0.0, dm_off = 0.0;
     for (int s = 0; s < nprev; ++s) {
         q_off  += double(c[s]) * double(D(i,j,k,2*s));
@@ -777,25 +773,50 @@ ps_x3f_imex_stage_cell(int i, int j, int k,
     ps_unpack_v6(U, i, j, k, Uv);
 }
 
-//  The final sweep's cell: the corridor projection, then the final apply
-//  of the stage transfers on a cell every stage solved, else the present
+//  The per-cell work of a stage sweep that is not the operator: the
+//  stage's own transfer slot zeroed, the corridor projection, and (the
+//  final apply, host) the census of a cell admitted at the stages whose
+//  transfers the final's presence gate refuses.  Returns the gate.
+AMREX_GPU_HOST_DEVICE
+inline bool
+ps_x3f_imex_prepare(int i, int j, int k,
+                    amrex::Array4<amrex::Real> const& U,
+                    amrex::Array4<amrex::Real> const& D,
+                    const PsPres& pr, int stage,
+                    amrex::Real& alpha1_in, amrex::Real& m1, amrex::Real& m2)
+{
+    if (stage <= 4) { D(i,j,k,2*(stage-1)) = amrex::Real(0.0); D(i,j,k,2*(stage-1)+1) = amrex::Real(0.0); }
+    ps_corridor_project(i, j, k, U, pr);
+    const bool admitted = ps_relax_entry_gate(i, j, k, U, pr, alpha1_in, m1, m2);
+#if !defined(AMREX_USE_GPU)
+    if (!admitted && stage == 5) {
+        bool any = false;
+        for (int s = 0; s < 8; ++s) any = any || (D(i,j,k,s) != amrex::Real(0.0));
+        if (any) ++hem::ps_x3_stats().n_imex_dropped;
+    }
+#endif
+    return admitted;
+}
+
+//  The final sweep's operator on an admitted cell: the final apply of
+//  the stage transfers where every stage solved, else the present
 //  operator over the whole step from the explicit final state (the
 //  fallback, counted by cause on the host).  That state already carries
 //  2/3 of stage 4's transfers, so a fallback cell sees part of its
 //  transfer twice: the fallback is first order, as the plan records.
 AMREX_GPU_HOST_DEVICE
 inline void
-ps_x3f_imex_final_cell(int i, int j, int k,
-                       amrex::Array4<amrex::Real> const& U,
-                       amrex::Array4<amrex::Real> const& D,
-                       amrex::Array4<int> const& st,
-                       hem::PsPhaseAPI const& eos, const PsPres& pr,
-                       const hem::PsX3fParams& xf0, int pres_diag,
-                       amrex::GpuArray<amrex::Real,4> const& bw, amrex::Real dt)
+ps_x3f_imex_final_admitted(int i, int j, int k,
+                           amrex::Array4<amrex::Real> const& U,
+                           amrex::Array4<amrex::Real> const& D,
+                           amrex::Array4<int> const& st,
+                           hem::PsPhaseAPI const& eos,
+                           amrex::Real alpha1_in, amrex::Real m1, amrex::Real m2,
+                           const hem::PsX3fParams& xf0, int pres_diag,
+                           amrex::GpuArray<amrex::Real,4> const& bw, amrex::Real dt)
 {
-    ps_corridor_project(i, j, k, U, pr);
     if (st(i,j,k) == 0) {
-        ps_x3f_imex_stage_cell(i, j, k, U, D, st, eos, pr, xf0, 5, bw, amrex::Real(0.0));
+        ps_x3f_imex_stage_admitted(i, j, k, U, D, st, eos, alpha1_in, m1, m2, xf0, 5, bw, amrex::Real(0.0));
         if (st(i,j,k) == 0) return;
     }
 #if !defined(AMREX_USE_GPU)
@@ -809,78 +830,98 @@ ps_x3f_imex_final_cell(int i, int j, int k,
         }
     }
 #endif
-    ps_x3f_grid_relax_cell(i, j, k, U, eos, pr, xf0, pres_diag, dt);
+    //  The fallback reads the cell as the gate left it (the kernel wrote
+    //  nothing on a failed final apply).
+    ps_x3f_grid_relax_admitted(i, j, k, U, eos, U(i,j,k,UALPHA1), U(i,j,k,UM1RHO1), U(i,j,k,UM2RHO2), xf0, pres_diag, dt);
 }
 
+//  One sweep of the IMEX stepping: stage 1 to 4 the stage solves over
+//  dt_s, stage 5 the final apply with the fallback.  The launch forms of
+//  PS_classes.H: 0 the whole box; 1 the class pass (the preparation and
+//  the gate, every cell) and the operator over the compact list; 2 the
+//  class pass and a whole-box launch gated on the class byte.  Under
+//  mode 0 the operator is the mechanical projection at mode0_tol (no
+//  rate terms, D stays zero).  The final sweep reports and resets the
+//  relaxation counters, which the stage-1 sweep reset.
 inline void
-ps_apply_imex_stage(amrex::MultiFab& S, amrex::MultiFab& D, amrex::iMultiFab& st,
+ps_apply_imex_sweep(amrex::MultiFab& S, amrex::MultiFab& D, amrex::iMultiFab& st,
                     int stage, amrex::GpuArray<amrex::Real,4> const& c,
-                    amrex::Real dt_s, double mode0_tol)
+                    amrex::Real dt_s, amrex::Real dt, double mode0_tol)
 {
-    //  Whole-box launches (the class-compact forms are the relaxation
-    //  sweep's); under mode 0 the stage is the mechanical projection at
-    //  mode0_tol (no rate terms, D stays zero).
-    BL_PROFILE("PS::ps_apply_imex_stage()");
-    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
-    const PsPres l_pres = ps_presence_params();
-    const hem::PsX3fParams xf = ps_x3f_params_from_dials();
-    const int relax_mode = ps_relax_mode();
-    if (stage == 1) ps_relax_reset_sweep_counters();   // the final sweep reports and resets
-    for (amrex::MFIter mfi(S); mfi.isValid(); ++mfi) {
-        const amrex::Box bx = mfi.tilebox();
-        amrex::Array4<amrex::Real> const& U  = S.array(mfi);
-        amrex::Array4<amrex::Real> const& Da = D.array(mfi);
-        amrex::Array4<int>         const& sa = st.array(mfi);
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            ps_corridor_project(i, j, k, U, l_pres);
-            if (relax_mode == 6) {
-                ps_x3f_imex_stage_cell(i, j, k, U, Da, sa, eos, l_pres, xf, stage, c, dt_s);
-            } else {
-                ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, mode0_tol);
-            }
-        });
-    }
-}
-
-inline void
-ps_apply_imex_final(amrex::MultiFab& S, amrex::MultiFab& D, amrex::iMultiFab& st,
-                    amrex::GpuArray<amrex::Real,4> const& bw, amrex::Real dt,
-                    double mode0_tol)
-{
-    BL_PROFILE("PS::ps_apply_imex_final()");
+    BL_PROFILE("PS::ps_apply_imex_sweep()");
     const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
     const PsPres l_pres = ps_presence_params();
     const hem::PsX3fParams xf = ps_x3f_params_from_dials();
     const int relax_mode = ps_relax_mode();
     const int pres_diag = ps_pres_diag();
+    const int form = ps_class_compact();
+    const bool final = (stage == 5);
+    if (stage == 1) ps_relax_reset_sweep_counters();
+    amrex::Long n_relax = -1, n_cells = 0;
+    PsClassLists* wsp = nullptr;
+    if (form != 0) { wsp = new PsClassLists(S, 0); n_cells = wsp->ncells_total(); }
     for (amrex::MFIter mfi(S); mfi.isValid(); ++mfi) {
         const amrex::Box bx = mfi.tilebox();
         amrex::Array4<amrex::Real> const& U  = S.array(mfi);
         amrex::Array4<amrex::Real> const& Da = D.array(mfi);
         amrex::Array4<int>         const& sa = st.array(mfi);
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        auto admitted = [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::Real a1, amrex::Real m1, amrex::Real m2) noexcept
         {
-            if (relax_mode == 6) {
-                ps_x3f_imex_final_cell(i, j, k, U, Da, sa, eos, l_pres, xf, pres_diag, bw, dt);
+            if (relax_mode != 6) {
+                ps_mechanical_relax_admitted(i, j, k, U, eos, a1, m1, m2, mode0_tol);
+            } else if (final) {
+                ps_x3f_imex_final_admitted(i, j, k, U, Da, sa, eos, a1, m1, m2, xf, pres_diag, c, dt);
             } else {
-                ps_corridor_project(i, j, k, U, l_pres);
-                ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, mode0_tol);
+                ps_x3f_imex_stage_admitted(i, j, k, U, Da, sa, eos, a1, m1, m2, xf, stage, c, dt_s);
             }
+        };
+        if (form == 0) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                amrex::Real a1, m1, m2;
+                if (ps_x3f_imex_prepare(i, j, k, U, Da, l_pres, stage, a1, m1, m2)) admitted(i, j, k, a1, m1, m2);
+            });
+            continue;
+        }
+        PsClassLists& ws = *wsp;
+        unsigned char* AMREX_RESTRICT cls   = ws.cls_ptr(mfi);
+        int*           AMREX_RESTRICT list  = ws.list_ptr(mfi);
+        int*           AMREX_RESTRICT count = ws.count_ptr(mfi);
+        const int ncell = ws.ncell(mfi);
+        ps_classify_box(bx, cls, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> unsigned char
+        {
+            amrex::Real a1, m1, m2;
+            return ps_x3f_imex_prepare(i, j, k, U, Da, l_pres, stage, a1, m1, m2) ? ps_class::RELAX : ps_class::NONE;
         });
+        //  The operator on an admitted cell: the gate's reads repeated
+        //  (nothing has written the cell since the class pass), no gate.
+        auto op = [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            admitted(i, j, k, U(i,j,k, UALPHA1), U(i,j,k, UM1RHO1), U(i,j,k, UM2RHO2));
+        };
+        if (form == 2) {
+            ps_class_launch_box(bx, cls, ps_class::RELAX, op);
+            if (pres_diag != 0) ps_class_list_box(ncell, cls, ps_class::RELAX, list, count);
+        } else {
+            ps_class_list_box(ncell, cls, ps_class::RELAX, list, count);
+            ps_class_launch_list(bx, list, count, op);
+        }
     }
+    if (wsp != nullptr) { if (pres_diag != 0) n_relax = wsp->total(); delete wsp; }
+    if (final) {
 #if !defined(AMREX_USE_GPU)
-    if (pres_diag != 0 && relax_mode == 6) {
-        const hem::PsX3Stats& xs = hem::ps_x3_stats();
-        amrex::AllPrint() << "[PS-IMEX] fallback: newton=" << xs.n_imex_fb_newton
-                          << " base=" << xs.n_imex_fb_base
-                          << " stand=" << xs.n_imex_fb_stand
-                          << " final=" << xs.n_imex_fb_final
-                          << " dropped=" << xs.n_imex_dropped
-                          << "   (cells of this step; the [PS-X3F] line counts every stage solve)\n";
-    }
+        if (pres_diag != 0 && relax_mode == 6) {
+            const hem::PsX3Stats& xs = hem::ps_x3_stats();
+            amrex::AllPrint() << "[PS-IMEX] fallback: newton=" << xs.n_imex_fb_newton
+                              << " base=" << xs.n_imex_fb_base
+                              << " stand=" << xs.n_imex_fb_stand
+                              << " final=" << xs.n_imex_fb_final
+                              << " dropped=" << xs.n_imex_dropped
+                              << "   (cells of this step; the [PS-X3F] line counts every stage solve)\n";
+        }
 #endif
-    ps_relax_report(-1, 0, 0);
+        ps_relax_report(n_relax, n_cells, form);
+    }
 }
 
 // -----------------------------------------------------------------

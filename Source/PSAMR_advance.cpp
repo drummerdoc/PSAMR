@@ -577,7 +577,7 @@ PSAMR::PSAMR_advance (Real time,
                 //  IMEX (follow-up 4, step B): the final combination of the
                 //  stage transfers with the per-cell fallback, in place of
                 //  the relaxation sweep; the flash follows as under Lie.
-                ps_apply_imex_final(S, imex_D, imex_st, imex_bw, dt_r, ps_rk_project_tol_cached);
+                ps_apply_imex_sweep(S, imex_D, imex_st, 5, imex_bw, amrex::Real(0.0), dt_r, ps_rk_project_tol_cached);
             } else {
                 ps_apply_relaxation(S, dt_r, ng, do_print);   // dt_r for the finite-rate legs
             }
@@ -732,7 +732,7 @@ PSAMR::PSAMR_advance (Real time,
             ps_apply_vanish_fold(S_new, 0);
             ps_resync_mixture_mass(S_new, 0);
             if (ps_do_relax_cached != 0) {
-                ps_apply_imex_stage(S_new, imex_D, imex_st, s, coff[s], al * dt, ps_rk_project_tol_cached);
+                ps_apply_imex_sweep(S_new, imex_D, imex_st, s, coff[s], al * dt, dt, ps_rk_project_tol_cached);
             } else {
                 ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
             }
