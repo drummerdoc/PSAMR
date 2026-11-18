@@ -24,7 +24,7 @@
 - `Source/Hydro/PelantiShyue/PS_recon.H` (new): WENO5-Z edge reconstruction on the primitive variables, with the in-cell term's pieces and the contact taper.
 - `Source/Hydro/PelantiShyue/PS_umeth.cpp`: the order-4 face states in the wave-propagation flux, the in-cell term, the fallback to raw averages at presence fronts and inadmissible edge states, the dials `ps_wp_order=4`, `ps_wp_recon`, `ps_wp_contact_taper`, `ps_wp_weno_power`.
 - `Source/PSAMR_advance.cpp`: the SSPRK(3,3) and SSPRK(4,3) stage loops, the stage fold and mechanical projection (`ps_rk_project`, `ps_rk_project_tol`), Strang splitting (`ps_strang`), the IMEX stepping (`ps_imex`), the conditional defaults of the order-4 configuration.
-- `Source/PSAMR.cpp`, `Source/PSAMR.H`: the coarse–fine stage fills (`rk_fill`, `rk_store_coarse`, `rk4_fill` with its own dense output), the CFL caps and the dial checks (`rk_order`, `rk_stages`).
+- `Source/PSAMR.cpp`, `Source/PSAMR.H`: the coarse–fine stage fills (`rk_fill` and `rk_store_coarse`, the four-stage scheme with its own dense output), the CFL caps and the dial checks (`rk_order`, `rk_stages`).
 - `Source/Utils/CFInterp.H/.cpp` (new): the `quartic_limited` coarse–fine interpolater.
 - `Source/Hydro/PelantiShyue/hem_relax_x3f.H`: the two-stage SDIRK sub-step (`ps_x3f_order=2`) and the IMEX stage mode of the X3F kernel.
 - `Source/Hydro/PelantiShyue/PS_relax.H`: the stage-projection sweep, the IMEX stage and final sweeps with the per-cell fallback, the relaxation report factored into `ps_relax_report`.
