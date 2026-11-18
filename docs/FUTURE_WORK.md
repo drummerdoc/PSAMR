@@ -1,5 +1,46 @@
 # Future work
 
+## 0. Where the high-order work stands, in plain words (18 Nov 2026)
+
+**What we set out to do.** The solver advances two things each step. The hydro part moves mass, momentum and energy between cells. The relaxation part acts inside each cell: it pulls the two phases toward equal pressure, equal temperature and phase equilibrium at rates set by the relaxation time θ. The branch `high-order` first made the hydro part fourth order in space and third order in time (Stages 0 to 5, 15 and 16 Nov), then asked why the step as a whole was still first order when θ is about the size of a time step, and whether that could be raised (follow-up 4, 16 to 18 Nov). The full account with every measurement is `docs/PLAN_high_order.pdf`; this section is the short version.
+
+**What works.**
+
+- The fourth-order hydro is verified: smooth advection converges at the design rate (5.0 against 2.0 before), the time integrator at order 3.00, conservation across refinement boundaries to round-off, the pipe-break jet symmetric to round-off where the second-order scheme was off by a thousand pascals, every single-phase battery error smaller, the Mach disk in the production jet about one cell narrower. It is a named configuration (`PSAMR.do_mol=1 rk_order=3 ps_wp_order=4 cf_interp=quartic_limited`, RUNNING.md), not the code default, so no production deck changed.
+- The first order of the whole step at θ ≈ Δt was the relaxation operator's own integrator (backward Euler), not the interleaving of hydro and relaxation. Replacing its sub-step by a two-stage implicit scheme (step A, `ps_x3f_order=2`, now the default of the fourth-order configuration) makes the whole step second order on the test case B5, changes nothing else within 0.06 %, costs 1 % of run time, and agrees with the GPU to the usual level.
+- Moving the relaxation rates inside the Runge–Kutta stages (step B, the IMEX pairing `ps_imex=3`, an option, default 0 on Marc's decision) cuts the step-to-step differences on B5 by a factor of 100 to 2000 against step A, conserves to round-off, leaves the 21-case battery within 1 %, and runs the tube 17 % faster. Its order reads 2.6 to 3.1 on B5, consistent with 3 but not a measurement of it, because the test hits a floor (below).
+
+**What does not, or not yet.**
+
+- *The stiff regime.* When the phases reach equilibrium within a fraction of a step (the blowdown tube at θ = 1e-7 s, Δt/θ ≈ 29), every time integrator is first order in the cells at the flashing front; that is a property of stiff problems, not of a scheme. Step A handles it gracefully (it lands exactly on the equilibrium); step B leaves a small residual layer and is five times more step-sensitive in pressure there, which is why it is not the default. The production pipe-break decks (θ = 1e-3 s) are far from this regime and get the full benefit of the configuration.
+- *The convergence floor.* On B5 the differences between step sizes stop shrinking at about 5 parts in a billion of the field's range. Not the Newton tolerances, not the limiter; probably the tolerances of the equation-of-state inversions. It limits how finely orders can be measured, not how the code runs.
+- *Order near fronts.* The step sensitivity on the tube is localized: half of it sits in 4 to 6 % of the cells and 90 % in 12 to 16 %, so the domain-wide L1 norm is twenty times below the maximum norm. A convergence instrument that masks the front cells and reports the order away from them, together with the fraction of the domain masked, is the right way to show the reduction as local (not yet built; item 13.9).
+- *Weak shocks.* The Stage 3 record read the weak vapour shocks of B4 and B10 (a 4 to 5 % pressure jump) as eight cells wide under the fifth-order reconstruction against three before. Re-measured on 18 Nov at the branch tip under mode 6, as the number of cells over which the velocity crosses from 10 % to 90 % of its jump (and from 1 % to 99 %): B4 reads 4 to 5 cells (6 to 8) under order 4 against 5 (9 to 11) under order 2 at N = 64 and 256, B10 4 to 5 (6 to 9) against 5 to 6 (10), and the stronger B6 shock 3 against 4. On this measure the fourth-order shock is not wider than the second-order one, and neither is three cells. The Stage 3 figure does not reproduce and is to be re-derived (its measure, its binary, its probe mode) before anything is built for it (item 13.9).
+- *GPU run-to-run spread.* Two GPU runs of the two-level XC2D case differ at a few parts in a billion; single-level runs are bitwise reproducible, so it sits in the coarse–fine machinery. Not located.
+- *Cost.* The fourth-order configuration costs 14 to 37 % over second order depending on the case, and the stage projection with Strang 8 to 20 % more.
+
+**What code was added** (branch `high-order`, 35 files, about 2300 lines of source plus the plan).
+
+- `Source/Hydro/PelantiShyue/PS_recon.H` (new): WENO5-Z edge reconstruction on the primitive variables, with the in-cell term's pieces and the contact taper.
+- `Source/Hydro/PelantiShyue/PS_umeth.cpp`: the order-4 face states in the wave-propagation flux, the in-cell term, the fallback to raw averages at presence fronts and inadmissible edge states, the dials `ps_wp_order=4`, `ps_wp_recon`, `ps_wp_contact_taper`, `ps_wp_weno_power`.
+- `Source/PSAMR_advance.cpp`: the SSPRK(3,3) and SSPRK(4,3) stage loops, the stage fold and mechanical projection (`ps_rk_project`, `ps_rk_project_tol`), Strang splitting (`ps_strang`), the IMEX stepping (`ps_imex`), the conditional defaults of the order-4 configuration.
+- `Source/PSAMR.cpp`, `Source/PSAMR.H`: the coarse–fine stage fills (`rk_fill`, `rk_store_coarse`, `rk4_fill` with its own dense output), the CFL caps and the dial checks (`rk_order`, `rk_stages`).
+- `Source/Utils/CFInterp.H/.cpp` (new): the `quartic_limited` coarse–fine interpolater.
+- `Source/Hydro/PelantiShyue/hem_relax_x3f.H`: the two-stage SDIRK sub-step (`ps_x3f_order=2`) and the IMEX stage mode of the X3F kernel.
+- `Source/Hydro/PelantiShyue/PS_relax.H`: the stage-projection sweep, the IMEX stage and final sweeps with the per-cell fallback, the relaxation report factored into `ps_relax_report`.
+- `PS_counters.H`, `PS_guards.H`: the reconstruction and IMEX counters; `Source/Params`: the `rk_order` parameter; `Exec/CO2_ADV2D`, `Exec/CO2_TBlowdown`: test-problem parameters.
+- Documents: `docs/PLAN_high_order.tex/.pdf` (the plan, every prediction and record), and the matching entries in MODEL §3.8, §3.9, §5.1, DESIGN H-8, H-9, A-3, R-17, R-18, VERIFICATION §4, §6.6, §7, RUNNING, and item 13 below.
+
+**Reasonable next steps**, each its own small item with its gate (item 13 holds the record of each).
+
+1. The masked convergence norm (above): a cheap instrument, no solver code.
+2. The weak-shock width: re-derive the Stage 3 measure; only if a real excess stands is anything built, and then the characteristic projection of item 13.3 is the first candidate (it reconstructs along waves, not variables).
+3. The floor's cause: the EOS inversion tolerances, a one-dial test.
+4. The GPU two-level spread: a bisection of the coarse–fine path (fill, reflux, step control) on XC2D.
+5. The follow-up 6 comparison at the raised CFL cap under step A: whether the flashing cases now gain from the cap.
+6. The cost of the five stage sweeps on the GPU: the class-compacted launch of item 12 applied to them.
+7. Larger, parked: the McCorquodale–Colella conversions for formal fourth order in 2-D (item 13.5), interface sharpening (item 13.7).
+
 Scoped, measured as far as possible without new code, and parked; each entry states the item, the evidence, and the gate it must pass. Nothing here is implemented.
 
 ## 1. Σ (interfacial area) transport as a seventh transported scalar
