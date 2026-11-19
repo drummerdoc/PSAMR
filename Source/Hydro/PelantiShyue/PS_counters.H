@@ -233,6 +233,15 @@ struct PsCounters {
     long   nscbc_pmix_fail   = 0;
     long   nscbc_fan_cells   = 0;   // fan visits and their substeps (diagnostic)
     long   nscbc_fan_steps   = 0;
+    long   nscbc_br_sup      = 0;   // the branch the fill took per ghost: supersonic copy, small-signal ghost (the fan is nscbc_fan_cells; follow-up 16)
+    long   nscbc_br_small    = 0;
+    long   nscbc_ghost_nostate = 0; //   ghosts the fill formed that are not a state on their phases' branches (ps_pres_diag)
+    double nscbc_gP_min = 1.0e300, nscbc_gP_max = -1.0e300;  //   the first-layer ghosts' pressure and outward normal velocity, extremes since the last report (ps_pres_diag; follow-up 16)
+    double nscbc_gu_min = 1.0e300, nscbc_gu_max = -1.0e300;
+    long   nscbc_small_inflow = 0;  //   small-signal ghosts selected by the inflow bound, and by the strain cap (follow-up 16)
+    long   nscbc_small_cap    = 0;
+    double nscbc_cap_ratio_min = 1.0e300, nscbc_cap_ratio_max = -1.0e300;  //   |P_disp - P_N| / cap0 at the dispatch, extremes
+    double nscbc_uout_min = 1.0e300;   //   the outward normal velocity at N, minimum
     long   nscbc_locked      = 0;   // outflow cells of an undeclared face held on the
                                     // linear branch as subcooled liquid above an ambient
                                     // below their saturation pressure (a locked face)
@@ -299,6 +308,9 @@ struct PsCounters {
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;
+        nscbc_br_sup = nscbc_br_small = nscbc_ghost_nostate = 0;
+        nscbc_gP_min = nscbc_gu_min = 1.0e300; nscbc_gP_max = nscbc_gu_max = -1.0e300;
+        nscbc_small_inflow = nscbc_small_cap = 0; nscbc_cap_ratio_min = nscbc_uout_min = 1.0e300; nscbc_cap_ratio_max = -1.0e300;
     }
     void reset_mass() { mass_neg = mass_nonfinite = 0; mass_neg_kg = 0.0; }
     void reset_face() {

@@ -410,7 +410,11 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long nfc_ = pc.nscbc_fan_cells;
             amrex::Long nfs_ = pc.nscbc_fan_steps;
             amrex::Long nlk_ = pc.nscbc_locked;
+            amrex::Long nbs_ = pc.nscbc_br_sup, nbm_ = pc.nscbc_br_small, ngn_ = pc.nscbc_ghost_nostate;
             amrex::ParallelDescriptor::ReduceLongSum(nlk_);
+            amrex::ParallelDescriptor::ReduceLongSum(nbs_);
+            amrex::ParallelDescriptor::ReduceLongSum(nbm_);
+            amrex::ParallelDescriptor::ReduceLongSum(ngn_);
             amrex::ParallelDescriptor::ReduceLongSum(nc_);
             amrex::ParallelDescriptor::ReduceLongSum(ns_);
             amrex::ParallelDescriptor::ReduceLongSum(nt_);
@@ -425,6 +429,12 @@ PSAMR::PSAMR_advance (Real time,
                            << ",pack=" << np_ << ")"
                            << " nscbc_flash=" << nf_
                            << " pmix_fail=" << nm_
+                           << " br_sup=" << nbs_ << " br_small=" << nbm_ << " ghost_nostate=" << ngn_
+                           << " ghostP=[" << pc.nscbc_gP_min << "," << pc.nscbc_gP_max << "]"
+                           << " ghostU=[" << pc.nscbc_gu_min << "," << pc.nscbc_gu_max << "]"
+                           << " small(inflow=" << pc.nscbc_small_inflow << ",cap=" << pc.nscbc_small_cap << ")"
+                           << " capratio=[" << pc.nscbc_cap_ratio_min << "," << pc.nscbc_cap_ratio_max << "]"
+                           << " uout_min=" << pc.nscbc_uout_min
                            << " fan_cells=" << nfc_
                            << " fan_steps=" << nfs_
                            << " locked=" << nlk_ << "\n";

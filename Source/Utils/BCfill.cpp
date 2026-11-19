@@ -28,6 +28,7 @@ struct PCHypFillExtDir
   amrex::GpuArray<int, 2*AMREX_SPACEDIM>         form_face;
   int         nscbc_order;    // 1 or 2: R+ extrapolation order.
   int         nscbc_backflow; // 1: R- bounded below by the pin (PS_nscbc.H).
+  int         pres_diag;      // PSAMR.ps_pres_diag: the ghost-state count (follow-up 16).
   // Per-face open-end declaration (0 default): outflow cells of the face
   // always take the choked-expansion fan (PS_nscbc.H).
   amrex::GpuArray<int, 2*AMREX_SPACEDIM> open_end_face;
@@ -47,6 +48,7 @@ struct PCHypFillExtDir
                            int         nscbc_order_,
                            int         nscbc_backflow_,
                            int         nscbc_impedance_,
+                           int         pres_diag_,
                            const amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM>& p_amb_face_,
                            const amrex::GpuArray<int, 2*AMREX_SPACEDIM>& open_end_face_
 #ifdef USE_PS_HYDRO
@@ -60,6 +62,7 @@ struct PCHypFillExtDir
     , nscbc_order(nscbc_order_)
     , nscbc_backflow(nscbc_backflow_)
     , nscbc_impedance(nscbc_impedance_)
+    , pres_diag(pres_diag_)
     , p_amb_face(p_amb_face_)
     , open_end_face(open_end_face_)
 #ifdef USE_PS_HYDRO
@@ -183,8 +186,43 @@ struct PCHypFillExtDir
         params.L_ref        = geomdata.ProbHi(idir) - geomdata.ProbLo(idir);
         params.nscbc_order  = nscbc_order;
         amrex::Real s_ghost[NVAR];
+        int br = 0;
         PS_NSCBC::outflow_face(s_N, s_Nm1, s_Nm2, dx[idir],
-                                idir, sgn, layer, params, s_ghost);
+                                idir, sgn, layer, params, s_ghost, &br);
+        ps_guard::count_nscbc_branch(br);
+#if !defined(AMREX_USE_GPU)
+        //  The ghost the fill formed, tested as a state on its phases'
+        //  branches (follow-up 16; under ps_pres_diag, host only).
+        if (pres_diag != 0) {
+            const amrex::Real m1 = s_ghost[UM1RHO1], m2 = s_ghost[UM2RHO2], rho = s_ghost[URHO];
+            const amrex::Real a1 = s_ghost[UALPHA1];
+            const amrex::Real ke = (rho > 0.0) ? 0.5 * (s_ghost[UMX]*s_ghost[UMX]
+#if (AMREX_SPACEDIM >= 2)
+                                              + s_ghost[UMY]*s_ghost[UMY]
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                              + s_ghost[UMZ]*s_ghost[UMZ]
+#endif
+                                              ) / (rho * rho) : 0.0;
+            amrex::Real Yp[NUM_SPECIES]; ps_pure_species(Yp);
+            amrex::Real Pq, Tq, Sq;
+            bool ok = true;
+            if (m1 > ps_const::M_TINY && a1 > 0.0) ok = EOS::REY2PTS_phase_try(m1 / a1, s_ghost[UE1] / m1 - ke, Yp, hem::Phase3::Liquid, Pq, Tq, Sq);
+            if (ok && m2 > ps_const::M_TINY && 1.0 - a1 > 0.0) ok = EOS::REY2PTS_phase_try(m2 / (1.0 - a1), s_ghost[UE2] / m2 - ke, Yp, hem::Phase3::Vapor, Pq, Tq, Sq);
+            if (!ok) ps_guard::count_nscbc_ghost_nostate();
+            if (layer == 1 && ok) {
+                //  The first-layer ghost's mixture pressure and outward
+                //  normal velocity, extremes kept for the report.
+                const amrex::Real Pg = ps_cell_state(s_ghost, pres).P_mix;
+                const amrex::Real ug = -static_cast<amrex::Real>(sgn) * s_ghost[UMX + idir] / rho;
+                PsCounters& pc = ps_counters();
+                if (Pg < pc.nscbc_gP_min) pc.nscbc_gP_min = Pg;
+                if (Pg > pc.nscbc_gP_max) pc.nscbc_gP_max = Pg;
+                if (ug < pc.nscbc_gu_min) pc.nscbc_gu_min = ug;
+                if (ug > pc.nscbc_gu_max) pc.nscbc_gu_max = ug;
+            }
+        }
+#endif
         for (int n = 0; n < NVAR; n++) dest(iv, n) = s_ghost[n];
         return;
       }
@@ -285,7 +323,7 @@ PSAMR_bcfill_hyp(
   // The resolved values (after the no-USE_PS_HYDRO force-off and the
   // order forcing) are added back to the table so job_info records the BC
   // path that actually ran even when the deck was silent.
-  struct NscbcCfg { int order; int backflow; int impedance;
+  struct NscbcCfg { int order; int backflow; int impedance; int pres_diag;
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> sface;
                     amrex::GpuArray<int, 2*AMREX_SPACEDIM> fface;
                     amrex::GpuArray<amrex::Real, 2*AMREX_SPACEDIM> pamb;
@@ -295,6 +333,7 @@ PSAMR_bcfill_hyp(
     int u = 0;
     amrex::Real sg = amrex::Real(0.25);
     int od = 2;
+    int pd = 0;
     int bf = 1;
     int zi = 1;
     std::string fm = "pin";
@@ -303,6 +342,7 @@ PSAMR_bcfill_hyp(
     pp.query("ps_bc_nscbc_sigma", sg);
     pp.query("ps_bc_nscbc_form",  fm);
     pp.query("ps_bc_nscbc_order", od);
+    pp.query("ps_pres_diag", pd);
     pp.query("ps_bc_nscbc_backflow", bf);
     pp.query("ps_bc_nscbc_impedance", zi);
     static const char* fnm[6] = {"xlo","xhi","ylo","yhi","zlo","zhi"};
@@ -440,7 +480,7 @@ PSAMR_bcfill_hyp(
       }
       if (of[f] == 1) { pp.add((std::string("ps_bc_open_end_") + fnm[f]).c_str(), 1); }
     }
-    return NscbcCfg{od, bf, zi, sf, ff, pa, uf, of};
+    return NscbcCfg{od, bf, zi, pd, sf, ff, pa, uf, of};
   }();
   const int nscbc_order = nscbc_cfg.order;
 
@@ -483,7 +523,7 @@ PSAMR_bcfill_hyp(
 
   amrex::GpuBndryFuncFab<PCHypFillExtDir> hyp_bndry_func(
     PCHypFillExtDir{lprobparm, nscbc_cfg.uface, nscbc_cfg.sface, nscbc_cfg.fface,
-                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.impedance, nscbc_cfg.pamb, nscbc_cfg.oface
+                    nscbc_order, nscbc_cfg.backflow, nscbc_cfg.impedance, nscbc_cfg.pres_diag, nscbc_cfg.pamb, nscbc_cfg.oface
 #ifdef USE_PS_HYDRO
                     , ps_presence_params()   // host-side read
 #endif

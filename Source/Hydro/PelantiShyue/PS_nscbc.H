@@ -509,6 +509,17 @@ outflow_face(const amrex::Real s_N  [NVAR],
                            || ((p.open_end == 0)
                                && (std::abs(P_disp - P_N) <= cap0)
                                && (P_eq - P_N <= cap0));
+#if !defined(AMREX_USE_GPU)
+    //  The dispatch's inputs, kept for the report (follow-up 16).
+    if (layer_offset == 1) {
+        PsCounters& pc = ps_counters();
+        const Real cr = (cap0 > Real(0.0)) ? std::abs(P_disp - P_N) / cap0 : Real(1.0e300);
+        if (cr < pc.nscbc_cap_ratio_min) pc.nscbc_cap_ratio_min = cr;
+        if (cr > pc.nscbc_cap_ratio_max) pc.nscbc_cap_ratio_max = cr;
+        if (un_out_N < pc.nscbc_uout_min) pc.nscbc_uout_min = un_out_N;
+        if (small_signal) { if (inflow_bound) ++pc.nscbc_small_inflow; else ++pc.nscbc_small_cap; }
+    }
+#endif
 
     if (small_signal) {
         // ---- Small-signal branch: one linearised isentropic step. ----
