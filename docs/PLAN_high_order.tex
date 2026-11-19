@@ -3779,4 +3779,105 @@ prediction held and the dial costs nothing, so rule 9 (no atomics in the
 solution path) argues for 1 as the default, which is Marc's to decide on
 this record.
 
+
+\subsection{Follow-up 11: interface sharpening (18 November 2026, Mac \code{llvm}; commits \code{bb25aefc})}
+\label{sec:fu11}
+
+\paragraph{Step A, the measurement.}  The instrument
+\code{contact\_width.py} (\src{Exec/CO2_RiemannSuite}) reads the
+10--90\,\% width of the first monotone crossing of $\alpha_1$ along a
+row of the finest level.  Against the predictions:
+\begin{enumerate}[nosep]
+\item The 1-D two-phase contact (\code{x\_qual} 0.3 against 0.7 at
+      270\,K, 50\,m/s, 256 cells, frozen): order 2 at 12.1 cells after
+      32 cells of travel and 15.0 after 64; the order-4 default at 3.25
+      and 3.77.  Order 2 \textbf{refuted} on the size (above the 6 to 10
+      predicted, growing as the travel's square root: the taper drops
+      the correction on the whole jump and the contact is first order
+      there); order 4 \textbf{held} (3 to 5).  With the relaxation on the
+      figures are the same to three digits (the saturated mixture is at
+      its equilibrium on both sides).
+\item The presence front (pure vapour on the right, phase 1 Absent):
+      order 2 at 13.0 and 16.4 cells, order 4 at 3.27 and 3.68:
+      \textbf{refuted}.  The fallback band is first order in the cells
+      whose stencil crosses the front, but those cells carry the raw
+      averages of a profile the reconstructed cells on either side keep
+      steep, and the front is as sharp as the two-phase contact; the
+      order-2 scheme is the wide one on both kinds.
+\item demo3 along the axis: the head 7.84 cells wide at step 50 under
+      order 2 against 3.29 under the order-4 default, and at step 200
+      (on level 2, the head at $x = 0.141$\,m) 3.10 cells under the order-4 default on level 2, 5.26 level-1 cells (10.5 level-2 cells) under order 2 (level 2 does not cover the head there);
+      \textbf{refuted} in the same direction.  The recorded
+      contact-window figure of the order-4 run reads $8.79\times10^{-5}$
+      with one extremum, the record's value.
+\end{enumerate}
+The parked gate (``the WENO5 contact measurably more smeared than the
+tapered second-order scheme'') is met in reverse: on every interface
+this solver has, the order-4 path is three to four times sharper than
+the production scheme.  The sharpening below is therefore an
+improvement on a scheme that is already the sharper one, not a repair.
+
+\paragraph{Step B, THINC-BVD on $\alpha_1$.}  Built as planned
+(\code{PSAMR.ps\_wp\_sharpen}, 0 as now, 1 = the THINC candidate on
+$\alpha_1$ chosen by the boundary variation; \src{PS_recon.H}; the
+counter \code{recon\_thinc}; the RUNNING row).  Against the
+predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the pre-edit binary on the 1-D contact and
+      presence-front runs, the order-4 tube at 300 steps and XC2D at 40
+      steps on four ranks: \textbf{held}.
+\item The 1-D two-phase contact: 2.37 cells after 32 and 2.37 after 64
+      cells of travel (3.25 and 3.77 without), monotone with no
+      overshoot beyond the plateaus ($3\times10^{-17}$): \textbf{held}.
+      The presence front too, 2.35 and 2.28 (the THINC acts in the
+      two-phase cells beside the fallback band).
+\item ADV2D: the rates 5.00 and 4.99 at amplitude 0.0025 and 5.00 and 5.00 at 0.25, the $L_1(\alpha_1)$ errors bitwise those without the dial at every $N$, and THINC chosen in no cell of any run (\code{recon\_thinc} 0): \textbf{held}; on a resolved smooth profile the reconstructed edges vary less across the faces than the tanh does and the rule never takes it.  (These rates are read with the new scorer \code{adv2d\_err.py}, the translation by a quarter of the box, an integer number of cells on every grid; it reproduces the Stage~3 rates.)
+\item The single-phase battery bitwise (the A and C rows identical to
+      every digit): \textbf{held}.  The two-phase rows: every case
+      \code{ok} as before; B5 $\rho$ 0.0395 to 0.0383 (the contact
+      sharper), B11 $\rho$ 0.0793 to 0.0727 and $P$ 0.1624 to 0.1605,
+      B7 $u$ 0.692 to 0.680, B10 $u$ 0.152 to 0.151; against that B2
+      $\rho$ 0.0851 to 0.0879 and B9 $\rho$ 0.1065 to 0.1098, with
+      their FROZEN brackets moving the other way (B2 $u$ 0.725 to
+      0.707, B9 $u$ 0.711 to 0.726).  \textbf{Refuted} on the 2\,\%
+      bound (3.3\,\% on B2 and B9, 8\,\% on B11), five rows better and
+      two worse.
+\item B12's mirror asymmetry $1.03\times10^{-7}$ against
+      $9.73\times10^{-8}$, both at the gate's $10^{-6}$; the tube's
+      vacuum folds 0 under both: \textbf{held}.
+\item demo3 at step 50: the contact window $5.83\times10^{-5}$ with no
+      extremum against $8.79\times10^{-5}$ with one; the front window
+      $1.60\times10^{-2}$ against $7.76\times10^{-3}$ (a steeper front,
+      the head 2.13 cells wide against 3.29; at step 200 2.28 cells against 3.10 on level 2);
+      THINC chosen in about a tenth of the cell-directions per sweep
+      ($1.56\times10^{7}$ in 200 steps on the three levels), not under
+      1\,\%: \textbf{refuted} on both counts, the metric moving the way
+      a sharper interface moves it.
+\item Cost: the tube 64.8\,s against 64.7\,s, demo3 132.6 against
+      121.3\,s on six ranks ($+9\,\%$, the extra primitive conversions
+      and the candidate at every two-phase cell): \textbf{refuted} on
+      demo3's side of the 5\,\%.
+\end{enumerate}
+
+\paragraph{Finding: where the choice falls.}  On the tube the THINC
+candidate is chosen $5.4\times10^{5}$ times in 300 steps, about 7\,\% of
+the cell-directions of every sweep, and the step-300 fields move by 6 to
+10\,\% of range in $\rho$, $u$ and $\alpha_1$ (the step-300 time itself
+by 0.5\,\%); on XC2D at 40 steps the two-level run moves by
+$7\times10^{-2}$ of the momentum range and comes 2.4 times closer to its
+own single-level run in velocity (0.28 against 0.69 of range), the
+single-level runs themselves 0.9\,\% apart.  The tube's two-phase
+region is a smooth rarefaction with the liquid appearing, not a
+contact, and the plain BVD rule chooses THINC there wherever the
+reconstructed edges of a steep monotone profile vary more across the
+faces than the tanh does.  The tube's step sensitivity (the step halved to the same time, step 300 against 600): under the sharpening $8.3\times10^{-2}$ of range at the worst slot ($\alpha_2\rho_2$) against $1.2\times10^{-1}$ without, $\alpha_1$ $4.5\times10^{-2}$ against $5.7\times10^{-2}$, but $P$ $3.4\times10^{-2}$ against $2.2\times10^{-2}$ and $u$ $2.9\times10^{-2}$ against $1.9\times10^{-2}$, $\rho$ alike at $2.3\times10^{-2}$: the phase slots less sensitive to the step, the pressure and velocity half again more, so the choice neither improves nor degrades the tube as a whole, it moves which fields carry the sensitivity.  The literature's later selection
+rules (the candidates compared against the neighbours' own candidates,
+or a two-stage choice) are the remedy if the smooth-data behaviour
+needs one; not built here.
+
+\paragraph{State.}  Landed as an option with 0 as the default; the
+record is Marc's to decide on.  Step C (THINC through a presence
+front) has lost its premise: the front is not the smeared interface
+step A was asked to find.
+
 \end{document}
