@@ -965,10 +965,13 @@ ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0,
 //  13).  The average of a field in mechanical equilibrium is not in
 //  equilibrium at second order, so the projection of cell averages is a
 //  second-order term of the order-4 path; here the cell's point value
-//  U_c = <U> - (1/24) sum_d d2_d <U> is projected and the projected
-//  point values are converted back, <Pi> = Pi_c + (1/24) sum_d d2_d Pi_c,
-//  written to the three slots the kernel owns (UALPHA1, UE1, UE2; the
-//  invariants are untouched).  Sg is the stage state with at least two
+//  U_c = <U> - (1/24) sum_d d2_d <U> is projected and the kernel's
+//  change on the three slots it owns (UALPHA1, UE1, UE2; the invariants
+//  are untouched), D_c = Pi(U_c) - U_c, is converted back and added to
+//  the average, <U> += D_c + (1/24) sum_d d2_d D_c.  The pair acts on
+//  the change, not on the state: its own fourth-order truncation is
+//  never written into the averages, where it would be corrected again
+//  at every stage and add up as a drift (follow-up 14).  Sg is the stage state with at least two
 //  ghost layers filled; S_new receives the valid region.  A cell with a
 //  presence change among its face neighbours, or whose point value is
 //  not a state on its phases' branches, or whose converted average
@@ -1018,11 +1021,15 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
         amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             using amrex::Real;
-            Real U[NVAR], Uc[NVAR];
+            Real U[NVAR], Uc[NVAR], U0[NVAR], Uc0[NVAR];
             for (int n = 0; n < NVAR; ++n) { U[n] = Ug(i, j, k, n); Uc[n] = U[n]; }
             PsCellState sa; ps_cell_prims(U, l_pres, sa);
-            bool pt = true;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            //  Only a two-phase cell is a candidate: the kernel's entry
+            //  gate refuses the others, so the point form has nothing to
+            //  do there and the refusal is not counted.
+            const bool two = (sa.rg1 != PsRegime::Absent) && (sa.rg2 != PsRegime::Absent);
+            bool pt = two;
+            for (int d = 0; d < AMREX_SPACEDIM && pt; ++d) {
                 const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
                 Real Um[NVAR], Up[NVAR];
                 for (int n = 0; n < NVAR; ++n) {
@@ -1039,6 +1046,8 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
                 if ((sc.rg1 == PsRegime::Absent) != (sa.rg1 == PsRegime::Absent) || (sc.rg2 == PsRegime::Absent) != (sa.rg2 == PsRegime::Absent)) pt = false;
                 else if (!ps_pt_detail::is_state(Uc, l_pres)) pt = false;
             }
+            for (int n = 0; n < NVAR; ++n) { U0[n] = U[n]; Uc0[n] = Uc[n]; }
+            if (two && !pt) { PS_COUNT(++ps_counters().proj_pt_raw); }
             Real* W = pt ? Uc : U;
 #if !defined(AMREX_USE_GPU)
             //  The deviation from equilibrium of the point value the kernel
@@ -1058,21 +1067,25 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
                 if (mv > ps_counters().proj_pt_move) ps_counters().proj_pt_move = mv;
             }
 #endif
-            for (int n = 0; n < NVAR; ++n) pc(i, j, k, n) = W[n];
+            //  The store holds the kernel's change on the three slots (the
+            //  projected value less the value it received), so the pair's
+            //  own truncation is never written into the state: an
+            //  equilibrium field passes through unchanged.
+            for (int n = 0; n < NVAR; ++n) pc(i, j, k, n) = W[n] - (pt ? Uc0[n] : U0[n]);
             pc(i, j, k, NVAR) = pt ? Real(1.0) : Real(0.0);
         });
-        // Pass 2: the converted average of the projected point values,
-        // into the three slots of the valid region.
+        // Pass 2: the average's three slots plus the converted change of
+        // the projected point values, into the valid region.
         amrex::Array4<const amrex::Real> const pcc = pc_fab.const_array();
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             using amrex::Real;
-            if (pcc(i, j, k, NVAR) == Real(0.0)) {
-                for (int q = 0; q < 3; ++q) Un(i, j, k, slots[q]) = pcc(i, j, k, slots[q]);
-                return;
-            }
             Real Uavg[NVAR];
             for (int n = 0; n < NVAR; ++n) Uavg[n] = Ug(i, j, k, n);
+            if (pcc(i, j, k, NVAR) == Real(0.0)) {
+                for (int q = 0; q < 3; ++q) Un(i, j, k, slots[q]) = Uavg[slots[q]] + pcc(i, j, k, slots[q]);
+                return;
+            }
             Real v[3];
             for (int q = 0; q < 3; ++q) {
                 const int n = slots[q];
@@ -1081,7 +1094,7 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
                     const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
                     w += (pcc(i + oi, j + oj, k + ok, n) - Real(2.0) * pcc(i, j, k, n) + pcc(i - oi, j - oj, k - ok, n)) / Real(24.0);
                 }
-                v[q] = w;
+                v[q] = Uavg[n] + w;
             }
             Real Ut[NVAR];
             for (int n = 0; n < NVAR; ++n) Ut[n] = Uavg[n];
