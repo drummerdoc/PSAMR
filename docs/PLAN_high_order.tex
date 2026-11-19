@@ -510,7 +510,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
 \code{PSAMR.ps\_det\_reflux} & 1 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible (the default, Marc's decision of 19 November 2026); 0 = the atomic form, for A/B; unread on the host (follow-up 10). \\
 \code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
-\code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, converted back to an average (follow-up 13; refuted as the remedy for the projection's second-order term). \\
+\code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, the kernel's change converted back and added to the average (follow-ups 13 and 14): with the conversions, fourth order on a smooth two-phase field with the projection on. \\
 \code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). An instrument for the order measurements: it leaves the EOS domain at a phase birth and in the deep NSCBC ghost layers. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
@@ -4319,5 +4319,74 @@ degrades the stiff case and breaks at a phase birth.  What follow-ups
 smooth two-phase fields with varying phase states through the stage
 projection on averages, the conversion pair removes the reconstruction's
 two terms, and the projection's term has a remedy still to be found.
+
+
+\subsection{Follow-up 14: the surviving term located and removed (19 November 2026, Mac \code{llvm}; commits \code{3b4cc9ea} and \code{eba792ee})}
+\label{sec:fu14}
+
+Items 1 and 2 are recorded in \S8 with the location: the point form
+wrote the conversion pair's fourth-order truncation into the averages at
+every stage and the kernel corrected it again each time, a secular
+drift at rate $4 - 5/3$.  Item 3, the pair applied to the kernel's
+change rather than to the state, built as predicted.  Against the
+predictions:
+\begin{enumerate}[nosep]
+\item (i) At 64 cells, the step and half and a quarter of it: the error
+      in the partial mass $1.17\times10^{-5}$, $1.15\times10^{-5}$,
+      $1.15\times10^{-5}$, no longer moving with the step (the drift's
+      $1.72\times10^{-3}$, $3.50\times10^{-3}$, $7.04\times10^{-3}$
+      before), 150 times smaller at the series' step: \textbf{held}.
+      The kernel still receives the same deviations ($2.5\times10^{-6}$,
+      $8.6\times10^{-7}$, $7.1\times10^{-7}$) and applies the same
+      movements; they no longer add up, because the state is never
+      written off the equilibrium it was on.
+\item (ii) The one-dimensional series at \code{ps\_wp\_mc=1} with the
+      projection on: $3.17\times10^{-4}$, $1.17\times10^{-5}$,
+      $5.04\times10^{-7}$, rates 4.76 and 4.54, the pressure 30.7, 1.95,
+      0.148\,Pa (3.98, 3.72); the two-dimensional case at 2:
+      $5.06\times10^{-4}$, $2.77\times10^{-5}$ (4.19), the density 4.18.
+      \textbf{Held} on the rates; the projection-free figures
+      ($1.55\times10^{-3}$, $8.96\times10^{-5}$, $5.49\times10^{-6}$)
+      are not within a factor of 2 but five to eleven times larger: the
+      projected run is the better one, the projection now removing the
+      stage states' own deviations from equilibrium without a cost of
+      its own.
+\item (iii) B5's step convergence: the differences between step sizes $3.30\times10^{-4}$ and
+      $8.39\times10^{-5}$ of range in $\rho$ (ratio 3.93) under the point
+      form against $3.28\times10^{-4}$ and $8.34\times10^{-5}$ (3.93)
+      under the average form, $P$ 3.90 against 3.89, $\alpha_1$ 3.93
+      against 3.93: \textbf{held}, the two forms within 0.7\,\% of each
+      other on the stiff case (the drift's 1.6 and 0.9 are gone).
+\item (iv) The battery: no case aborts, the A and C rows bitwise: \textbf{held};
+      the two-phase rows: B2's velocity error 0.776 to 0.312 and its
+      frozen bracket 0.353 to 0.142, B7 $u$ $+6\,\%$, B9 $\rho$ $+8\,\%$,
+      B11 and the rest to four digits: \textbf{refuted} on the 2\,\%
+      bound, one row much better and two a little worse; B10's
+      threefold loss under the drift is gone.
+\item The default bitwise the present code on the 22-run reference set:
+      21 of 22 bitwise, the IMEX pair at the audit's
+      $4\times10^{-11}$, the tube at its default bitwise the
+      pre-conversions run: \textbf{held}.
+\item The tube under the point form: 300 steps under the order-4 default: no fold, no abort, the
+      validator 0; against the average form $2.7\times10^{-2}$ of range
+      in $\rho$, $4.3\times10^{-2}$ in $\alpha_1$, $4.0\times10^{-2}$ in
+      $P$, $8.3\times10^{-2}$ at the worst slot, inside the tube's own
+      step sensitivity ($2\times10^{-2}$ to $1.2\times10^{-1}$); the
+      point form acts on the two-phase region, about 900 cells a stage,
+      and refuses the trace cells (their point values are not states,
+      the worst deviation it meets 50); 79.3\,s against 64.9
+      ($+22\,\%$, the extra fill and the state checks).  \textbf{Refuted}
+      on follow-up 13's $10^{-2}$ and $+10\,\%$ bounds, within the
+      step sensitivity.
+\end{enumerate}
+
+\paragraph{State.}  With the point projection in its remedied form and
+the conversions on, the order-4 path is fourth order on a smooth
+two-phase field with varying phase states in one and two dimensions,
+the projection included.  The conversions' own limit stands (the EOS
+domain at a phase birth), so the fourth order is an option for smooth
+fields; what the production configuration gains from the point
+projection alone is the battery's and the tube's to say above.
+\code{ps\_rk\_project\_pt} stays at 0 until Marc decides.
 
 \end{document}
