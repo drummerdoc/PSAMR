@@ -508,6 +508,9 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
+\code{PSAMR.ps\_det\_reflux} & 0 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible; unread on the host (follow-up 10). \\
+\code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
+\code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). An instrument for the order measurements: it leaves the EOS domain at a phase birth and in the deep NSCBC ghost layers. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
@@ -3979,5 +3982,97 @@ Against the predictions:
       constant alone, by 7 to 22 times.
 \end{enumerate}
 Both terms are measurable, so step B is built.
+
+
+\subsection{Follow-up 12, step B: the conversions (18--19 November 2026, Mac \code{llvm}; commits \code{013ba160}, \code{b7412319} and \code{47c3b258})}
+\label{sec:fu12b}
+
+Built as planned, with the departures recorded: \code{PSAMR.ps\_wp\_mc}
+(0 as now; 1 = term (a), the primitive set from the point value and
+back; 2 = terms (a) and (b), the face point values and the
+fluctuations back to face averages), the ghost count 5 and 6 (the plan
+said 5: the back-conversion of the fluctuations reads the faces one
+further out transversally), and two guards the plan did not have and
+rule 2 required once the battery spoke: a point value or a converted
+average that is not a state on its phases' branches (the EOS's
+non-aborting inversion, the corridor's predicate) is refused and the
+average's set stands, counted \code{recon\_mc\_raw}; a face whose point
+side states are inadmissible keeps the stored edges, counted
+\code{recon\_mc\_face}.  Every order measurement below has the stage
+projection off (the finding above) and cell-averaged initial data.
+Against the restated predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the present code on the 22-run reference set
+      (the IMEX pair at the audit's $4\times10^{-11}$), and the refactored
+      ADV2D initial condition bitwise at its own default: \textbf{held}.
+\item (i) The one-dimensional case at \code{ps\_wp\_mc=1}: rates 4.11
+      and 4.03 on the partial mass, 4.2 and 4.1 on the pressure, 4.25
+      and 4.08 on $\alpha_1$, where the plain scheme reads 2.00 and 2.00:
+      \textbf{held}.  At 2 the transverse differences vanish and the
+      result agrees with 1 to $10^{-14}$ of range, not bitwise (the
+      source of the last bits not located).
+\item (ii) The two-dimensional case: without the conversions $L_1(m_1)$ $3.72\times10^{-2}$,
+      $9.29\times10^{-3}$ at $32^2$, $64^2$ (rate 2.00); at
+      \code{ps\_wp\_mc=1} $2.97\times10^{-2}$, $7.45\times10^{-3}$ (2.00);
+      at 2 $2.06\times10^{-3}$, $1.21\times10^{-4}$ (4.09), the density
+      4.10, $\alpha_1$ 4.13, the pressure 4.01 (44.1 and 2.74\,Pa
+      against 987 and 247 without): \textbf{held} at the two grids run;
+      the $128^2$ point is appended when it lands.
+\item (iii) The pulse: pending at the time of this record (the series at the
+      plain and the full setting runs; appended when it lands).
+\item (iv) The plain one-dimensional case: rates 5.00 without the
+      conversions and 4.68 with them at $32^2$ to $64^2$ (and 4.99, 4.65 against 4.34, 4.10 on to $256^2$):
+      \textbf{held}, the conversion pair is exact to fourth order only.
+\item The battery under the order-4 default (the projection on) at
+      \code{ps\_wp\_mc=1}: without the guards three cases abort at the
+      EOS domain (A6 near vacuum, B9 deep expansion, B11 the subcritical
+      contact), the point value of a strong rarefaction cell leaving the
+      branch; with the guards A6 and B11 run and B9 still aborts, now in the primitive conversion of a
+      stage state (a vanishing liquid sliver whose phase energy the
+      converted fluxes left inconsistent with its mass); the A/C mean
+      0.0300 against 0.0297 ($+1.0\,\%$, inside the 2\,\% bound) with
+      the rows moving by up to 18\,\% either way (A1 $\rho$ $+14\,\%$,
+      A4 $+15\,\%$, A6 $+18\,\%$; A5 $-3\,\%$; B11 $P$ $-7\,\%$, B2 $u$
+      $-16\,\%$): \textbf{refuted} on the aborts, held on the mean.
+\item The tube: aborts at step 5 under either setting, in the NSCBC ghost
+      fill: the characteristic fill extrapolates by the ghost layer, and
+      at the fifth and sixth layer the conversions need the extrapolated
+      state leaves the EOS domain.  Cost not measurable there.  XC2D and the GPU: not run; the option is
+      not production-ready (below).
+\end{enumerate}
+
+\paragraph{Finding on the way: the face conversion after the map.}
+The first build of the second term converted the stored conserved edge
+arrays, which are the primitive edges already mapped to the conserved
+array; the map is nonlinear, so its own second-order term at the face
+survived, and the two-dimensional case read 2.0 at every setting
+($3.00\times10^{-2}$, $7.71\times10^{-3}$ at the full one), as did the
+same case advected along one axis only (1.95).  Converting the primitive
+edges and mapping after gives the rates above.  The order of
+conversion and map is the whole of term (b).
+
+\paragraph{Finding: the correction at a phase birth.}  The conversion
+pair is a high-pass operation, and across a phase-birth region (B9's
+flashing cells, the tube's liquid appearing) the phase energies of
+neighbouring cells differ by orders of magnitude, so the converted
+averages carry a 24th of that difference as an oscillation; the
+reconstruction's edge values then leave the EOS domain at a face.  The
+guards keep the converted cells themselves states; they cannot keep the
+edge values of a stencil that holds them states.  McCorquodale and
+Colella limit the correction with the limiter's own smoothness measure;
+nothing in this tree derives the threshold such a limiter needs (rule
+1), so the option stands as an instrument for the order measurements
+and the question is Marc's: a limited correction, the conversion
+confined to cells whose five-cell stencil is free of a presence change
+and of a fresh phase (a rule the presence machinery already knows), or
+the item closed with the orders on the record.
+
+\paragraph{State.}  Landed as the option \code{ps\_wp\_mc} with 0 as the
+default and its failure modes in the RUNNING row.  What the item
+established: the two averages-against-points terms are real and
+second order, the first conversion removes its term in one dimension,
+the second removes its term in two dimensions (4.1
+at $32^2$ to $64^2$), and the production configuration carries a third
+second-order term of its own in the stage projection.
 
 \end{document}
