@@ -510,6 +510,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
 \code{PSAMR.ps\_det\_reflux} & 1 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible (the default, Marc's decision of 19 November 2026); 0 = the atomic form, for A/B; unread on the host (follow-up 10). \\
 \code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
+\code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, converted back to an average (follow-up 13; refuted as the remedy for the projection's second-order term). \\
 \code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). An instrument for the order measurements: it leaves the EOS domain at a phase birth and in the deep NSCBC ghost layers. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
@@ -4133,5 +4134,70 @@ second order, the first conversion removes its term in one dimension,
 the second removes its term in two dimensions (4.1
 at $32^2$ to $64^2$), and the production configuration carries a third
 second-order term of its own in the stage projection.
+
+
+\subsection{Follow-up 13: the stage projection on point values (19 November 2026, Mac \code{llvm}; commit \code{b8fbd8be})}
+\label{sec:fu13}
+
+Built as planned (\code{PSAMR.ps\_rk\_project\_pt}, 0 as now, 1 = the
+point form; the guards of follow-up 12; the counters
+\code{proj\_pt\_raw} and \code{proj\_pt\_resid}).  Every order
+measurement with averaged data and the conversions of follow-up 12 on.
+Against the predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the present code on the 22-run reference set
+      (the IMEX pair at the audit's $4\times10^{-11}$), B5 at \code{cfl}
+      0.25 bitwise the cycle's run: \textbf{held}.
+\item The one-dimensional case at \code{ps\_wp\_mc=1}: $L_1(m_1)$
+      $8.00\times10^{-3}$, $1.72\times10^{-3}$, $3.50\times10^{-4}$ at
+      32, 64, 128 cells, rates 2.21 and 2.30, against $4.59\times10^{-3}$,
+      $1.15\times10^{-3}$, $2.88\times10^{-4}$ (2.00, 2.00) under the
+      average form; the pressure error 78.0, 8.93, 1.38\,Pa (3.1, 2.7)
+      against 1388, 347, 86.8 (2.0, 2.0).  The two-dimensional case at
+      \code{ps\_wp\_mc=2}: $2.74\times10^{-2}$, $5.72\times10^{-3}$ (2.26)
+      against $1.85\times10^{-2}$, $4.76\times10^{-3}$ (1.96); the
+      pressure 134 and 36.8\,Pa against 1383 and 346.  \textbf{Refuted}:
+      the point form removes most of the pressure error the average form
+      leaves (seventeen to twenty times at $32^2$) but does not restore
+      the fourth order of the projection-free runs ($1.55\times10^{-3}$,
+      $8.96\times10^{-5}$, $5.49\times10^{-6}$ in one dimension), and the
+      partial mass is worse than under the average form.  A second-order
+      term survives the point projection; it is not located here (the
+      kernel does not touch the partial masses, so it enters through the
+      projected $\alpha_1$ and phase energies the next stage's faces
+      read).  No cell took the average form (\code{proj\_pt\_raw} 0).
+\item The same with \code{ps\_wp\_mc=0}: $3.16\times10^{-2}$,
+      $7.00\times10^{-3}$ (2.17): \textbf{held}, terms (a) and (b) stand.
+\item The constraint residual of the converted averages:
+      $7.4\times10^{-4}$, $1.9\times10^{-4}$, $4.7\times10^{-5}$ at 32, 64,
+      128 (ratios 3.94 and 3.99), second order: \textbf{refuted as
+      written}, and rightly so: the averages of a field in equilibrium
+      are off the constraint at second order, which is the very term the
+      item was built on, so the converted averages must carry that
+      residual; the prediction asked for the wrong quantity.
+\item B5 at \code{cfl} 0.25, 0.125, 0.0625 under the order-4 default:
+      the differences between step sizes $3.3\times10^{-4}$ and
+      $8.3\times10^{-5}$ of range in $\rho$ (ratio 3.9) under the average
+      form, $7.8\times10^{-4}$ and $4.8\times10^{-4}$ (1.6) under the
+      point form; $P$ 3.9 against 2.0, $\alpha_1$ 3.9 against 0.9:
+      \textbf{refuted}, the point form degrades the stiff case's step
+      convergence from second to first order and below.
+\item The battery under the order-4 default at the point form: the A
+      and C rows bitwise: \textbf{held}; the two-phase rows: B2 and B9
+      abort at the EOS domain (the phase-birth cases again), B10's
+      velocity error 0.152 to 0.551, B7 three per cent worse, B4, B5 and
+      B11 within three per cent: \textbf{refuted}.  XC2D and the tube:
+      not run on these results.
+\item Cost and the GPU: not measured; the option is not a candidate.
+\end{enumerate}
+
+\paragraph{State.}  Landed as an option with 0 as the default, inert
+there, and refuted as the remedy for term (c): the point form trades
+the pressure error for a worse partial-mass error on the smooth cases,
+degrades the stiff case and breaks at a phase birth.  What follow-ups
+12 and 13 leave is on the record: the order-4 default is second order on
+smooth two-phase fields with varying phase states through the stage
+projection on averages, the conversion pair removes the reconstruction's
+two terms, and the projection's term has a remedy still to be found.
 
 \end{document}
