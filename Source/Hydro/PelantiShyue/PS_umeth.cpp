@@ -739,16 +739,18 @@ PS_umeth(const Box& bx,
     };
     const int wp_mc = ps_wp_mc_cached();
 
-    // PSAMR.ps_wp_mc_bdry (0): under ps_wp_mc, 1 = the conversions refuse
+    // PSAMR.ps_wp_mc_bdry (1): under ps_wp_mc, 1 = the conversions refuse
     // a cell whose stencil leaves the domain across a non-periodic face
     // (the point conversion where a face neighbour is outside, the average
     // conversion where a face neighbour was so refused), counted as
     // recon_mc_bdry; the average's set stands there as at a presence front
-    // (follow-up 16b).  0 = the conversions run into the boundary ghosts.
+    // (follow-up 16b; the default by Marc's word, follow-up 16c).  0 = the
+    // conversions run into the boundary ghosts, which doubled the first
+    // NSCBC ghost's liquid mass on the blowdown tube.
     auto ps_wp_mc_bdry_cached = []() -> int
     {
         static const int cached = []() -> int {
-            const int v = ps_dial_int("ps_wp_mc_bdry", 0);
+            const int v = ps_dial_int("ps_wp_mc_bdry", 1);
             if (v < 0 || v > 1) { amrex::Abort("PSAMR.ps_wp_mc_bdry must be 0 or 1"); }
             return v; }();
         return cached;
@@ -1020,6 +1022,12 @@ PS_umeth(const Box& bx,
         auto const& wc_arr = wc_fab.array();
         auto const& wq_arr = wq_fab.array();
         amrex::Array4<const Real> const wq_c = wq_fab.const_array();
+        //  A phase density outside the EOS's own domain is not a state,
+        //  whatever the branch solve says of it (follow-up 16c: a point
+        //  value of 1901 kg/m3, past the covolume pole, had passed the
+        //  solve); the bound is the fill's clamp's, no new constant.
+        const Real mc_rho_lo = EOS::rho_min(), mc_rho_hi = EOS::rho_max();
+        auto ps_mc_rho_in_domain = [=] AMREX_GPU_DEVICE (Real r) noexcept -> bool { return r >= mc_rho_lo && r <= mc_rho_hi; };
         if (o4 && mc_l != 0) {
             BL_PROFILE_VAR("PS::wp_mc_prims()", ps_wp_mc_prof);
             //  The point value is used only where it is a state: each
@@ -1035,9 +1043,11 @@ PS_umeth(const Box& bx,
                     Real Pq, Tq, Sq;
                     bool ok = true;
                     if (wc_arr(i, j, k, PS_RECON::WC_AB1) == Real(0.0))
-                        ok = EOS::REY2PTS_phase_try(wc_arr(i, j, k, PS_RECON::IR1), wc_arr(i, j, k, PS_RECON::IE1), Yp, hem::Phase3::Liquid, Pq, Tq, Sq);
+                        ok = ps_mc_rho_in_domain(wc_arr(i, j, k, PS_RECON::IR1))
+                          && EOS::REY2PTS_phase_try(wc_arr(i, j, k, PS_RECON::IR1), wc_arr(i, j, k, PS_RECON::IE1), Yp, hem::Phase3::Liquid, Pq, Tq, Sq);
                     if (ok && wc_arr(i, j, k, PS_RECON::WC_AB2) == Real(0.0))
-                        ok = EOS::REY2PTS_phase_try(wc_arr(i, j, k, PS_RECON::IR2), wc_arr(i, j, k, PS_RECON::IE2), Yp, hem::Phase3::Vapor, Pq, Tq, Sq);
+                        ok = ps_mc_rho_in_domain(wc_arr(i, j, k, PS_RECON::IR2))
+                          && EOS::REY2PTS_phase_try(wc_arr(i, j, k, PS_RECON::IR2), wc_arr(i, j, k, PS_RECON::IE2), Yp, hem::Phase3::Vapor, Pq, Tq, Sq);
                     if (!ok) {
                         Real U[NVAR];
                         for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
@@ -1069,9 +1079,11 @@ PS_umeth(const Box& bx,
                     Real Pq, Tq, Sq;
                     bool ok = true;
                     if (wq_arr(i, j, k, PS_RECON::WC_AB1) == Real(0.0))
-                        ok = EOS::REY2PTS_phase_try(wq_arr(i, j, k, PS_RECON::IR1), wq_arr(i, j, k, PS_RECON::IE1), Yp, hem::Phase3::Liquid, Pq, Tq, Sq);
+                        ok = ps_mc_rho_in_domain(wq_arr(i, j, k, PS_RECON::IR1))
+                          && EOS::REY2PTS_phase_try(wq_arr(i, j, k, PS_RECON::IR1), wq_arr(i, j, k, PS_RECON::IE1), Yp, hem::Phase3::Liquid, Pq, Tq, Sq);
                     if (ok && wq_arr(i, j, k, PS_RECON::WC_AB2) == Real(0.0))
-                        ok = EOS::REY2PTS_phase_try(wq_arr(i, j, k, PS_RECON::IR2), wq_arr(i, j, k, PS_RECON::IE2), Yp, hem::Phase3::Vapor, Pq, Tq, Sq);
+                        ok = ps_mc_rho_in_domain(wq_arr(i, j, k, PS_RECON::IR2))
+                          && EOS::REY2PTS_phase_try(wq_arr(i, j, k, PS_RECON::IR2), wq_arr(i, j, k, PS_RECON::IE2), Yp, hem::Phase3::Vapor, Pq, Tq, Sq);
                     if (!ok) {
                         Real U[NVAR];
                         for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
