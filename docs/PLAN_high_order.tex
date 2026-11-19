@@ -3880,4 +3880,42 @@ record is Marc's to decide on.  Step C (THINC through a presence
 front) has lost its premise: the front is not the smeared interface
 step A was asked to find.
 
+
+\subsection{Follow-up 12, step A: the average-to-point terms measured (18 November 2026, Mac \code{llvm})}
+\label{sec:fu12a}
+
+Instruments only (\src{Exec/CO2_ADV2D}: \code{prob.T1\_amp}, \code{prob.p\_amp}
+and \code{prob.p\_width} in the initial condition, 0 by default and bitwise
+inert there; the scorer \code{adv2d\_err.py}, the translation error by
+an integer number of cells and the block-averaged self-convergence).
+Against the predictions:
+\begin{enumerate}[nosep]
+\item ADV2D with the phase-1 temperature varying by $\pm10$\,K at the
+      uniform pressure, amplitude 0.0025, the translation by a quarter
+      of the box, the step as $N^{-2/3}$: $L_1(m_1)$
+      $4.80\times10^{-3}$, $1.18\times10^{-3}$, $2.94\times10^{-4}$ at
+      $32^2$, $64^2$, $128^2$, rates 2.02 and 2.01, where the same series
+      with the temperature uniform reads $1.59\times10^{-5}$,
+      $4.95\times10^{-7}$, $1.55\times10^{-8}$, rates 5.00 and 4.99:
+      \textbf{held}, term (a) is a second-order term above the
+      reconstruction.  $\alpha_1$ falls with it to 2.0 ($4.35\times10^{-6}$,
+      $1.08\times10^{-6}$, $2.71\times10^{-7}$ against $1.6\times10^{-8}$,
+      $5.0\times10^{-10}$, $1.6\times10^{-11}$): \textbf{refuted} on the
+      side claim that $\alpha_1$ stays at 5, and the mechanism is on the
+      record: the primitive set formed from averages leaves the pressure
+      non-uniform by 150, 37 and 9.4\,Pa in $L_1$ (second order) and the
+      velocity by $7\times10^{-4}$, $1.8\times10^{-4}$, $4.5\times10^{-5}$\,m/s,
+      so the colour is no longer carried by a uniform flow.
+\item The pressure pulse (1\,\% of 80\,bar, width a tenth of the box, at
+      rest, phase 1 at its trace) against the $512^2$ run of the same
+      scheme at $t = 0.8$\,ms, \code{cfl} 0.3: under the order-4 default
+      $L_1(P)$ 37.3, 10.8, 2.69, 0.547\,Pa at $32^2$ to $256^2$, rates
+      1.79, 2.01 and 2.30 (the last against a reference only twice
+      finer), $u$ the same rates; under order 2, 277, 109, 39.5,
+      11.9\,Pa, rates 1.34, 1.47 and 1.73.  \textbf{Held}: both schemes
+      are second order on a smooth acoustic pulse and differ in the
+      constant alone, by 7 to 22 times.
+\end{enumerate}
+Both terms are measurable, so step B is built.
+
 \end{document}
