@@ -3741,4 +3741,42 @@ step 6 is closed by this record: the five stage sweeps are not the GPU
 step's cost under the pairing, and the pairing's $-19\,\%$ against
 Strang stands as the whole of what the stage structure buys there.
 
+
+\subsection{Follow-up 10: the deterministic flux register on the device (18--19 November 2026, Mac \code{llvm} and peart; commit \code{5af5bc7a})}
+\label{sec:fu10}
+
+Built as planned: \code{PSAMR.ps\_det\_reflux} (0 = the register as now;
+1 = AMReX's ordered form of the reflux's parallel copy, one call on the
+register after its definition), the RUNNING row.  Against the
+predictions:
+\begin{enumerate}[nosep]
+\item Mac: 1 bitwise 0 on XC2D at 40 steps on one rank and on four
+      (\code{Header} and both levels' cell data), and the 22-run
+      reference set at the default bitwise but the two IMEX runs at the
+      audit's known $4\times10^{-11}$: \textbf{held}.
+\item GPU, XC2D 40 steps twice at 1 under the order-4 default: bitwise (\code{Header} and both levels' cell data), where the atomic form's two runs at the same commit differ by $1.9\times10^{-10}$ on level 0 and $7.2\times10^{-9}$ on level 1: \textbf{held}; the spread is closed.
+\item GPU at 1 against GPU at 0: $2.2\times10^{-10}$ on level 0 and $7.2\times10^{-9}$ on level 1, the spread's own size, not bitwise: \textbf{held}.
+\item GPU at 1 against the Mac at 1: $2.5\times10^{-10}$ of range on level 0 and $1.0\times10^{-8}$ on level 1 against the one-rank Mac run ($2.6\times10^{-10}$ and $1.3\times10^{-8}$ against the four-rank one), the earlier lines' level: \textbf{held}; for the first time on a two-level case that figure is the two machines' rounding alone.
+\item The Heun two-level pair twice at 1: bitwise: \textbf{held}; its $10^{-13}$ seed was the same sum.
+\item Cost: 43.0 and 43.0\,s at 1 against 43.2 and 43.1\,s at 0 ($-0.3\,\%$): \textbf{held}.
+\end{enumerate}
+
+\paragraph{Finding: the host's rank count.}  On the Mac the one-rank
+and four-rank XC2D runs differ by $1.9\times10^{-10}$ of range on level
+0 and $6.8\times10^{-9}$ on level 1, under either setting of the dial:
+the GPU spread's own figures.  It is the same sum in another order: on
+the host the overlapping patches are added in the order the ranks'
+messages are unpacked, which the rank layout fixes, so a host run is
+bitwise reproducible at a given rank count and not across rank counts.
+A canonical order of the adds (by source box) on the host as on the
+device would make the rank count, like the device, invisible in the
+last bit; AMReX's ordered form sorts by the destination tile and keeps
+the arrival order within it, so it does not give that yet.  Recorded,
+not built.
+
+\paragraph{State.}  Landed with 0 as the default by rule 15; every
+prediction held and the dial costs nothing, so rule 9 (no atomics in the
+solution path) argues for 1 as the default, which is Marc's to decide on
+this record.
+
 \end{document}
