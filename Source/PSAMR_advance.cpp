@@ -377,8 +377,12 @@ PSAMR::PSAMR_advance (Real time,
             amrex::ParallelDescriptor::ReduceLongSum(rmf_);
             amrex::Long pp_ = pc.proj_pt_raw;
             amrex::Real ppr_ = pc.proj_pt_resid;
+            amrex::Real ppd_ = pc.proj_pt_dev;
+            amrex::Real ppm_ = pc.proj_pt_move;
             amrex::ParallelDescriptor::ReduceLongSum(pp_);
             amrex::ParallelDescriptor::ReduceRealMax(ppr_);
+            amrex::ParallelDescriptor::ReduceRealMax(ppd_);
+            amrex::ParallelDescriptor::ReduceRealMax(ppm_);
             amrex::ParallelDescriptor::ReduceLongSum(rf_);
             amrex::ParallelDescriptor::ReduceLongSum(rt_);
             amrex::ParallelDescriptor::ReduceLongSum(rm_);
@@ -392,7 +396,9 @@ PSAMR::PSAMR_advance (Real time,
                            << "  recon_mc_raw = " << rm_
                            << "  recon_mc_face = " << rmf_
                            << "  proj_pt_raw = " << pp_
-                           << "  proj_pt_resid = " << ppr_;
+                           << "  proj_pt_resid = " << ppr_
+                           << "  proj_pt_dev = " << ppd_
+                           << "  proj_pt_move = " << ppm_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;

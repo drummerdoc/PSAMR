@@ -220,6 +220,8 @@ struct PsCounters {
     long   recon_mc_face     = 0;   //   a face whose point side states were inadmissible and kept the stored edges (ps_wp_mc=2)
     long   proj_pt_raw       = 0;   // the stage projection on point values (ps_rk_project_pt=1): a cell that took the projection of its average instead (follow-up 13)
     double proj_pt_resid     = 0.0; //   the worst |P1-P2|/P of the converted averages since the last report (ps_pres_diag)
+    double proj_pt_dev       = 0.0; //   the worst |P1-P2|/P of the stage point values the kernel receives (ps_pres_diag; follow-up 14)
+    double proj_pt_move      = 0.0; //   the worst |delta alpha_1| the kernel applies to them
     long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
     long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
     long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
@@ -293,7 +295,7 @@ struct PsCounters {
         flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
         lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
         recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = 0;
-        proj_pt_raw = 0; proj_pt_resid = 0.0;
+        proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;

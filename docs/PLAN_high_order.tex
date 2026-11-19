@@ -1803,6 +1803,46 @@ Two experiments without new code, then one with, in that order:
       until items 1 and 2 are on the record.
 \end{enumerate}
 
+\paragraph{Items 1 and 2 measured, the term located (19 November 2026).}
+Item 1: at 64 cells the point form's error in the partial mass reads
+$1.72\times10^{-3}$, $3.50\times10^{-3}$, $7.04\times10^{-3}$ at the
+series' step, half and a quarter of it, doubling as the step halves
+(the average form $1.15\times10^{-3}$ at every step): the error grows
+with the number of stage applications, not with the step, which is
+neither a spatial term nor a temporal one in the predicted sense, but a
+secular drift.  \textbf{Refuted} as written, and the measurement says
+more than the prediction asked.  Item 2: the kernel receives a point
+value out of equilibrium by $2.5\times10^{-6}$, $8.7\times10^{-7}$,
+$7.1\times10^{-7}$ at the three steps, a floor independent of the step,
+and moves $\alpha_1$ by $3.6\times10^{-8}$, $1.3\times10^{-8}$,
+$1.3\times10^{-8}$ each time; along the series the deviation reads
+$2.5\times10^{-5}$, $2.5\times10^{-6}$, $2.4\times10^{-7}$.  Located:
+the conversion pair is exact to fourth order only, $\langle\Pi\rangle
+- \tfrac{1}{24}\delta^2\langle\Pi\rangle = \Pi_c - \tfrac{1}{576}
+\delta^4\Pi_c$, and writing the converted average back wholesale puts
+that residual into the averages at every stage; the next stage's point
+value is out of equilibrium by exactly it, the kernel corrects it again
+in the same direction, and the corrections add up over the stages.  The
+rate of 2.3 is $4 - 5/3$: a fourth-order drift per stage times a step
+count that grows as $N^{5/3}$.  Without the projection the same residual
+is a consistent fourth-order error of the reconstruction's input and
+does not accumulate.
+
+\paragraph{Item 3, the remedy (predictions before code).}  The pair is
+applied to the kernel's change, not to the state: $\Delta_c = \Pi(U_c)
+- U_c$ on the three slots, and $\langle U\rangle \leftarrow \langle
+U\rangle + \Delta_c + \tfrac{1}{24}\sum_d\delta^2_d\Delta_c$.  An
+equilibrium field then passes through unchanged to round-off, and the
+truncation of the pair is never written into the state.  Predictions:
+(i) at 64 cells the error no longer grows as the step halves; (ii) the
+one-dimensional series at \code{ps\_wp\_mc=1} and the two-dimensional
+one at 2 converge at or above 4 with the projection on, the
+projection-free figures within a factor of 2; (iii) B5's step
+convergence returns to the average form's ratio of 3.9 within 20\,\%;
+(iv) the battery's two-phase rows within 2\,\% of the average form
+where both run, and A and C bitwise.  Falsifier for (ii): a rate below
+3.5, which would mean a second drift source.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}

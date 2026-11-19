@@ -1040,7 +1040,24 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
                 else if (!ps_pt_detail::is_state(Uc, l_pres)) pt = false;
             }
             Real* W = pt ? Uc : U;
+#if !defined(AMREX_USE_GPU)
+            //  The deviation from equilibrium of the point value the kernel
+            //  receives, and the movement it applies (follow-up 14).
+            Real a_before = W[UALPHA1], dev = Real(0.0);
+            if (ps_pres_diag() != 0 && pt) {
+                const PsCellState sd = ps_cell_state(W, l_pres);
+                if (sd.rg1 != PsRegime::Absent && sd.rg2 != PsRegime::Absent && sd.P_mix > Real(0.0))
+                    dev = std::abs(sd.P1 - sd.P2) / sd.P_mix;
+            }
+#endif
             ps_pt_detail::project_local(W, eos, l_pres, tol_P_rel);
+#if !defined(AMREX_USE_GPU)
+            if (ps_pres_diag() != 0 && pt) {
+                if (dev > ps_counters().proj_pt_dev) ps_counters().proj_pt_dev = dev;
+                const Real mv = std::abs(W[UALPHA1] - a_before);
+                if (mv > ps_counters().proj_pt_move) ps_counters().proj_pt_move = mv;
+            }
+#endif
             for (int n = 0; n < NVAR; ++n) pc(i, j, k, n) = W[n];
             pc(i, j, k, NVAR) = pt ? Real(1.0) : Real(0.0);
         });
