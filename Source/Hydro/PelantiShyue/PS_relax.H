@@ -23,6 +23,7 @@
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
 #include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
 #include "PS_classes.H"    // cell classes, compact per-box launches (ps_class_compact)
+#include "PS_state.H"      // PsCellState, ps_cell_prims / ps_cell_state (the point-value projection)
 #include <AMReX_Array4.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_GpuQualifiers.H>
@@ -954,6 +955,137 @@ ps_apply_mechanical_projection(amrex::MultiFab& S, int nghost = 0,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             ps_mechanical_relax_cell(i, j, k, U, eos, l_pres, tol_P_rel);
+        });
+    }
+}
+
+// -----------------------------------------------------------------
+//  ps_apply_mechanical_projection_pt — the stage projection on point
+//  values (PSAMR.ps_rk_project_pt=1; docs/PLAN_high_order.pdf follow-up
+//  13).  The average of a field in mechanical equilibrium is not in
+//  equilibrium at second order, so the projection of cell averages is a
+//  second-order term of the order-4 path; here the cell's point value
+//  U_c = <U> - (1/24) sum_d d2_d <U> is projected and the projected
+//  point values are converted back, <Pi> = Pi_c + (1/24) sum_d d2_d Pi_c,
+//  written to the three slots the kernel owns (UALPHA1, UE1, UE2; the
+//  invariants are untouched).  Sg is the stage state with at least two
+//  ghost layers filled; S_new receives the valid region.  A cell with a
+//  presence change among its face neighbours, or whose point value is
+//  not a state on its phases' branches, or whose converted average
+//  leaves the admissible set or is not a state, takes the projection of
+//  its average (counted proj_pt_raw).  With ps_pres_diag the host keeps
+//  the worst |P1-P2|/P of the converted averages (the constraint
+//  residual, reported on the [PS-GUARD] line).
+// -----------------------------------------------------------------
+namespace ps_pt_detail {
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool is_state(const amrex::Real U[NVAR], const PsPres& pr) noexcept
+{
+    PsCellState s; ps_cell_prims(U, pr, s);
+    amrex::Real Yp[NUM_SPECIES]; ps_pure_species(Yp);
+    amrex::Real Pq, Tq, Sq;
+    if (s.rg1 != PsRegime::Absent && !EOS::REY2PTS_phase_try(s.rho1, s.e1, Yp, hem::Phase3::Liquid, Pq, Tq, Sq)) return false;
+    if (s.rg2 != PsRegime::Absent && !EOS::REY2PTS_phase_try(s.rho2, s.e2, Yp, hem::Phase3::Vapor,  Pq, Tq, Sq)) return false;
+    return true;
+}
+//  The mode-0 kernel on a local conserved array.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void project_local(amrex::Real U[NVAR], hem::PsPhaseAPI const& eos, const PsPres& pr, double tol) noexcept
+{
+    amrex::Array4<amrex::Real> A(U, amrex::Dim3{0,0,0}, amrex::Dim3{1,1,1}, NVAR);
+    ps_mechanical_relax_cell(0, 0, 0, A, eos, pr, tol);
+}
+}
+
+inline void
+ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab& Sg,
+                                  double tol_P_rel = 1.0e-10)
+{
+    BL_PROFILE("PS::ps_apply_mechanical_projection_pt()");
+    AMREX_ALWAYS_ASSERT(Sg.nGrow() >= 2);
+    const hem::PsPhaseAPI eos = ps_make_psamr_eos_api();
+    const PsPres l_pres = ps_presence_params();
+    const int slots[3] = { UALPHA1, UE1, UE2 };
+    for (amrex::MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+        const amrex::Box bx = mfi.validbox();
+        const amrex::Box gbx = amrex::grow(bx, 1);
+        amrex::FArrayBox pc_fab(gbx, NVAR + 1, amrex::The_Async_Arena());
+        auto const& pc = pc_fab.array();
+        amrex::Array4<const amrex::Real> const& Ug = Sg.const_array(mfi);
+        amrex::Array4<amrex::Real> const& Un = S_new.array(mfi);
+        // Pass 1: the projected point value (or the projected average) of
+        // every cell of the box grown by one.
+        amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            using amrex::Real;
+            Real U[NVAR], Uc[NVAR];
+            for (int n = 0; n < NVAR; ++n) { U[n] = Ug(i, j, k, n); Uc[n] = U[n]; }
+            PsCellState sa; ps_cell_prims(U, l_pres, sa);
+            bool pt = true;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
+                Real Um[NVAR], Up[NVAR];
+                for (int n = 0; n < NVAR; ++n) {
+                    Um[n] = Ug(i - oi, j - oj, k - ok, n);
+                    Up[n] = Ug(i + oi, j + oj, k + ok, n);
+                    Uc[n] -= (Up[n] - Real(2.0) * U[n] + Um[n]) / Real(24.0);
+                }
+                PsCellState sm, sp; ps_cell_prims(Um, l_pres, sm); ps_cell_prims(Up, l_pres, sp);
+                if ((sm.rg1 == PsRegime::Absent) != (sa.rg1 == PsRegime::Absent) || (sm.rg2 == PsRegime::Absent) != (sa.rg2 == PsRegime::Absent) ||
+                    (sp.rg1 == PsRegime::Absent) != (sa.rg1 == PsRegime::Absent) || (sp.rg2 == PsRegime::Absent) != (sa.rg2 == PsRegime::Absent)) pt = false;
+            }
+            if (pt) {
+                PsCellState sc; ps_cell_prims(Uc, l_pres, sc);
+                if ((sc.rg1 == PsRegime::Absent) != (sa.rg1 == PsRegime::Absent) || (sc.rg2 == PsRegime::Absent) != (sa.rg2 == PsRegime::Absent)) pt = false;
+                else if (!ps_pt_detail::is_state(Uc, l_pres)) pt = false;
+            }
+            Real* W = pt ? Uc : U;
+            ps_pt_detail::project_local(W, eos, l_pres, tol_P_rel);
+            for (int n = 0; n < NVAR; ++n) pc(i, j, k, n) = W[n];
+            pc(i, j, k, NVAR) = pt ? Real(1.0) : Real(0.0);
+        });
+        // Pass 2: the converted average of the projected point values,
+        // into the three slots of the valid region.
+        amrex::Array4<const amrex::Real> const pcc = pc_fab.const_array();
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            using amrex::Real;
+            if (pcc(i, j, k, NVAR) == Real(0.0)) {
+                for (int q = 0; q < 3; ++q) Un(i, j, k, slots[q]) = pcc(i, j, k, slots[q]);
+                return;
+            }
+            Real Uavg[NVAR];
+            for (int n = 0; n < NVAR; ++n) Uavg[n] = Ug(i, j, k, n);
+            Real v[3];
+            for (int q = 0; q < 3; ++q) {
+                const int n = slots[q];
+                Real w = pcc(i, j, k, n);
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                    const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
+                    w += (pcc(i + oi, j + oj, k + ok, n) - Real(2.0) * pcc(i, j, k, n) + pcc(i - oi, j - oj, k - ok, n)) / Real(24.0);
+                }
+                v[q] = w;
+            }
+            Real Ut[NVAR];
+            for (int n = 0; n < NVAR; ++n) Ut[n] = Uavg[n];
+            for (int q = 0; q < 3; ++q) Ut[slots[q]] = v[q];
+            bool ok = std::isfinite(v[0]) && v[0] > Real(ps_const::ALPHA_ROUNDOFF) && v[0] < Real(1.0) - Real(ps_const::ALPHA_ROUNDOFF)
+                   && std::isfinite(v[1]) && std::isfinite(v[2]) && ps_pt_detail::is_state(Ut, l_pres);
+            if (!ok) {
+                ps_pt_detail::project_local(Uavg, eos, l_pres, tol_P_rel);
+                for (int q = 0; q < 3; ++q) Ut[slots[q]] = Uavg[slots[q]];
+                PS_COUNT(++ps_counters().proj_pt_raw);
+            }
+            for (int q = 0; q < 3; ++q) Un(i, j, k, slots[q]) = Ut[slots[q]];
+#if !defined(AMREX_USE_GPU)
+            if (ps_pres_diag() != 0) {
+                const PsCellState st = ps_cell_state(Ut, l_pres);
+                if (st.rg1 != PsRegime::Absent && st.rg2 != PsRegime::Absent && st.P_mix > Real(0.0)) {
+                    const Real r = std::abs(st.P1 - st.P2) / st.P_mix;
+                    if (r > ps_counters().proj_pt_resid) ps_counters().proj_pt_resid = r;
+                }
+            }
+#endif
         });
     }
 }

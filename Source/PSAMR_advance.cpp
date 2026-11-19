@@ -163,6 +163,17 @@ PSAMR::PSAMR_advance (Real time,
         const int v = ps_dial_int("ps_rk_project", ps_order4_default);
         if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project must be 0 or 1"); }
         return v; }();
+    //   PSAMR.ps_rk_project_pt (0): under ps_rk_project=1, 1 = the stage
+    //     projection acts on the cell's point value and its result is
+    //     converted back to an average (the conversion pair around the
+    //     mode-0 kernel, ps_apply_mechanical_projection_pt; one more
+    //     stage fill per stage); 0 = on the average, as before.  Not
+    //     combined with ps_imex=3.  docs/PLAN_high_order.pdf follow-up 13.
+    static const int ps_rk_project_pt_cached = []() -> int {
+        const int v = ps_dial_int("ps_rk_project_pt", 0);
+        if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_rk_project_pt must be 0 or 1"); }
+        if (v == 1 && ps_rk_project_cached != 1) { amrex::Abort("PSAMR.ps_rk_project_pt=1 needs ps_rk_project=1"); }
+        return v; }();
     //   PSAMR.ps_rk_project_tol (1e-10): the stage projection's Newton
     //     stopping tolerance on |P1-P2|/max(P1,P2), the X3F residual
     //     tolerance by default (the mode-0 kernel's own 1e-4 floors the
@@ -191,6 +202,7 @@ PSAMR::PSAMR_advance (Real time,
                 amrex::Abort("PSAMR.ps_imex=3 needs do_mol=1, rk_order=3, rk_stages=3 and ps_hydro=1 (the explicit part is SSPRK(3,3))");
             }
             if (ps_rk_project_cached != 1) { amrex::Abort("PSAMR.ps_imex=3 needs ps_rk_project=1"); }
+            if (ps_rk_project_pt_cached != 0) { amrex::Abort("PSAMR.ps_imex=3 is not combined with ps_rk_project_pt=1"); }
             if (mode != 6 && mode != 0) { amrex::Abort("PSAMR.ps_imex=3 needs ps_relax_mode 6 or 0 (modes 2 and 5 are not backward-Euler stage solves)"); }
             if (mode == 6 && !(ps_theta_tau() > amrex::Real(0.0))) { amrex::Abort("PSAMR.ps_imex=3 needs a finite ps_theta_tau (the stage transfers are rate integrals)"); }
             if (sv == 1) { amrex::Abort("PSAMR.ps_imex=3 sets ps_strang=0; do not set ps_strang=1 with it"); }
@@ -363,6 +375,10 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long rm_ = pc.recon_mc_raw;
             amrex::Long rmf_ = pc.recon_mc_face;
             amrex::ParallelDescriptor::ReduceLongSum(rmf_);
+            amrex::Long pp_ = pc.proj_pt_raw;
+            amrex::Real ppr_ = pc.proj_pt_resid;
+            amrex::ParallelDescriptor::ReduceLongSum(pp_);
+            amrex::ParallelDescriptor::ReduceRealMax(ppr_);
             amrex::ParallelDescriptor::ReduceLongSum(rf_);
             amrex::ParallelDescriptor::ReduceLongSum(rt_);
             amrex::ParallelDescriptor::ReduceLongSum(rm_);
@@ -374,7 +390,9 @@ PSAMR::PSAMR_advance (Real time,
                            << "  recon_fallback = " << rf_
                            << "  recon_thinc = " << rt_
                            << "  recon_mc_raw = " << rm_
-                           << "  recon_mc_face = " << rmf_;
+                           << "  recon_mc_face = " << rmf_
+                           << "  proj_pt_raw = " << pp_
+                           << "  proj_pt_resid = " << ppr_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;
@@ -754,7 +772,15 @@ PSAMR::PSAMR_advance (Real time,
             ps_apply_vanish_fold(S_new, 0);
             if (ps_rk_project_cached != 0) {
                 ps_resync_mixture_mass(S_new, 0);
-                ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
+                if (ps_rk_project_pt_cached != 0) {
+                    //  The point form reads the stage state with its ghosts:
+                    //  the fill the next stage would make, made here as well.
+                    MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0);
+                    rk_fill(Sborder, prev_time + tab[s + 1].t * dt, s + 2, amr_iteration, amr_ncycle);
+                    ps_apply_mechanical_projection_pt(S_new, Sborder, ps_rk_project_tol_cached);
+                } else {
+                    ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
+                }
             }
 #else
             amrex::ignore_unused(s);
