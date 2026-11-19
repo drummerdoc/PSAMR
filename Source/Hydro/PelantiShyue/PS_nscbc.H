@@ -269,6 +269,13 @@ outflow_face(const amrex::Real s_N  [NVAR],
 {
     using amrex::Real;
     if (branch != nullptr) { *branch = BR_ZG; }
+    //  The fill's reach is the hyperbolic scheme's stencil, four layers
+    //  (the reconstruction reads three cells out of the box grown by one);
+    //  a deeper layer, asked for only by the average-to-point conversions
+    //  of the outermost ring, holds the fourth layer's state rather than
+    //  extrapolating the invariants further (docs/PLAN_high_order.pdf
+    //  follow-up 15).
+    layer_offset = amrex::min(layer_offset, 4);
 
     // ---- 1. Mixture primitives at N, N-1, N-2 ---------------------
     Real rho_N,   ux_N,   uy_N,   uz_N,   e_N,   P_N;

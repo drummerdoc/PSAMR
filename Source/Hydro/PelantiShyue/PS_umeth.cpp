@@ -384,12 +384,19 @@ ps_wp_face_pt(int idir, int i, int j, int k, int iL, int jL, int kL,
     // with each cell's presence flags and species.
     Real vL[NPRIM], vR[NPRIM];
     for (int m = 0; m < NPRIM; ++m) { vL[m] = rq(iL, jL, kL, RQ_PH + m); vR[m] = rq(i, j, k, RQ_PL + m); }
-    bool conv = (rq(iL, jL, kL, RQ_FB) == Real(0.0)) && (rq(i, j, k, RQ_FB) == Real(0.0));
+    //  The face converts only where the six cells it reads are free of
+    //  the presence machinery's switches and share one regime pair, and
+    //  none took its raw averages (the rule of follow-up 15).
+    const Real swL = rq(iL, jL, kL, RQ_SW), swR = rq(i, j, k, RQ_SW);
+    bool conv = (rq(iL, jL, kL, RQ_FB) == Real(0.0)) && (rq(i, j, k, RQ_FB) == Real(0.0))
+             && swL >= Real(0.0) && swR >= Real(0.0) && swL == swR;
     for (int tdir = 0; tdir < AMREX_SPACEDIM && conv; ++tdir) {
         if (tdir == idir) continue;
         const int oi = (tdir == 0), oj = (tdir == 1), ok = (tdir == 2);
         if (rq(iL + oi, jL + oj, kL + ok, RQ_FB) != Real(0.0) || rq(iL - oi, jL - oj, kL - ok, RQ_FB) != Real(0.0) ||
             rq(i + oi, j + oj, k + ok, RQ_FB) != Real(0.0) || rq(i - oi, j - oj, k - ok, RQ_FB) != Real(0.0)) { conv = false; break; }
+        if (rq(iL + oi, jL + oj, kL + ok, RQ_SW) != swL || rq(iL - oi, jL - oj, kL - ok, RQ_SW) != swL ||
+            rq(i + oi, j + oj, k + ok, RQ_SW) != swR || rq(i - oi, j - oj, k - ok, RQ_SW) != swR) { conv = false; break; }
         for (int m = 0; m < NPRIM; ++m) {
             vL[m] -= (rq(iL + oi, jL + oj, kL + ok, RQ_PH + m) - Real(2.0) * rq(iL, jL, kL, RQ_PH + m) + rq(iL - oi, jL - oj, kL - ok, RQ_PH + m)) / Real(24.0);
             vR[m] -= (rq(i + oi, j + oj, k + ok, RQ_PL + m) - Real(2.0) * rq(i, j, k, RQ_PL + m) + rq(i - oi, j - oj, k - ok, RQ_PL + m)) / Real(24.0);

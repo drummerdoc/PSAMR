@@ -274,13 +274,30 @@ constexpr int WC_AB1 = NPRIM, WC_AB2 = NPRIM + 1, WC_PT = NPRIM + 2;
 //  edges' primitive sets (RQ_PL, RQ_PH; the face point conversion of
 //  ps_wp_mc=2 acts on these, before the map to the conserved array).
 constexpr int RQ_FB = 2 * NVAR;
-constexpr int RQ_PL = 2 * NVAR + 1, RQ_PH = RQ_PL + NPRIM, RQ_NCOMP = RQ_PH + NPRIM;
+constexpr int RQ_PL = 2 * NVAR + 1, RQ_PH = RQ_PL + NPRIM, RQ_SW = RQ_PH + NPRIM, RQ_NCOMP = RQ_SW + 1;
+
+//  The presence machinery's switch: a cell whose present phases are not
+//  all Independent.  The conversions stand down wherever a switch, or a
+//  regime change, lies in their own stencil (follow-up 15).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool regime_switch (const PsCellState& s) noexcept
+{
+    if (s.rg1 != PsRegime::Absent && s.rg1 != PsRegime::Independent) return true;
+    if (s.rg2 != PsRegime::Absent && s.rg2 != PsRegime::Independent) return true;
+    return false;
+}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool regime_change (const PsCellState& a, const PsCellState& b) noexcept
+{
+    return a.rg1 != b.rg1 || a.rg2 != b.rg2;
+}
 
 // ---------------------------------------------------------------------
 //  point_prims: the primitive set of the cell's point value, W(U_c), at
 //  (i,j,k), into wc; the Absent flags from the cell average itself.  A
-//  cell with a presence change among its face neighbours, or whose point
-//  value leaves the admissible set, stores W(<U>) with WC_PT = 0.
+//  cell with a presence change or a vanish-band phase in its own stencil
+//  (itself and its face neighbours), or whose point value leaves the
+//  admissible set, stores W(<U>) with WC_PT = 0.
 //  Returns true when an admissible-looking cell's point value was refused
 //  (the caller counts).
 // ---------------------------------------------------------------------
@@ -292,7 +309,20 @@ bool point_prims (int i, int j, int k,
     Real U[NVAR], Uc[NVAR];
     for (int n = 0; n < NVAR; ++n) { U[n] = uin(i, j, k, n); Uc[n] = U[n]; }
     const PsPrim Pa = prim_from_cons(U, pr);
-    bool front = false;
+    // The conversion is confined to cells whose own stencil, the cell and
+    // its face neighbours, is free of the presence machinery's switches:
+    // every present phase Independent and no regime change across it,
+    // the test the reconstruction makes of its own stencil before it
+    // reconstructs.
+    //  A phase is a switch unless it is Independent (the presence
+    //  machinery's own regimes: Absent, Corridor, Independent), and a
+    //  regime change between the cell and a neighbour is one too.
+    PsCellState sa0; ps_cell_prims(U, pr, sa0);
+    auto switched = [&] (const Real* Un) noexcept -> bool {
+        PsCellState s; ps_cell_prims(Un, pr, s);
+        return regime_change(s, sa0) || regime_switch(s);
+    };
+    bool front = switched(U);
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
         Real Um[NVAR], Up[NVAR];
@@ -301,8 +331,7 @@ bool point_prims (int i, int j, int k,
             Up[n] = uin(i + oi, j + oj, k + ok, n);
             Uc[n] -= (Up[n] - Real(2.0) * U[n] + Um[n]) / Real(24.0);
         }
-        const PsPrim Pm = prim_from_cons(Um, pr), Pp = prim_from_cons(Up, pr);
-        if (Pm.ab1 != Pa.ab1 || Pm.ab2 != Pa.ab2 || Pp.ab1 != Pa.ab1 || Pp.ab2 != Pa.ab2) front = true;
+        if (switched(Um) || switched(Up)) front = true;
     }
     bool raw = front;
     PsPrim Pc;
@@ -480,6 +509,13 @@ int cell_edges (int idir, int i, int j, int k,
     }
     rq(i, j, k, RQ_FB) = fallback ? Real(1.0) : Real(0.0);
     for (int m = 0; m < NPRIM; ++m) { rq(i, j, k, RQ_PL + m) = vl[m]; rq(i, j, k, RQ_PH + m) = vr[m]; }
+    {
+        //  The cell's regimes, packed for the face conversion's rule: the
+        //  switch byte and the regime pair (rg1 + 3 rg2).
+        PsCellState sc; ps_cell_prims(Uc, pr, sc);
+        rq(i, j, k, RQ_SW) = regime_switch(sc) ? Real(-1.0)
+                           : Real(static_cast<int>(sc.rg1) + 3 * static_cast<int>(sc.rg2));
+    }
     return fallback ? 1 : (thinc ? 2 : 0);
 }
 
