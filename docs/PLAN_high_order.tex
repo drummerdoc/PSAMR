@@ -511,7 +511,8 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_det\_reflux} & 1 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible (the default, Marc's decision of 19 November 2026); 0 = the atomic form, for A/B; unread on the host (follow-up 10). \\
 \code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
 \code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, the kernel's change converted back and added to the average (follow-ups 13 and 14): with the conversions, fourth order on a smooth two-phase field with the projection on. \\
-\code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). Confined by the presence regimes (follow-up 15); 1 safe on the battery, XC2D and the smooth fields, not on the tube's vent start-up; 2 an instrument, unlimited at a sharp transverse interface. \\
+\code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). Confined by the presence regimes (follow-up 15) and to stencils inside the domain (follow-up 16b); 1 safe on the battery, XC2D, the smooth fields and the tube; 2 an instrument, unlimited at a sharp transverse interface. \\
+\code{PSAMR.ps\_wp\_mc\_bdry} & 1 & Under \code{ps\_wp\_mc}: 1 = the conversions refuse a cell whose stencil leaves the domain across a non-periodic face (the limiter extended to the domain boundary; a characteristic ghost is not a smooth continuation), counted as \code{recon\_mc\_bdry}; 0 = the conversions run into the boundary ghosts, which doubled the first NSCBC ghost's liquid mass on the tube (follow-ups 16b and 16c, Marc's default). \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
@@ -4788,5 +4789,50 @@ that reads a boundary ghost does not convert); its default under
 \code{ps\_wp\_mc} is Marc's, and the production tube at its defaults is
 untouched either way.  The density-domain gap in the point-value guard
 (item 2) is open.
+
+
+\subsection{Follow-up 16c: the boundary rule's default and the point-value guard's domain (19 November 2026, Mac \code{llvm}; commits \code{548094bd} and \code{9aa1cbcd})}
+
+Marc's decisions on follow-up 16b: \code{ps\_wp\_mc\_bdry} defaults to
+1, and the conversions' guard tests each present phase's density
+against $[\rho_{\min}, \rho_{\max}]$ (\code{EOS::rho\_min},
+\code{EOS::rho\_max}, the fill's clamp's bounds) before the branch
+solve, in both the point pass and the average pass; a density outside
+the domain is refused as not a state and counted as before
+(\code{recon\_mc\_raw}).  The branch solve itself is unchanged; whether
+it should refuse such a density, which reaches the corridor and
+promotion callers, stays a [DECIDE] item in \code{FUTURE\_WORK} 7b.
+
+\begin{enumerate}[nosep]
+\item \textbf{The tube under the first conversion at the new default}
+      is bitwise follow-up 16b's run with the dial on, over 300 steps.
+      Its counters say why the density test changes nothing there:
+      \code{recon\_mc\_raw} rises from $10\,362$ to $52\,794$ and
+      \code{recon\_mc\_bdry} falls from $605\,132$ to $562\,700$, by the
+      same $42\,432$: every point value the density test refuses is one
+      the boundary rule refused after it, a ghost or boundary cell whose
+      stencil crosses the fan's seam.  No interior point value of the
+      tube leaves the EOS domain.  \textbf{Held.}
+\item \textbf{The smooth periodic field} under the first conversion is
+      bitwise follow-up 16b's (no non-periodic face; no point value of a
+      smooth field leaves the domain, \code{recon\_mc\_raw} 0).
+      \textbf{Held.}
+\item \textbf{The battery} under the first conversion (the same
+      overrides as follow-up 15: \code{do\_mol=1 rk\_order=3
+      ps\_wp\_order=4 ps\_wp\_mc=1}, 64 cells) runs its 19 cases with no
+      abort; against follow-up 15's table every row agrees to the four
+      printed digits except A3 ($u$ $-0.1\,\%$, $P$ $+0.4\,\%$) and C3
+      ($u$ $+1.0\,\%$, $P$ $+0.4\,\%$), the two cases whose waves reach
+      the ends by the stop time; the single-phase $\rho$ mean $0.0160$
+      against $0.0160$.  Inside follow-up 15's 3\,\%.  \textbf{Held.}
+\item \textbf{The reference set:} bitwise (21 identical, the IMEX pair at its known $4.4\times10^{-11}$); no run of the set converts, so the default change and the density test are inert there by construction, and the proof is on the record.  \textbf{Held.}
+\end{enumerate}
+
+\paragraph{State.}  The first conversion now runs every case on the
+record: the battery, the deep-expansion case, XC2D, the smooth fields
+and the blowdown tube.  It remains an option for order measurements
+(\code{ps\_wp\_mc} default 0); its boundary rule and its density test
+are on by default under it.  Open: the branch solve's own domain test
+([DECIDE], 7b).
 
 \end{document}
