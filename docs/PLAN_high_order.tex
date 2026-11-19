@@ -4000,6 +4000,16 @@ rules (the candidates compared against the neighbours' own candidates,
 or a two-stage choice) are the remedy if the smooth-data behaviour
 needs one; not built here.
 
+\paragraph{GPU (peart, CUDA, at \code{b7412319}, 19 November 2026).}
+The tube 300 steps under the sharpening agrees with the Mac to
+$2.1\times10^{-9}$ of range at the worst slot ($\alpha_2\rho_2$;
+$3.1\times10^{-10}$ in $\rho$, $5.8\times10^{-10}$ in $\alpha_1$,
+$6.5\times10^{-10}$ in $P$), the tube's family of lines; 209.4\,s.  XC2D
+40 steps under the sharpening and the ordered reflux: level 0 to
+$2.5\times10^{-10}$ and level 1 to $1.5\times10^{-8}$ against the
+four-rank Mac run, the XC2D lines; 43.3\,s.  \textbf{Held}; the THINC
+branch runs on the device.
+
 \paragraph{State.}  Landed as an option with 0 as the default; the
 record is Marc's to decide on.  Step C (THINC through a presence
 front) has lost its premise: the front is not the smeared interface
@@ -4111,6 +4121,15 @@ Against the restated predictions:
       state leaves the EOS domain.  Cost not measurable there.  XC2D and the GPU: not run; the option is
       not production-ready (below).
 \end{enumerate}
+
+\paragraph{GPU (peart, CUDA, at \code{b7412319}, 19 November 2026).}
+The one-dimensional case at 64 cells with averaged data and the
+projection off, at \code{ps\_wp\_mc} 0 and 1: the GPU agrees with the
+Mac to $6\times10^{-12}$ in $L_1$ of the partial mass (on a range of
+63\,kg/m$^3$) and $2\times10^{-7}$\,Pa in the pressure, round-off; 43.6
+and 42.9\,s (the conversion costs nothing measurable there).
+\textbf{Held}: the conversion passes are as deterministic on the device
+as on the host.
 
 \paragraph{Finding on the way: the face conversion after the map.}
 The first build of the second term converted the stored conserved edge
