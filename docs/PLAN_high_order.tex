@@ -1978,6 +1978,33 @@ change at the vent cell at 0.2\,\%.  Instruments, then one test:
       production tube at its defaults is untouched either way.
 \end{enumerate}
 
+\subsection*{Follow-up 16c: the boundary rule's default and the point-value guard's domain (planned 19 November 2026, Marc's word)}
+
+Marc's decisions on follow-up 16b's record: \code{ps\_wp\_mc\_bdry}
+defaults to 1 (under \code{ps\_wp\_mc} the conversions refuse a stencil
+that leaves the domain across a non-periodic face), and the point-value
+guard tests each present phase's density against the EOS's own domain
+$[\rho_{\min}, \rho_{\max}]$ before the branch solve, so a point value
+or a converted average beyond the covolume pole is refused as not a
+state (rule 2; the same bound the fill's clamp uses, no new constant).
+The test is placed at the conversions' guard; whether the branch solve
+\code{REY2PTS\_phase\_try} itself should refuse a density outside the
+domain, which would reach the corridor and promotion callers, is
+recorded as a question and not changed here.  Predictions: the 22-run
+reference set bitwise (no run of it converts); the smooth periodic
+field under the first conversion bitwise (no non-periodic face, and no
+point value of a smooth field leaves the domain); the tube under the
+first conversion at the new default bitwise follow-up 16b's run with
+the dial on, unless the density test refuses a point value the branch
+solve accepted, in which case \code{recon\_mc\_raw} rises and the
+difference is at the refused cells only; the Riemann battery under the
+first conversion runs with no abort and its single-phase mean within
+follow-up 15's reading ($0.0300$ against the plain $0.0297$), the two
+end cells of each case now refused.  Falsifier: an abort or a battery
+row moving by more than the two-phase rows' 3\,\% of follow-up 15,
+which would say the end cells matter to a Riemann case and the rule
+needs the open-end faces thought through.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
