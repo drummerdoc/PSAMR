@@ -4550,4 +4550,53 @@ correction at a sharp interface needs a limiter with a threshold the
 tree does not derive.  Default 0; the item is closed on Marc's word with
 this on the record.
 
+
+\subsection{Follow-up 16: the NSCBC vent at start-up (19 November 2026, Mac \code{llvm}; commits \code{490cf913} and \code{277e6286})}
+\label{sec:fu16}
+
+The instrument (a counter per branch of the fill, the small-signal
+branch's two causes, the dispatch's inputs and the first-layer ghosts'
+pressure and velocity extremes on the \code{[PS-GUARD]} line, the
+ghost-state count under \code{ps\_pres\_diag}; host-only, the plain tube
+bitwise its record at 300 steps).  Against the predictions:
+\begin{enumerate}[nosep]
+\item The plain tube's vent takes the fan at every step (576 ghosts a
+      step, their pressure 2.56 to 2.87\,MPa and outward velocity 155 to
+      165\,m/s, the choked end).  Under the first conversion the vent
+      takes the fan through step 3 and the small-signal branch in step
+      4, selected by the inflow bound in every one of its 156 columns
+      (the strain-cap test reads 10 to 15 against its bound of 1, so
+      the cap never chose it): the vent cell's outward velocity has
+      reversed inside step 4, $-47$\,m/s at its minimum, and the pin
+      ghost that branch forms reads 25 to 57\,kPa, below the 1\,bar
+      ambient it is meant to pin, at a velocity near zero.  It is a
+      state, so the refusal of item 2 would not fire, and the interior
+      cell beside it is off the EOS domain in step 5.  \textbf{Held} on
+      the flip and its branch; the ghost-state prediction
+      \textbf{refuted}, the ghost is a state and the interior is not.
+\item With the inflow bound off, the fan keeps running on the reversed
+      vent cell and the run aborts one step earlier, in step 4, at a far
+      worse state: the pin ghost was the messenger, and the reversal is
+      the thing.  What reverses the vent cell inside step 4 is not
+      located.  The two runs' valid states are bitwise identical at the
+      end of step 3, yet the fan ghosts of step 3 already differ at their
+      minimum (2.587 against 2.653\,MPa): the fan's march ends at a
+      different place for an input the valid state does not show, which
+      points at the march itself, quantised by its 5\,\% strain substeps
+      and ended by a throat test on a flat maximum, as the amplifier of
+      the conversion's per-mille change; not proven here.
+\end{enumerate}
+
+\paragraph{State.}  The instrument stays; nothing in the fill is
+changed.  Three design points are on the record for Marc, each a
+[DECIDE] item: the pin ghost's pressure held at the far field's
+$P_{\mathrm{amb}}$ by definition rather than reached by a linear step
+that overshoots it (no threshold: the pin is the far field); the fan's
+end interpolated inside its last substep rather than a whole substep
+reverted (the throat found, not stepped past); and the dispatch between
+the fan and the small-signal ghost made continuous, which rule 12 asks
+and which needs a form nothing here derives.  Until one is built the
+first conversion does not run the blowdown tube, and the production
+tube at its defaults is untouched by any of it.
+
 \end{document}
