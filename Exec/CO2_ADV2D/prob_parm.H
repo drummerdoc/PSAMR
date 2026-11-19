@@ -46,6 +46,17 @@ struct ProbParmDevice
     //   3 → sin³·sin³, a C^∞ but steeper profile that concentrates gradients
     //       and stresses the coarse-fine correction-flux reflux far more.
     amrex::Real alpha_pow  = 1.0;
+    // Instruments for the order measurements of docs/PLAN_high_order.pdf
+    // follow-up 12 (0 = off, the plain case):
+    //   T1_amp  [K]  a smooth variation of the phase-1 temperature with the
+    //                same sin.sin shape at the uniform P0, so rho_1 and e_1
+    //                vary and the partial mass is a product of two fields;
+    //   p_amp   [-]  a Gaussian pressure pulse P0 (1 + p_amp exp(-r^2/w^2))
+    //                about the domain centre, w = p_width Lx, both phases at
+    //                the local pressure (a smooth acoustic test at rest).
+    amrex::Real T1_amp  = 0.0;
+    amrex::Real p_amp   = 0.0;
+    amrex::Real p_width = 0.1;
 
     // Unused by this case but referenced by the shared bcnormal signature.
     amrex::Real p_amb = 8.0e6;

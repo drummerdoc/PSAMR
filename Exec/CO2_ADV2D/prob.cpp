@@ -24,6 +24,9 @@ extern "C" {
         pp.query("k_x",        PSAMR::h_prob_parm->k_x);
         pp.query("k_y",        PSAMR::h_prob_parm->k_y);
         pp.query("alpha_pow",  PSAMR::h_prob_parm->alpha_pow);
+        pp.query("T1_amp",     PSAMR::h_prob_parm->T1_amp);
+        pp.query("p_amp",      PSAMR::h_prob_parm->p_amp);
+        pp.query("p_width",    PSAMR::h_prob_parm->p_width);
 
         PSAMR::h_prob_parm->p_amb = PSAMR::h_prob_parm->P0;
 

@@ -74,15 +74,23 @@ PSAMR_initdata( int i, int j, int k,
     // real two-phase contact) breaks the equilibrium — see the design
     // note in prob_parm.H.  For an order-of-accuracy transport test we
     // want the clean colour-advection, hence a single branch.
+    // The instruments of follow-up 12: a smooth phase-1 temperature
+    // variation and a Gaussian pressure pulse (prob_parm.H); both leave the
+    // plain case bitwise when their amplitudes are 0.
+    const amrex::Real T1l = prob_parm.T1 + prob_parm.T1_amp * sx * sy;
+    const amrex::Real xc = prob_lo[0] + amrex::Real(0.5) * Lx, yc = prob_lo[1] + amrex::Real(0.5) * Ly;
+    const amrex::Real w2 = (prob_parm.p_width * Lx) * (prob_parm.p_width * Lx);
+    const amrex::Real Pl = prob_parm.P0 * (amrex::Real(1.0)
+        + prob_parm.p_amp * std::exp(-((x - xc) * (x - xc) + (y - yc) * (y - yc)) / w2));
     amrex::Real rho_1, e_1;
-    EOS::PYT2RE_liquid(prob_parm.P0, Y, prob_parm.T1, rho_1, e_1);
+    EOS::PYT2RE_liquid(Pl, Y, T1l, rho_1, e_1);
     //  Phase 2 on its own (vapour) branch at the same P0: the EOS is
     //  branch-locked, so a phase-2 slot holding the liquid state evaluates
     //  to a different pressure (6.37 MPa against 8 MPa, measured 15 Nov
     //  2026) and the mixture pressure then varies with alpha_1, which
     //  launches acoustic waves and voids the translated-IC exact solution.
     amrex::Real rho_2, e_2;
-    EOS::PYT2RE_vapor(prob_parm.P0, Y, prob_parm.T2, rho_2, e_2);
+    EOS::PYT2RE_vapor(Pl, Y, prob_parm.T2, rho_2, e_2);
 
     const amrex::Real m_1 = alpha_1 * rho_1;
     const amrex::Real m_2 = alpha_2 * rho_2;
