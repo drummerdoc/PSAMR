@@ -1415,6 +1415,52 @@ Predictions:
       lanes saved).
 \end{enumerate}
 
+\subsection*{Follow-up 10: the deterministic flux register on the device (planned 18 November 2026)}
+
+The register item of \S11 left the GPU's two-level run-to-run spread
+located to the machinery every scheme shares and named the flux
+register's accumulation as the standard candidate.  Read from the
+code: the fine-add of AMReX's register writes only the fine grid's own
+coarse ring (the list of coarse--fine patches is per local fine grid),
+one thread per coarse face summing its fine faces in index order, every
+call of one fine box on one device stream, so the fine-add is ordered.
+The rings of neighbouring fine grids overlap on the coarse cells
+face-adjacent to two grids (55 of the 425 ring cells of XC2D's 47-grid
+fine level at step 40), and the reflux's parallel copy adds the
+overlapping patches into the coarse register's data with device
+atomics, in the order the streams land them; with the coarse data and
+two patches there are three addends, so the order shows in the last
+bit.  On the host the copy is sequential.  AMReX carries an ordered
+form of that copy for the register (\code{setDeterministic}; unread on
+the host), so the change is one call under a dial,
+\code{PSAMR.ps\_det\_reflux} (0 = the register as now; 1 = the ordered
+copy), default 0 by rule 15; the default is Marc's to decide on the
+record, and rule 9 (no atomics in the solution path) argues for 1.
+Predictions:
+\begin{enumerate}[nosep]
+\item Mac: \code{ps\_det\_reflux=1} bitwise 0 on XC2D at 40 steps on
+      one and four ranks (the host copy ignores the flag), and the
+      22-run reference set bitwise at the default.  Falsifier: any
+      byte.
+\item GPU: XC2D 40 steps twice at 1 under the order-4 default: bitwise
+      (the spread of $2.2\times10^{-10}$ on level 0 and
+      $6.8\times10^{-9}$ on level 1 closed).  Falsifier: any byte; the
+      seed is then elsewhere, the fine-add's stream order the next
+      suspect and a device synchronisation after each fine-add the next
+      step.
+\item GPU at 1 against GPU at 0: within the recorded spread and not
+      bitwise (the adds land in another order).
+\item GPU at 1 against the Mac at 1: at or below the earlier
+      GPU-against-Mac XC2D lines ($3\times10^{-10}$ on level 0,
+      $1\times10^{-8}$ on level 1); what remains is the two machines'
+      rounding alone, the first genuine cross-machine line on a
+      two-level case.
+\item The Heun two-level pair twice at 1: bitwise (its
+      $10^{-13}$ seed closed).
+\item Cost: within 1\,\% on XC2D (the ordered copy touches the ring
+      cells only).
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
