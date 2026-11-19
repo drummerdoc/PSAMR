@@ -1917,6 +1917,67 @@ counted today.  Instruments first:
       not redesigned here.
 \end{enumerate}
 
+\subsection*{Follow-up 16b: the vent's reversal located (planned 19 November 2026, Marc's word)}
+
+Follow-up 16 pinned the conversion run's abort to the vent cell's
+outward velocity reversing inside step 4 and did not locate the
+reversal.  Two of its record's readings are corrected first.  The pin
+ghost below the ambient is not a defect: the pin branch forms the ghost
+from the outgoing invariant of the interior and the incoming invariant
+of a far field at rest, $P_g = \tfrac12 (P_N + P_{\mathrm{amb}} + \rho c\, u_{N,\mathrm{out}})$,
+and for a cell already flowing in at $-47$\,m/s the last term is
+several bar below zero; holding $P_g$ at $P_{\mathrm{amb}}$ would set a
+gradient into the domain and feed the inflow, so that design point is
+withdrawn.  And the step-3 fan ghosts that differed between the
+bound-on and bound-off runs differ because the fan starts from
+$\max(P_{\mathrm{eq}}, P_N)$ under the bound and from $P_{\mathrm{eq}}$
+without (\code{PS\_nscbc.H}), identical states or not; that reading is
+no evidence for the march's quantisation and is withdrawn.
+
+The untested lead is the conversion's stencil at the boundary.  The
+point conversion of a cell reads its face neighbours and runs on the
+box grown by four, so at the vent it converts the last interior cell
+from a stencil that reads the first NSCBC ghost, and converts the ghost
+cells themselves from each other; a characteristic ghost is a boundary
+construction, not a smooth continuation of the flow, and the
+$\delta^2/24$ of a stencil that straddles the seam is not the
+truncation term it stands for.  Follow-up 15 measured the conversion's
+change at the vent cell at 0.2\,\%.  Instruments, then one test:
+\begin{enumerate}[nosep]
+\item Under \code{ps\_pres\_diag} (host only), a trace line per
+      first-layer ghost of each NSCBC fill: the fill time, the row, the
+      boundary cell's outward velocity, mixture pressure and $\alpha_1$,
+      the branch, and the ghost's pressure and outward velocity; and in
+      the conversion pass a line per boundary cell and first ghost of a
+      non-periodic face: the average set's velocity and pressure against
+      the converted set's, with the point and average flags.
+      Prediction: in step 4 the conversion run's vent cell departs from
+      the plain run's at the first stage, and the converted velocity of
+      the vent cell or its first ghost differs from the average's by
+      more than the interior's 0.2\,\%, with the sign that lowers the
+      outward velocity.  Falsifier: the vent cell and its ghosts
+      convert trivially in step 4 (refused, or a relative change below
+      $10^{-4}$), which puts the departure in the interior.
+\item A dial \code{ps\_wp\_mc\_bdry} (0 = as before; 1 = the point
+      conversion refuses a cell whose face neighbours leave the domain
+      across a non-periodic face, and the average conversion refuses a
+      cell whose face neighbours were refused so: the two cells nearest
+      a wall or vent and every boundary ghost keep the average's set,
+      counted as \code{recon\_mc\_bdry}; the edge pass then reads the
+      average's set there as it does at a presence front).  No threshold:
+      the domain's own boundary.  Prediction: under 1 the first
+      conversion runs the tube to 300 steps with the fan at every step
+      and no reversal, within the plain run's step sensitivity; the plain
+      tube and the reference set bitwise (the dial off); the smooth
+      periodic series bitwise under 1 (no non-periodic face).  Falsifier:
+      the reversal at step 4 persists under 1, which puts the cause in
+      the interior conversion, where the trace's departure stage says.
+\item If item 2 confirms, the rule is follow-up 15's limiter extended to
+      the domain boundary (a stencil that reads a boundary ghost does
+      not convert), and its default is Marc's on the record; the
+      production tube at its defaults is untouched either way.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
@@ -4598,5 +4659,13 @@ the fan and the small-signal ghost made continuous, which rule 12 asks
 and which needs a form nothing here derives.  Until one is built the
 first conversion does not run the blowdown tube, and the production
 tube at its defaults is untouched by any of it.
+
+\paragraph{Correction (19 November 2026, later the same day).}  Two
+readings above are withdrawn in follow-up 16b's amendment: the pin
+ghost below the ambient is the characteristics' own answer for a cell
+already flowing in, not a defect to be pinned away, and the step-3 fan
+ghosts of the bound-on and bound-off runs differ by the fan's start
+under the bound, so they say nothing about the march's quantisation.
+The lead to test is the conversion's stencil reading the NSCBC ghosts.
 
 \end{document}
