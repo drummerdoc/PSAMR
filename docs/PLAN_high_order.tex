@@ -4668,4 +4668,98 @@ ghosts of the bound-on and bound-off runs differ by the fan's start
 under the bound, so they say nothing about the march's quantisation.
 The lead to test is the conversion's stencil reading the NSCBC ghosts.
 
+
+\subsection{Follow-up 16b: the vent's reversal located (19 November 2026, Mac \code{llvm}; commits \code{11c09728} and \code{5d26178c})}
+
+\paragraph{Instruments.}  Under \code{ps\_pres\_diag} on a host build,
+a \code{[NSCBC-TRACE]} line per first-layer ghost of each NSCBC fill
+(the fill time, the row, the boundary cell's outward velocity, mixture
+pressure and $\alpha_1$, its inward neighbour's velocity, the branch,
+the ghost's pressure and outward velocity), and under
+\code{ps\_wp\_mc\_trace} (the face index $2\,\mathrm{dir}+\mathrm{hi}$)
+a \code{[MC-TRACE]} line per conversion pass for the boundary cell and
+the first ghost of that face: the average's primitive set against the
+point value's and the converted average's, with the two flags.  The
+dial \code{ps\_wp\_mc\_bdry} (default 0, as before): 1 = the point
+conversion refuses a cell whose face neighbours leave the domain across
+a non-periodic face and the average conversion refuses a cell whose
+face neighbours were so refused, counted as \code{recon\_mc\_bdry} on
+the \code{[PS-GUARD]} line; the average's set stands there as it does
+at a presence front.  The tube's rows are uniform across the vent (the
+minimum and maximum of every traced quantity agree over the 32 rows),
+so ``the vent cell'' below is the whole face.
+
+\begin{enumerate}[nosep]
+\item \textbf{The departure, and the cell that converts.}  The plain
+      run and the conversion run are identical through every fill of
+      steps 1 to 3 and the first fill of step 4 (the vent cell at
+      $38.568$\,m/s outward, $3.963$\,MPa, $\alpha_1 = 0.969$, the fan
+      at every fill).  At the second fill of step 4, which shows the
+      first stage's result, the plain run has the vent cell at
+      $51.80$\,m/s and the conversion run at $24.02$; at the third,
+      $44.37$ against $12.57$; at the end of step 4, $63.59$ against
+      $-47.07$, where the inflow bound selects the pin.  The
+      conversion pass of that first stage is the first in which
+      anything at the vent converts, and what converts is not the vent
+      cell: the vent cell is refused at every pass of the run (its
+      flags 0 throughout: in steps 1 to 3 phase 2 is absent in it and
+      present in the ghost, a regime change; from step 4 its point
+      value or the regime pair refuses it).  The first ghost converts,
+      for the first time at that pass, because phase 2 has just become
+      present and Independent in the vent cell and the ghost's stencil
+      (the vent cell, itself, the second ghost) now has one regime
+      pair.  Its point value is formed from the second difference
+      across the fan's seam: $\rho_1$ from the average's $965.6$ to a
+      point value of $1901.5$\,kg/m$^3$, $\alpha_1$ from $0.0645$ to
+      $0.0268$, $u$ from $155.8$ to $168.8$\,m/s; the converted average
+      the reconstruction then reads has $\rho_1 = 1797.6$ and
+      $\alpha_1 = 0.0677$, a phase-1 partial mass of $121.7$ against the
+      average's $62.3$\,kg/m$^3$.  The ghost the vent cell's edges read
+      has its liquid mass doubled.  Prediction 1 \textbf{held} on the
+      departure (the first stage of step 4) and on the magnitude (far
+      beyond 0.2\,\%), and was wrong in one particular: the converted
+      velocity rises rather than falls, and it is the density, not the
+      velocity, that carries the change; and it was wrong in which cell
+      converts, the ghost rather than the vent cell.  The same pattern
+      repeats at every later pass (at step 5's last pass $\rho_1$ from
+      $1026$ to $2896$).
+\item \textbf{The guard that let it through.}  A point liquid density
+      of $1901$\,kg/m$^3$ is above the EOS's own ceiling
+      ($\rho_{\max} = 0.98\,\rho_{\mathrm{pole}} \approx 1617$ for
+      CO$_2$, \code{pr\_base.H}), yet the state test of follow-up 12
+      (\code{REY2PTS\_phase\_try}) accepted it: the branch solve
+      brackets the energy in temperature at the given density and does
+      not test the density against $[\rho_{\min}, \rho_{\max}]$, the
+      domain the fill's own clamp uses.  A point value beyond the pole
+      is not a state, and the guard did not say so.  Not changed here;
+      recorded in \code{FUTURE\_WORK} as a one-line fix for rule 2
+      (refuse at creation) that Marc may want before the conversions
+      are used anywhere, boundary or not.
+\item \textbf{The boundary refusal.}  Under \code{ps\_wp\_mc=1
+      ps\_wp\_mc\_bdry=1} the tube runs its 300 steps with no abort and
+      no fold; against the plain run at step 300, $1.6\times10^{-3}$ of
+      range in $\rho$, $3.5\times10^{-3}$ in $\alpha_1$,
+      $3.2\times10^{-3}$ in $P$, $1.2\times10^{-2}$ at the worst slot
+      ($\alpha_2\rho_2$), inside the tube's step sensitivity
+      ($2\times10^{-2}$ to $1.2\times10^{-1}$, follow-up 11) and under
+      the point form's own $2.7\times10^{-2}$ to $8.3\times10^{-2}$
+      (follow-up 14).  The fill takes the fan at every one of the run's 3300 fills (no supersonic, no small-signal call), the minimum outward velocity at the vent over the run is $0$ (the cell never reverses), every ghost is a state, and the rule refuses $605\,132$ cell conversions over the 300 steps (the two columns nearest each wall and the vent and the ghost layers, every pass).  A first form of the rule that tested the domain box refused the periodic ghosts as well (caught by item 4's periodic pair); the committed form bounds only the non-periodic directions, and on the tube, whose faces are all non-periodic, the two forms are bitwise.  Prediction 2 \textbf{held}.
+\item \textbf{Inertness.}  The instrumented binary runs the plain tube
+      bitwise its record at 300 steps; the smooth periodic field under
+      the first conversion is bitwise under the dial on and off (no
+      non-periodic face, so nothing is refused); the dial off is bitwise on the 22-run reference set (21 identical, the IMEX pair at its known $4.4\times10^{-11}$).  Nothing in the fill is changed; the production tube at its defaults is untouched.
+\end{enumerate}
+
+\paragraph{State.}  The reversal is located: the conversion of the
+first NSCBC ghost from a stencil across the fan's seam, not the fill,
+not the fan's march, not the pin.  The three design points of
+follow-up 16 are withdrawn (the pin is right for an inflowing cell; the
+fan and the dispatch were never shown to be at fault), and the NSCBC
+item of \code{FUTURE\_WORK} 7b closes as a conversions item.  The rule
+is follow-up 15's limiter extended to the domain boundary (a stencil
+that reads a boundary ghost does not convert); its default under
+\code{ps\_wp\_mc} is Marc's, and the production tube at its defaults is
+untouched either way.  The density-domain gap in the point-value guard
+(item 2) is open.
+
 \end{document}
