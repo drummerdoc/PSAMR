@@ -1843,6 +1843,49 @@ convergence returns to the average form's ratio of 3.9 within 20\,\%;
 where both run, and A and C bitwise.  Falsifier for (ii): a rate below
 3.5, which would mean a second drift source.
 
+\subsection*{Follow-up 15: the conversions' limiter (planned 19 November 2026, Marc's word)}
+
+The conversions of follow-up 12 leave the EOS domain in two places: B9
+aborts in the primitive conversion of a stage state after converted
+fluxes, and the tube aborts in the NSCBC ghost fill at the fifth and
+sixth ghost layer the conversions ask for.  Rule 1 allows no threshold
+the tree does not derive, so the limiter must be a rule the presence
+machinery already carries, and rule 7 asks for the failures to be
+located before it is written.
+\begin{enumerate}[nosep]
+\item \textbf{Locate B9.}  The run at \code{ps\_wp\_mc=1} with the
+      validator on and a plotfile every step near the abort: which cell,
+      which step, which slot, and what the presence machinery says of
+      that cell and its five-cell stencil at the step before.
+      Prediction: a cell of the vanishing liquid (its $\alpha_1$ inside
+      the fold's reach, the vanish threshold) whose stencil the
+      reconstruction still treats as present on every cell, so the
+      converted set is formed across a near-vanished phase and the
+      converted edges leave the branch.  Falsifier: a cell with both
+      phases well present, which would put the fault in the conversion
+      itself.
+\item \textbf{The tube's ghost layers.}  The characteristic fill
+      extrapolates the invariants by the ghost layer; the hyperbolic
+      stencil needs four layers and the conversions one or two more,
+      which only the conversion of the outermost ring reads.  The rule:
+      beyond the fourth layer the fill holds the fourth layer's state
+      (the fill's reach is the scheme's stencil; beyond it nothing is
+      extrapolated).  Prediction: the tube runs under both settings; its
+      fields within the step sensitivity of the plain run.
+\item \textbf{The rule for B9's kind.}  If item 1 holds, the conversion
+      is confined to cells whose five-cell stencil is free of the
+      presence machinery's switches: no presence change and no cell
+      inside the vanish band (\code{alpha\_vanish}, the fold's own
+      constant), the same test the reconstruction's fallback makes one
+      cell further out.  Predictions: B9, A6 and B11 run at both
+      settings; the smooth order series bitwise the present conversions
+      (no switch in their stencils); the battery's A and C rows bitwise,
+      the two-phase rows within the present conversions' figures; the
+      tube with item 2 runs at both settings, and the two-level XC2D
+      within $10^{-3}$ of range of the plain run; the GPU bitwise its
+      own form.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
