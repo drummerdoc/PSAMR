@@ -1681,6 +1681,34 @@ exact to $O(h^4)$ only).  Falsifier for (i): a rate below 3.5 at
 \code{ps\_wp\_mc=1}, which refutes the implementation or the analysis
 of term (a).
 
+\paragraph{Finding on the way: the projection on averages (18 November 2026, late).}
+With averaged data the one-dimensional item 1 read 2.0 at both settings
+(the partial mass $3.91\times10^{-3}$, $9.80\times10^{-4}$,
+$2.46\times10^{-4}$ without the conversions and $4.59\times10^{-3}$,
+$1.15\times10^{-3}$, $2.88\times10^{-4}$ with term (a)), the falsifier of
+(i).  The term left is (c) in a form the plan had not weighed: the stage
+projection (\code{ps\_rk\_project=1}, the order-4 default) acts on the
+cell averages every stage, and the average of a field in mechanical
+equilibrium is not in equilibrium, $P_1(\langle U\rangle) -
+P_2(\langle U\rangle) = O(h^2)$, so the projection moves every two-phase
+cell with varying phase states by a second-order amount at every stage.
+With the projection off the same series reads: without the conversions
+$3.93\times10^{-2}$, $9.82\times10^{-3}$, $2.45\times10^{-3}$, rates 2.00
+and 2.00 (ten times the projected run's error: the projection was also
+damping term (a)); with term (a) $1.55\times10^{-3}$,
+$8.96\times10^{-5}$, $5.49\times10^{-6}$, rates 4.11 and 4.03, the
+pressure $16.7$, $0.906$, $0.054$\,Pa (4.2, 4.1) and $\alpha_1$ at 4.25
+and 4.08.  So (i) \textbf{holds} once term (c) is removed, and term (c)
+is a finding about the order-4 default itself: on a smooth two-phase
+field with varying phase states the production configuration is second
+order through the projection alone, whatever the reconstruction does.
+Its remedy is the same conversion pair around the projection (the point
+value projected, the result converted back), a per-cell operator on a
+ghosted state; it is not built here and is put to Marc as the next
+item.  The step B series are re-run with the projection off (every
+other dial the order-4 default), the predictions (ii) to (iv) as stated,
+and (i) as measured.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
