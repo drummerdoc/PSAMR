@@ -1712,6 +1712,60 @@ item.  The step B series are re-run with the projection off (every
 other dial the order-4 default), the predictions (ii) to (iv) as stated,
 and (i) as measured.
 
+\subsection*{Follow-up 13: the stage projection on point values (planned 19 November 2026, Marc's word on the follow-up 12 record)}
+
+Follow-up 12 found the stage projection (\code{ps\_rk\_project=1}, the
+order-4 default) to be a second-order term of the path: it projects the
+cell averages onto mechanical equilibrium, and the average of a field in
+equilibrium is not in equilibrium, $P_1(\langle U\rangle) -
+P_2(\langle U\rangle) = O(h^2)$, so every two-phase cell with varying
+phase states moves by a second-order amount at every stage.  The remedy
+is the conversion pair around the projection: the cell's point value
+$U_c = \langle U\rangle - \tfrac{1}{24}\sum_d\delta^2_d\langle U\rangle$
+is projected, $\Pi_c = \Pi(U_c)$, and the projected point values are
+converted back, $\langle\Pi\rangle = \Pi_c + \tfrac{1}{24}\sum_d
+\delta^2_d\Pi_c$, written to the three slots the projection owns
+($\alpha_1$, $E_1$, $E_2$; the invariants of the kernel are untouched,
+so the pair cannot move mass, momentum or total energy).  It needs the
+stage state with two ghost layers, so under the dial the post-stage
+step fills the ghosted state as the next stage would (one more
+\code{rk\_fill} per stage), projects from it into the valid region, and
+the next stage's fill repeats on the projected state.  The guards of
+follow-up 12 carry over: a cell with a presence change among its face
+neighbours, or whose point value is not a state on its phases' branches,
+or whose converted average leaves $[0,1]$ in $\alpha_1$ or is not a state,
+takes the average projection as now (counted \code{proj\_pt\_raw}).
+\code{PSAMR.ps\_rk\_project\_pt} (0 = the projection on averages, as
+now; 1 = on point values), requires \code{ps\_rk\_project=1}.
+Predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the present code on the 22-run reference set.
+\item The two-dimensional varying-temperature case of follow-up 12 with
+      the projection on in its point form and \code{ps\_wp\_mc=2}, averaged
+      data: rate at or above 4 (2.0 with the average projection); the
+      one-dimensional case with \code{ps\_wp\_mc=1} likewise.  Falsifier:
+      a rate below 3.5, which refutes the implementation or leaves a
+      fourth second-order term.
+\item The same cases with the point projection and \code{ps\_wp\_mc=0}:
+      rate 2 (terms (a) and (b) stand).
+\item The projected averages sit on the constraint to fourth order:
+      $|P_1 - P_2|/P$ of the cell averages after the projection falls as
+      $h^4$ on the smooth case, where the average form holds it at the
+      Newton tolerance.
+\item B5 at \code{cfl} 0.25 under the order-4 default (the full
+      operator, Strang): the differences between step sizes within a
+      factor of 2 of the average form's at every pair (the stiff operator
+      and its floor set them, not the projection).
+\item The battery under the order-4 default: the A and C rows bitwise
+      (single-phase cells never reach the kernel); the two-phase rows
+      within 2\,\%; every PASS kept.  XC2D 40 steps within $10^{-3}$ of
+      range of the average form; the tube 300 steps within $10^{-2}$,
+      vacuum folds 0, the mirror exact at step 1.
+\item Cost: the tube within $+10\,\%$ (the extra fill per stage).
+\item GPU: bitwise its own form 0 at the default; the point form at the
+      Mac line.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
