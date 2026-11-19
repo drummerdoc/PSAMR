@@ -508,7 +508,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_wp\_weno\_power} & 1 & Under \code{ps\_wp\_recon=weno5z}: the power on $\tau/\beta_k$ in the Borges weights; 2 = the higher power (follow-up 2, the first-named option against the weak-shock width). \\
 \code{PSAMR.ps\_wp\_contact\_taper} & 0 & Under \code{ps\_wp\_order=4}: 0 = the reconstruction's smoothness measure alone (the default, Marc's decision on the Stage~3 record); 1 = the H-5 jump weight on the whole high-order increment of the face (the present interface behaviour carried forward, third order on smooth $\alpha$). \\
 \code{PSAMR.ps\_x3f\_order} & 1 (2 under \code{ps\_wp\_order=4}) & Under \code{ps\_relax\_mode=6}: 1 = one backward Euler per sub-step of the X3F kernel (the present operator); 2 = the two-stage SDIRK sub-step ($\gamma = 1 - 1/\sqrt2$), second order (follow-up 4, step A). \\
-\code{PSAMR.ps\_det\_reflux} & 0 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible; unread on the host (follow-up 10). \\
+\code{PSAMR.ps\_det\_reflux} & 1 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible (the default, Marc's decision of 19 November 2026); 0 = the atomic form, for A/B; unread on the host (follow-up 10). \\
 \code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
 \code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). An instrument for the order measurements: it leaves the EOS domain at a phase birth and in the deep NSCBC ghost layers. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
@@ -3840,6 +3840,11 @@ not built.
 prediction held and the dial costs nothing, so rule 9 (no atomics in the
 solution path) argues for 1 as the default, which is Marc's to decide on
 this record.
+
+\paragraph{Decision: the default (Marc, 19 November 2026).}  1.  The
+ordered copy is the default; 0 stays as the A/B arm.  On the host the
+dial is unread, so the flip is bitwise there; on the device the default
+run is the reproducible one.
 
 
 \subsection{Follow-up 11: interface sharpening (18 November 2026, Mac \code{llvm}; commits \code{bb25aefc})}
