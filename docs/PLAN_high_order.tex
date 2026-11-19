@@ -511,7 +511,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_det\_reflux} & 1 & 1 = the flux register's reflux adds the overlapping coarse--fine patches in AMReX's ordered form on the device, so a two-level GPU run is bitwise reproducible (the default, Marc's decision of 19 November 2026); 0 = the atomic form, for A/B; unread on the host (follow-up 10). \\
 \code{PSAMR.ps\_wp\_sharpen} & 0 & Under \code{ps\_wp\_order=4}: 1 = THINC-BVD sharpening of $\alpha_1$ at two-phase contacts, the other primitives and the presence fronts untouched (follow-up 11). \\
 \code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, the kernel's change converted back and added to the average (follow-ups 13 and 14): with the conversions, fourth order on a smooth two-phase field with the projection on. \\
-\code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). An instrument for the order measurements: it leaves the EOS domain at a phase birth and in the deep NSCBC ghost layers. \\
+\code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). Confined by the presence regimes (follow-up 15); 1 safe on the battery, XC2D and the smooth fields, not on the tube's vent start-up; 2 an instrument, unlimited at a sharp transverse interface. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
@@ -4441,5 +4441,82 @@ limiter that makes them safe at a phase birth, or when a production
 case shows the second order of the projection on averages in a quantity
 that matters, the point form is the setting to turn on, and its record
 here is the measurement to repeat.
+
+
+\subsection{Follow-up 15: the conversions' limiter (19 November 2026, Mac \code{llvm}; commits \code{cd36752d} and \code{0047fe5b})}
+\label{sec:fu15}
+
+Against the amendment's items:
+\begin{enumerate}[nosep]
+\item \textbf{B9 located.}  The run with a plotfile every step: the
+      liquid appears by flash at the expansion front and its fraction
+      falls geometrically across five cells into the Absent vapour
+      (0.20, 0.017, $2.6\times10^{-4}$, $5\times10^{-6}$, $10^{-8}$ at
+      cells 32 to 36 of 64 at step 18), and the abort is in the
+      primitive conversion of a stage state at cell 33, two cells
+      inside that tail.  The prediction named a vanishing cell inside
+      the fold's reach: \textbf{half right}.  The tail is such a band,
+      but the cell itself has 1.7\,\% liquid, which the presence
+      machinery classes as Corridor (below $\alpha_{\mathrm{cond}}$), not
+      Independent, and the first form of the rule (a presence change or
+      the vanish band among the face neighbours) left it converted and
+      the case still aborted.  The ghost layers alone are innocent: a
+      probe setting that takes the conversions' ghost layers without any
+      conversion runs the case to its end.
+\item \textbf{The tube's ghost layers.}  The characteristic fill holds
+      the fourth layer's state beyond it.  The probe setting that takes
+      the conversions' ghost layers without any conversion runs the tube
+      300 steps bitwise the default, so the layers and the hold are
+      inert.  The tube under the first conversion still aborts at step 5,
+      and the location moved: the two runs are bitwise identical through
+      step 3, and in step 4 the conversion changes the interior next to
+      the vent by 0.2\,\% (cell 253's pressure 9.873 against 9.894\,MPa)
+      and the vent cell's velocity reverses, $-47$ against $+51$\,m/s;
+      the trajectory the vent then takes leaves the EOS domain in the
+      next step, in an interior cell the fill is the first to read.  The
+      plain tube seeded with a transverse perturbation of $10^{-12}$ and
+      $10^{-9}$ stays within $3\times10^{-10}$ of range through step 6,
+      so the vent's branch does not flip on round-off; it flips on the
+      conversion's 0.2\,\%.  \textbf{Refuted} as a ghost-layer item: the
+      tube's start-up at the choked vent is a sensitivity of the NSCBC
+      fill's branches to the interior at the per-mille level (the steps
+      where Stage~3 found its vacuum folds), and it is the fill's item,
+      not the limiter's.
+\item \textbf{The rule.}  The conversion acts only on a cell whose own
+      stencil, itself and its face neighbours, has every present phase
+      Independent and no regime change across it: the presence
+      machinery's three regimes (Absent, Corridor, Independent) are the
+      whole of the test, and no constant enters that the tree does not
+      already own.  With it: B9 runs at both settings; the battery with
+      no abort, the A and C rows as under the unlimited conversions
+      (the mean 0.0300 against 0.0297 without), the two-phase rows
+      within 3\,\% of the plain scheme (B6 $-3\,\%$, B7 $u$ $-1.3\,\%$,
+      B11 $-1\,\%$, B2 and B9 to three digits), and the second setting
+      identical to the first in one dimension: \textbf{held}.  The
+      smooth order series: bitwise the unlimited conversions (no switch in their
+      stencils): \textbf{held}.  XC2D: at 40 steps on four ranks, the first setting within
+      $1.1\times10^{-10}$ of range on level 0 and $3.8\times10^{-9}$ on
+      level 1 of the plain run (the rule leaves almost nothing to convert
+      on its trace-laden fields): \textbf{held}; the second setting
+      \textbf{refuted}, $0.89$ of the velocity range on level 0 and $0.38$
+      on level 1, and on one rank at a single level $0.28$, with the
+      reconstruction's fallback firing $1.7\times10^{5}$ times where the
+      plain run has none.  The face conversion's transverse second
+      difference is unlimited at a sharp interface whose phases are both
+      Independent, the rule does not reach it, and no rule in the tree
+      derives the smoothness threshold it would need.  The default
+      bitwise on the reference set: 21 of 22 bitwise, the IMEX pair at the audit's $4\times10^{-11}$, the tube's probe bitwise the default: \textbf{held}.  GPU: not run; the kernels changed only in the rule, which the host
+      measurements cover.
+\end{enumerate}
+
+\paragraph{State.}  The first conversion (\code{ps\_wp\_mc=1}) under the
+rule is safe on the battery, the deep-expansion case, XC2D and the
+smooth fields, and its order is untouched; it is not safe on the tube,
+where the vent's start-up branch flips on its 0.2\,\% and the fill's own
+fragility follows, which is the NSCBC item to take next.  The second
+conversion (\code{ps\_wp\_mc=2}) stays an instrument: its transverse
+correction at a sharp interface needs a limiter with a threshold the
+tree does not derive.  Default 0; the item is closed on Marc's word with
+this on the record.
 
 \end{document}
