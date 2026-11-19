@@ -531,7 +531,10 @@ AMREX_FORCE_INLINE
 int
 PSAMR::numGrow()
 {
-  int ng = 4;
+  // The reconstructed faces read three cells out of the box grown by one;
+  // the average-to-point conversions (PSAMR.ps_wp_mc) one more layer per
+  // term (PS_umeth.cpp pass 0).
+  int ng = 4 + ((ps_wp_mc >= 1) ? 1 : 0) + ((ps_wp_mc >= 2) ? 1 : 0);
 #ifdef AMREX_USE_EB
   // IF MOL     + FRD  then 5
   // IF Godunov + FRD  then 7

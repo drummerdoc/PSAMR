@@ -36,6 +36,18 @@
 //  replaces the reconstructed pair when its total boundary variation
 //  against the neighbours' reconstructed edges is the smaller (the BVD
 //  rule of Sun, Inaba and Xiao 2016); the other primitives are untouched.
+//
+//  The average-to-point conversions (ps_wp_mc >= 1; follow-up 12): the
+//  primitive set the reconstruction works on is formed from the cell's
+//  point value U_c = <U> - (1/24) sum_d d2_d <U> and converted back to a
+//  cell average <W> = W(U_c) + (1/24) sum_d d2_d W(U_c) (McCorquodale and
+//  Colella 2011), so a nonlinear map of the averages no longer leaves a
+//  second-order term in the edge values.  point_prims and avg_prims are
+//  the two passes; a cell beside a presence front, or whose point value
+//  is inadmissible, keeps W(<U>) (counted recon_mc_raw).  At ps_wp_mc=2
+//  the face solver takes the face point values of the two edge states
+//  (the transverse second difference of the stored edges, PS_umeth.cpp
+//  pass 1) and its fluctuations are converted back to face averages.
 // =====================================================================
 #ifdef USE_PS_HYDRO
 
@@ -252,29 +264,122 @@ Real contact_keep (Real dalpha, Real alpha_cond) noexcept
     return Real(1.0) - t * t * (Real(3.0) - Real(2.0) * t);
 }
 
+//  Layout of the conversion stores: comps 0..NPRIM-1 the primitive set,
+//  NPRIM and NPRIM+1 the Absent flags of the two phases, NPRIM+2 1 where
+//  the point value was used (and, in the average store, where the
+//  converted average stands).
+constexpr int WC_AB1 = NPRIM, WC_AB2 = NPRIM + 1, WC_PT = NPRIM + 2;
+//  The edge store: comps 0..NVAR-1 the low edge, NVAR..2NVAR-1 the high
+//  edge, RQ_FB 1 where the cell took its raw averages.
+constexpr int RQ_FB = 2 * NVAR;
+
+// ---------------------------------------------------------------------
+//  point_prims: the primitive set of the cell's point value, W(U_c), at
+//  (i,j,k), into wc; the Absent flags from the cell average itself.  A
+//  cell with a presence change among its face neighbours, or whose point
+//  value leaves the admissible set, stores W(<U>) with WC_PT = 0.
+//  Returns true when an admissible-looking cell's point value was refused
+//  (the caller counts).
+// ---------------------------------------------------------------------
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool point_prims (int i, int j, int k,
+                  amrex::Array4<const Real> const& uin,
+                  amrex::Array4<Real> const& wc, const PsPres& pr) noexcept
+{
+    Real U[NVAR], Uc[NVAR];
+    for (int n = 0; n < NVAR; ++n) { U[n] = uin(i, j, k, n); Uc[n] = U[n]; }
+    const PsPrim Pa = prim_from_cons(U, pr);
+    bool front = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
+        Real Um[NVAR], Up[NVAR];
+        for (int n = 0; n < NVAR; ++n) {
+            Um[n] = uin(i - oi, j - oj, k - ok, n);
+            Up[n] = uin(i + oi, j + oj, k + ok, n);
+            Uc[n] -= (Up[n] - Real(2.0) * U[n] + Um[n]) / Real(24.0);
+        }
+        const PsPrim Pm = prim_from_cons(Um, pr), Pp = prim_from_cons(Up, pr);
+        if (Pm.ab1 != Pa.ab1 || Pm.ab2 != Pa.ab2 || Pp.ab1 != Pa.ab1 || Pp.ab2 != Pa.ab2) front = true;
+    }
+    bool raw = front;
+    PsPrim Pc;
+    if (!raw) {
+        Pc = prim_from_cons(Uc, pr);
+        const Real* v = Pc.v;
+        if (Pc.ab1 != Pa.ab1 || Pc.ab2 != Pa.ab2) raw = true;
+        else if (!(v[IA1] >= Real(0.0) && v[IA1] <= Real(1.0))) raw = true;
+        else if (!Pa.ab1 && (!(v[IR1] > Real(0.0)) || !std::isfinite(v[IR1]) || !std::isfinite(v[IE1]))) raw = true;
+        else if (!Pa.ab2 && (!(v[IR2] > Real(0.0)) || !std::isfinite(v[IR2]) || !std::isfinite(v[IE2]))) raw = true;
+        else { for (int m = 0; m < AMREX_SPACEDIM; ++m) if (!std::isfinite(v[IU + m])) raw = true; }
+    }
+    const PsPrim& W = raw ? Pa : Pc;
+    for (int m = 0; m < NPRIM; ++m) wc(i, j, k, m) = W.v[m];
+    wc(i, j, k, WC_AB1) = Pa.ab1 ? Real(1.0) : Real(0.0);
+    wc(i, j, k, WC_AB2) = Pa.ab2 ? Real(1.0) : Real(0.0);
+    wc(i, j, k, WC_PT)  = raw ? Real(0.0) : Real(1.0);
+    return raw && !front;
+}
+
+// ---------------------------------------------------------------------
+//  avg_prims: the cell average of the primitive set, <W> = W_c + (1/24)
+//  sum_d d2_d W_c, from the point store wc into wq at (i,j,k); a cell
+//  whose point value was not used carries W(<U>) through unchanged.
+// ---------------------------------------------------------------------
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void avg_prims (int i, int j, int k,
+                amrex::Array4<const Real> const& wc,
+                amrex::Array4<Real> const& wq) noexcept
+{
+    const bool pt = wc(i, j, k, WC_PT) != Real(0.0);
+    for (int m = 0; m < NPRIM; ++m) {
+        Real w = wc(i, j, k, m);
+        if (pt) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                const int oi = (d == 0), oj = (d == 1), ok = (d == 2);
+                w += (wc(i + oi, j + oj, k + ok, m) - Real(2.0) * wc(i, j, k, m)
+                      + wc(i - oi, j - oj, k - ok, m)) / Real(24.0);
+            }
+        }
+        wq(i, j, k, m) = w;
+    }
+    wq(i, j, k, WC_AB1) = wc(i, j, k, WC_AB1);
+    wq(i, j, k, WC_AB2) = wc(i, j, k, WC_AB2);
+    wq(i, j, k, WC_PT)  = pt ? Real(1.0) : Real(0.0);
+}
+
 // ---------------------------------------------------------------------
 //  cell_edges: the two edge states (conserved arrays) of cell (i,j,k)
 //  in direction idir, written to rq(i,j,k, 0..NVAR-1) (low edge) and
 //  rq(i,j,k, NVAR..2NVAR-1) (high edge).  recon: 0 = WENO5-Z, 1 = PPM.
 //  taper: the contact-taper option; wpow: the WENO power; sharpen: the
-//  THINC-BVD option on alpha_1.  Returns 1 when the cell fell back to its
-//  raw averages, 2 when the THINC candidate was chosen, 0 otherwise (the
-//  caller counts).
+//  THINC-BVD option on alpha_1; mc: the stencil's primitive set is read
+//  from the converted store wq (avg_prims) instead of being formed from
+//  the averages.  Returns 1 when the cell fell back to its raw averages,
+//  2 when the THINC candidate was chosen, 0 otherwise (the caller counts).
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int cell_edges (int idir, int i, int j, int k,
                 amrex::Array4<const Real> const& uin,
                 amrex::Array4<Real> const& rq,
-                int recon, int taper, int wpow, int sharpen, const PsPres& pr) noexcept
+                int recon, int taper, int wpow, int sharpen,
+                int mc, amrex::Array4<const Real> const& wq,
+                const PsPres& pr) noexcept
 {
     const int oi = (idir == 0), oj = (idir == 1), ok = (idir == 2);
     PsPrim P[5];
     Real Uc[NVAR];
+    for (int n = 0; n < NVAR; ++n) Uc[n] = uin(i, j, k, n);
     for (int s = -2; s <= 2; ++s) {
-        Real U[NVAR];
-        for (int n = 0; n < NVAR; ++n) U[n] = uin(i + s*oi, j + s*oj, k + s*ok, n);
-        P[s + 2] = prim_from_cons(U, pr);
-        if (s == 0) { for (int n = 0; n < NVAR; ++n) Uc[n] = U[n]; }
+        const int ii = i + s*oi, jj = j + s*oj, kk = k + s*ok;
+        if (mc != 0) {
+            for (int m = 0; m < NPRIM; ++m) P[s + 2].v[m] = wq(ii, jj, kk, m);
+            P[s + 2].ab1 = wq(ii, jj, kk, WC_AB1) != Real(0.0);
+            P[s + 2].ab2 = wq(ii, jj, kk, WC_AB2) != Real(0.0);
+        } else {
+            Real U[NVAR];
+            for (int n = 0; n < NVAR; ++n) U[n] = uin(ii, jj, kk, n);
+            P[s + 2] = prim_from_cons(U, pr);
+        }
     }
     const PsPrim& C = P[2];
     // species mass fractions of the cell, carried to both edges
@@ -315,13 +420,11 @@ int cell_edges (int idir, int i, int j, int k,
             if ((b1 - a1) * (c1 - b1) > Real(0.0)) {
                 const Real tl = thinc_right(c1, b1, a1);
                 const Real tr = thinc_right(a1, b1, c1);
-                Real Um[NVAR], Up[NVAR];
-                for (int n = 0; n < NVAR; ++n) {
-                    Um[n] = uin(i - 3*oi, j - 3*oj, k - 3*ok, n);
-                    Up[n] = uin(i + 3*oi, j + 3*oj, k + 3*ok, n);
-                }
-                const Real am = prim_from_cons(Um, pr).v[IA1];
-                const Real ap = prim_from_cons(Up, pr).v[IA1];
+                // The two cells three out: alpha_1 is its own slot of the
+                // averages (the converted set differs from it at fourth
+                // order, and this is a selection criterion, not a state).
+                const Real am = uin(i - 3*oi, j - 3*oj, k - 3*ok, UALPHA1);
+                const Real ap = uin(i + 3*oi, j + 3*oj, k + 3*ok, UALPHA1);
                 const Real a0 = P[0].v[IA1], a4 = P[4].v[IA1];
                 Real nl, nr;   // the left neighbour's right edge, the right neighbour's left edge
                 if (recon == 1) {
@@ -372,6 +475,7 @@ int cell_edges (int idir, int i, int j, int k,
         rq(i, j, k, n)        = UL[n];
         rq(i, j, k, NVAR + n) = UR[n];
     }
+    rq(i, j, k, RQ_FB) = fallback ? Real(1.0) : Real(0.0);
     return fallback ? 1 : (thinc ? 2 : 0);
 }
 

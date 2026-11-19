@@ -18,6 +18,7 @@ pp.query("cf_interp", cf_interp);
 pp.query("ps_hydro", ps_hydro);
 pp.query("ps_bl_reflux", ps_bl_reflux);
 pp.query("ps_det_reflux", ps_det_reflux);
+pp.query("ps_wp_mc", ps_wp_mc);
 pp.query("do_react", do_react);
 pp.query("add_ext_src", add_ext_src);
 pp.query("add_grav_src", add_grav_src);

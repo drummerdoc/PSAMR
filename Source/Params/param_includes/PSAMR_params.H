@@ -18,6 +18,7 @@
 [[maybe_unused]] static int ps_hydro;
 [[maybe_unused]] static int ps_bl_reflux;
 [[maybe_unused]] static int ps_det_reflux;
+[[maybe_unused]] static int ps_wp_mc;
 [[maybe_unused]] static int do_react;
 [[maybe_unused]] static int add_ext_src;
 [[maybe_unused]] static int add_grav_src;

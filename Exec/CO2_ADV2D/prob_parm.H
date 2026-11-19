@@ -54,7 +54,13 @@ struct ProbParmDevice
     //   p_amp   [-]  a Gaussian pressure pulse P0 (1 + p_amp exp(-r^2/w^2))
     //                about the domain centre, w = p_width Lx, both phases at
     //                the local pressure (a smooth acoustic test at rest).
+    //   oned    [-]  1 = no y variation (the sin in y replaced by 1), so the
+    //                case is one-dimensional in x on a two-dimensional grid.
     amrex::Real T1_amp  = 0.0;
+    int         oned    = 0;
+    //   avg_init     1 = every cell holds the three-point Gauss average of the
+    //                analytic state instead of its centre value.
+    int         avg_init = 0;
     amrex::Real p_amp   = 0.0;
     amrex::Real p_width = 0.1;
 

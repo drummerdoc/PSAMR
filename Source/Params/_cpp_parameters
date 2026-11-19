@@ -81,6 +81,14 @@ ps_bl_reflux                 int          1
 # follow-up 10.
 ps_det_reflux                int          0
 
+# The McCorquodale-Colella conversions between cell averages and point
+# values on the order-4 path (docs/PLAN_high_order.pdf follow-up 12):
+# 0 = none (as now); 1 = the primitive set from the cell's point value and
+# converted back to an average before the reconstruction (term a; one
+# more ghost cell); 2 = also the face states to face point values and the
+# fluctuations back to face averages (term b; two more ghost cells).
+ps_wp_mc                     int          0
+
 # React fuel + air -> product
 do_react                     int          0
 

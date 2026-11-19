@@ -22,29 +22,22 @@
 #include "PSAMR_params.H"
 #include "EOS.H"
 
+// The analytic state at the point (x, y), into s[NVAR].
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-PSAMR_initdata( int i, int j, int k,
-               amrex::Array4<amrex::Real> const& state,
-               amrex::GeometryData const& geomdata,
-               ProbParmDevice const& prob_parm)
+adv2d_state(amrex::Real x, amrex::Real y, const amrex::Real* prob_lo,
+            amrex::Real Lx, amrex::Real Ly,
+            ProbParmDevice const& prob_parm, amrex::Real* s)
 {
-    const amrex::Real* prob_lo = geomdata.ProbLo();
-    const amrex::Real* prob_hi = geomdata.ProbHi();
-    const amrex::Real* dx      = geomdata.CellSize();
-    const amrex::Real  x       = prob_lo[0] + (amrex::Real(i) + amrex::Real(0.5)) * dx[0];
-    const amrex::Real  y       = prob_lo[1] + (amrex::Real(j) + amrex::Real(0.5)) * dx[1];
-
-    const amrex::Real Lx = prob_hi[0] - prob_lo[0];
-    const amrex::Real Ly = prob_hi[1] - prob_lo[1];
     constexpr amrex::Real twopi = amrex::Real(6.283185307179586);
 
     // Smooth periodic volume-fraction field (kept safely inside (0,1)).
     // alpha_pow (default 1) applies a sign-preserving exponent to each sin
     // factor: pow=3 gives sin³·sin³, a C^∞ but steeper profile.
     amrex::Real sx = std::sin(twopi * prob_parm.k_x * (x - prob_lo[0]) / Lx);
-    amrex::Real sy = std::sin(twopi * prob_parm.k_y * (y - prob_lo[1]) / Ly);
+    amrex::Real sy = (prob_parm.oned != 0) ? amrex::Real(1.0)
+                   : std::sin(twopi * prob_parm.k_y * (y - prob_lo[1]) / Ly);
     if (prob_parm.alpha_pow != amrex::Real(1.0)) {
         sx = std::copysign(std::pow(std::abs(sx), prob_parm.alpha_pow), sx);
         sy = std::copysign(std::pow(std::abs(sy), prob_parm.alpha_pow), sy);
@@ -99,40 +92,79 @@ PSAMR_initdata( int i, int j, int k,
     const amrex::Real e_mix = (m_1 * e_1 + m_2 * e_2) / rho;
     const amrex::Real ke    = amrex::Real(0.5) * rho * (u0 * u0 + v0 * v0);
 
-    state(i,j,k, URHO) = rho;
-    state(i,j,k, UMX)  = rho * u0;
-    state(i,j,k, UMY)  = rho * v0;
+    s[URHO] = rho;
+    s[UMX]  = rho * u0;
+    s[UMY]  = rho * v0;
 #if (AMREX_SPACEDIM == 3)
-    state(i,j,k, UMZ)  = amrex::Real(0.0);
+    s[UMZ]  = amrex::Real(0.0);
 #endif
-    state(i,j,k, UEINT) = rho * e_mix;
-    state(i,j,k, UEDEN) = rho * e_mix + ke;
+    s[UEINT] = rho * e_mix;
+    s[UEDEN] = rho * e_mix + ke;
     // Mixture temperature is only a diagnostic seed; recovered downstream.
-    state(i,j,k, UTEMP) = amrex::Real(0.5) * (prob_parm.T1 + prob_parm.T2);
-    for (int n = 0; n < NUM_SPECIES; ++n) state(i,j,k, UFS + n) = Y[n] * rho;
+    s[UTEMP] = amrex::Real(0.5) * (prob_parm.T1 + prob_parm.T2);
+    for (int n = 0; n < NUM_SPECIES; ++n) s[UFS + n] = Y[n] * rho;
 
     const amrex::Real half_u2 = amrex::Real(0.5) * (u0 * u0 + v0 * v0);
-    state(i,j,k, UALPHA1) = alpha_1;
-    state(i,j,k, UM1RHO1) = m_1;
-    state(i,j,k, UM2RHO2) = m_2;
-    state(i,j,k, UE1    ) = m_1 * (e_1 + half_u2);
-    state(i,j,k, UE2    ) = m_2 * (e_2 + half_u2);
+    s[UALPHA1] = alpha_1;
+    s[UM1RHO1] = m_1;
+    s[UM2RHO2] = m_2;
+    s[UE1] = m_1 * (e_1 + half_u2);
+    s[UE2] = m_2 * (e_2 + half_u2);
 #else
     amrex::Real rho0, e0;
     EOS::PYT2RE(prob_parm.P0, Y, prob_parm.T1, rho0, e0);
-    state(i,j,k, URHO) = rho0;
-    state(i,j,k, UMX)  = rho0 * u0;
-    state(i,j,k, UMY)  = rho0 * v0;
+    s[URHO] = rho0;
+    s[UMX]  = rho0 * u0;
+    s[UMY]  = rho0 * v0;
 #if (AMREX_SPACEDIM == 3)
-    state(i,j,k, UMZ)  = amrex::Real(0.0);
+    s[UMZ]  = amrex::Real(0.0);
 #endif
     const amrex::Real ke_sf = amrex::Real(0.5) * rho0 * (u0 * u0 + v0 * v0);
-    state(i,j,k, UEINT) = rho0 * e0;
-    state(i,j,k, UEDEN) = rho0 * e0 + ke_sf;
-    state(i,j,k, UTEMP) = prob_parm.T1;
-    for (int n = 0; n < NUM_SPECIES; ++n) state(i,j,k, UFS + n) = Y[n] * rho0;
+    s[UEINT] = rho0 * e0;
+    s[UEDEN] = rho0 * e0 + ke_sf;
+    s[UTEMP] = prob_parm.T1;
+    for (int n = 0; n < NUM_SPECIES; ++n) s[UFS + n] = Y[n] * rho0;
     amrex::ignore_unused(alpha_2);
 #endif
+}
+
+// Every cell: the analytic state at its centre (prob.avg_init = 0, the
+// point sample the order harness has always used) or its cell average by
+// the three-point Gauss rule per direction (avg_init = 1), which is what a
+// finite-volume scheme with the average-to-point conversions expects.
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
+void
+PSAMR_initdata( int i, int j, int k,
+               amrex::Array4<amrex::Real> const& state,
+               amrex::GeometryData const& geomdata,
+               ProbParmDevice const& prob_parm)
+{
+    const amrex::Real* prob_lo = geomdata.ProbLo();
+    const amrex::Real* prob_hi = geomdata.ProbHi();
+    const amrex::Real* dx      = geomdata.CellSize();
+    const amrex::Real  x       = prob_lo[0] + (amrex::Real(i) + amrex::Real(0.5)) * dx[0];
+    const amrex::Real  y       = prob_lo[1] + (amrex::Real(j) + amrex::Real(0.5)) * dx[1];
+    const amrex::Real Lx = prob_hi[0] - prob_lo[0];
+    const amrex::Real Ly = prob_hi[1] - prob_lo[1];
+    amrex::Real s[NVAR];
+    for (int n = 0; n < NVAR; ++n) s[n] = amrex::Real(0.0);
+    if (prob_parm.avg_init == 0) {
+        adv2d_state(x, y, prob_lo, Lx, Ly, prob_parm, s);
+    } else {
+        const amrex::Real g = amrex::Real(0.5) * std::sqrt(amrex::Real(0.6));
+        const amrex::Real xs[3] = { -g, amrex::Real(0.0), g };
+        const amrex::Real w[3]  = { amrex::Real(5.0/18.0), amrex::Real(8.0/18.0), amrex::Real(5.0/18.0) };
+        amrex::Real tmp[NVAR];
+        for (int a = 0; a < 3; ++a) {
+            for (int b = 0; b < 3; ++b) {
+                for (int n = 0; n < NVAR; ++n) tmp[n] = amrex::Real(0.0);
+                adv2d_state(x + xs[a] * dx[0], y + xs[b] * dx[1], prob_lo, Lx, Ly, prob_parm, tmp);
+                for (int n = 0; n < NVAR; ++n) s[n] += w[a] * w[b] * tmp[n];
+            }
+        }
+    }
+    for (int n = 0; n < NVAR; ++n) state(i,j,k,n) = s[n];
 }
 
 
