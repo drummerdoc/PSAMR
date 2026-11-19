@@ -1650,6 +1650,37 @@ battery can refute the step.  Predictions:
       Mac line.
 \end{enumerate}
 
+\paragraph{Correction to step A (18 November 2026, late).}  The ADV2D
+deck initialises every cell with the analytic field at its centre, a
+point sample, and the scheme treats what it holds as cell averages.  For
+the plain case that is harmless (a linear field's point samples and its
+averages obey the same discrete translation), but for the varying
+phase-1 temperature the point samples of a uniform-pressure state are
+not the averages of one: the mixture pressure of the averaged state
+differs from $P_0$ at second order from the first step, so step A's
+item 1 measured the initial data as much as the scheme, and the
+self-convergence of item 2 is capped at second order by the data's own
+$O(h^2)$ dependence on the grid before any scheme acts.  Measured on
+the way (the conversions of step B at their first setting, on a
+one-dimensional variant of item 1 with no transverse variation): both
+settings at rate 2.0, the converted one with the larger constant and a
+pressure error six times the plain one, which is the conversion
+faithfully moving point samples off the uniform-pressure state.  The
+instrument is corrected before anything else is measured:
+\code{prob.avg\_init} (0 as now; 1 = every cell initialised with the
+three-point Gauss average per direction of the analytic state), and
+\code{prob.oned} (1 = no $y$ variation) for the one-dimensional form.
+Predictions, replacing step A's: with averaged data (i) the
+one-dimensional item 1 converges at 2 without the conversions and at or
+above 4 at \code{ps\_wp\_mc=1} (term (a) alone, no transverse term);
+(ii) the two-dimensional item 1 at 2 without and at 2 at
+\code{ps\_wp\_mc=1} (term (b) remains), at or above 4 at 2; (iii) the
+pulse at 2 without and at or above 3.5 at \code{ps\_wp\_mc=2}; (iv) the
+plain case at 5 without and at 4 with the conversions (their pair is
+exact to $O(h^4)$ only).  Falsifier for (i): a rate below 3.5 at
+\code{ps\_wp\_mc=1}, which refutes the implementation or the analysis
+of term (a).
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
