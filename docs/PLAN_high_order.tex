@@ -1767,6 +1767,42 @@ Predictions:
       Mac line.
 \end{enumerate}
 
+\subsection*{Follow-up 14: locating the second-order term that survives the point projection (planned 19 November 2026, Marc's word)}
+
+With the conversions on and the stage projection off, the smooth
+two-phase cases converge at fourth order; with the projection on in
+either form they converge at 2.0 to 2.3, and the point form cuts the
+pressure error twentyfold without changing that.  The kernel leaves the
+partial masses alone, so the term enters the masses through the
+projected $\alpha_1$ and phase energies the next stage's faces read.
+Two experiments without new code, then one with, in that order:
+\begin{enumerate}[nosep]
+\item \textbf{The step.}  The one-dimensional case at 64 cells,
+      \code{ps\_wp\_mc=1}, the point form, at the series' step and at
+      half and a quarter of it.  Prediction: the error is temporal, it
+      falls by a factor between 2 and 4 per halving (the stage states
+      are convex combinations of states, and a combination of
+      equilibrium states is not in equilibrium: the projection then
+      corrects a deviation of the step's own making, by a nonlinear map,
+      at every stage).  Falsifier: the error unchanged under the
+      halving, which puts the term in space.
+\item \textbf{The movement.}  The point projection reports, under
+      \code{ps\_pres\_diag}, the worst deviation from equilibrium of the
+      stage point values it receives, $|P_1 - P_2|/P$ of $U_c$ before
+      the kernel, and the worst $|\Delta\alpha_1|$ it applies.
+      Prediction: on the smooth case the deviation scales with the step
+      squared at fixed grid and with $h^{10/3}$ along the series (the
+      step as $N^{-2/3}$ makes $\Delta t^2 \propto h^{10/3}$), not with
+      $h^4$; the movement follows it.  Falsifier: a deviation at fourth
+      order in $h$ and independent of the step, which clears the stages
+      and points at the kernel.
+\item \textbf{The remedy, if the term is temporal.}  The projection's
+      correction is then a first-order-in-time forcing of the stage
+      states; the cure is to project the convex combination's inputs
+      rather than its output, or to project once per step.  Not built
+      until items 1 and 2 are on the record.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
