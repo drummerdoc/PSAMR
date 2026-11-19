@@ -386,11 +386,13 @@ PSAMR::init_stuff(amrex::Amr& papa,
     flux_reg.define(
       bl, papa.boxArray(level - 1), dm, papa.DistributionMap(level - 1),
       level_geom, papa.Geom(level - 1), papa.refRatio(level - 1), level, NVAR);
+    flux_reg.setDeterministic(ps_det_reflux != 0);
 
     if (!amrex::DefaultGeometry().IsCartesian()) {
       pres_reg.define(
         bl, papa.boxArray(level - 1), dm, papa.DistributionMap(level - 1),
         level_geom, papa.Geom(level - 1), papa.refRatio(level - 1), level, 1);
+      pres_reg.setDeterministic(ps_det_reflux != 0);
     }
   }
 }

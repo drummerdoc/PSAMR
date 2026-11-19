@@ -74,6 +74,13 @@ ps_hydro                     int          0
 # layer.  0 = off, nonzero = on (decks historically set 2).
 ps_bl_reflux                 int          1
 
+# The reflux's parallel copy of the overlapping coarse-fine patches into
+# the coarse register data: 1 = AMReX's ordered (deterministic) form on
+# the device, so a two-level GPU run is bitwise reproducible; 0 = the
+# atomic form (as now).  Unread on the host.  docs/PLAN_high_order.pdf
+# follow-up 10.
+ps_det_reflux                int          0
+
 # React fuel + air -> product
 do_react                     int          0
 
