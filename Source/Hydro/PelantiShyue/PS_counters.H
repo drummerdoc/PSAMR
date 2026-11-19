@@ -215,6 +215,7 @@ struct PsCounters {
     long   lim_slot_floor    = 0;   //   a slot whose local scale |U_L|+|U_R| is below eps * (its reference scale) and dropped out of the inner product (O-32, docs/PLAN_high_order.pdf Stage 2d)
     long   lim_wave_noise    = 0;   //   a wave every slot of which dropped out: no correction, phi = 0 (O-32)
     long   recon_fallback    = 0;   // reconstructed faces (ps_wp_order=4): a cell-direction returned to its raw averages (presence front in the stencil, or an inadmissible edge state); docs/PLAN_high_order.pdf Stage 3
+    long   recon_thinc       = 0;   //   a cell-direction whose alpha_1 edges took the THINC candidate (ps_wp_sharpen=1; follow-up 11)
     long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
     long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
     long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
@@ -287,7 +288,7 @@ struct PsCounters {
         ctop_seen = ctop_sub = ctop_host_floor = 0;
         flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
         lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
-        recon_fallback = 0;
+        recon_fallback = recon_thinc = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;

@@ -21,7 +21,7 @@
 //  ps_wp_order (2), ps_wp_limiter (vanleer), ps_wp_transverse (0),
 //  ps_mu (0), ps_lim_ref_eps (1e-8); under ps_wp_order=4 (reconstructed
 //  faces and the in-cell term, PS_recon.H, docs/PLAN_high_order.pdf
-//  Stage 3): ps_wp_recon (weno5z), ps_wp_contact_taper (0).
+//  Stage 3): ps_wp_recon (weno5z), ps_wp_contact_taper (0), ps_wp_sharpen (0).
 // =====================================================================
 
 #include "PS_umeth.H"
@@ -624,6 +624,21 @@ PS_umeth(const Box& bx,
     };
     const int wp_contact_taper = ps_wp_contact_taper_cached();
 
+    // PSAMR.ps_wp_sharpen (0): under ps_wp_order=4, 1 = interface
+    // sharpening of alpha_1 at two-phase contacts, the THINC candidate
+    // edges chosen over the reconstructed ones by the smaller boundary
+    // variation (PS_recon.H; docs/PLAN_high_order.pdf follow-up 11); 0 =
+    // the reconstruction alone.
+    auto ps_wp_sharpen_cached = []() -> int
+    {
+        static const int cached = []() -> int {
+            const int v = ps_dial_int("ps_wp_sharpen", 0);
+            if (v != 0 && v != 1) { amrex::Abort("PSAMR.ps_wp_sharpen must be 0 or 1"); }
+            return v; }();
+        return cached;
+    };
+    const int wp_sharpen = ps_wp_sharpen_cached();
+
     // PSAMR.ps_wp_limiter (vanleer): "none"/"unlimited" sets φ=1 (pure
     // Lax-Wendroff correction).  Unlimited is not monotone and is meant only
     // for smooth order-of-accuracy checks, where van Leer clips extrema.
@@ -750,7 +765,7 @@ PS_umeth(const Box& bx,
             if (wp_order == 4) {
                 amrex::Print() << ", " << (wp_recon == 1 ? "ppm" : "weno5z")
                                << " on the primitive set, contact taper "
-                               << wp_contact_taper;
+                               << wp_contact_taper << ", sharpen " << wp_sharpen;
             }
             amrex::Print() << "\n";
             banner_shown = true;
@@ -790,6 +805,7 @@ PS_umeth(const Box& bx,
         const int  recon_l = wp_recon;
         const int  taper_l = wp_contact_taper;
         const int  wpow_l  = wp_wpow;
+        const int  sharp_l = wp_sharpen;
 
         // Per-face store of the non-conserved fluctuations A⁻/A⁺ (comps
         // 0/1 UALPHA1, 2/3 UE1, 4/5 UE2).  The wave store is grown by one
@@ -850,21 +866,21 @@ PS_umeth(const Box& bx,
             BL_PROFILE_VAR("PS::wp_recon_edges()", ps_wp_recon_prof);
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, wpow_l, l_pres))
-                    ps_guard::count_recon_fallback();
+                const int rc = PS_RECON::cell_edges(0, i, j, k, uin_arr, rq_x, recon_l, taper_l, wpow_l, sharp_l, l_pres);
+                if (rc == 1) { ps_guard::count_recon_fallback(); } else if (rc == 2) { ps_guard::count_recon_thinc(); }
             });
 #if (AMREX_SPACEDIM >= 2)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, wpow_l, l_pres))
-                    ps_guard::count_recon_fallback();
+                const int rc = PS_RECON::cell_edges(1, i, j, k, uin_arr, rq_y, recon_l, taper_l, wpow_l, sharp_l, l_pres);
+                if (rc == 1) { ps_guard::count_recon_fallback(); } else if (rc == 2) { ps_guard::count_recon_thinc(); }
             });
 #endif
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor(rbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, wpow_l, l_pres))
-                    ps_guard::count_recon_fallback();
+                const int rc = PS_RECON::cell_edges(2, i, j, k, uin_arr, rq_z, recon_l, taper_l, wpow_l, sharp_l, l_pres);
+                if (rc == 1) { ps_guard::count_recon_fallback(); } else if (rc == 2) { ps_guard::count_recon_thinc(); }
             });
 #endif
             BL_PROFILE_VAR_STOP(ps_wp_recon_prof);

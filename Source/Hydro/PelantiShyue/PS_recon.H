@@ -28,6 +28,14 @@
 //
 //  Device-safe: no statics, no ParmParse, no EOS calls (the EOS enters at
 //  the face as before).  docs/PLAN_high_order.pdf section 4, Stage 3.
+//
+//  Interface sharpening (ps_wp_sharpen=1, at its accessor in
+//  PS_umeth.cpp; follow-up 11): at a cell with both phases present whose
+//  three alpha_1 averages are strictly monotone, a second candidate pair
+//  of alpha_1 edges from the THINC profile (Xiao, Honma and Kono 2005)
+//  replaces the reconstructed pair when its total boundary variation
+//  against the neighbours' reconstructed edges is the smaller (the BVD
+//  rule of Sun, Inaba and Xiao 2016); the other primitives are untouched.
 // =====================================================================
 #ifdef USE_PS_HYDRO
 
@@ -49,6 +57,32 @@ using amrex::Real;
 
 constexpr int NPRIM = 5 + AMREX_SPACEDIM;   // alpha_1, rho_1, rho_2, e_1, e_2, u[DIM]
 constexpr int IA1 = 0, IR1 = 1, IR2 = 2, IE1 = 3, IE2 = 4, IU = 5;
+
+//  THINC steepness: the tanh profile crosses from 5 to 95 % of its jump in
+//  1.8 cells; a constant of the method (the literature value), not a
+//  threshold on the state.
+constexpr Real THINC_BETA = 1.6;
+
+// ---------------------------------------------------------------------
+//  THINC right-edge value of the centre cell b from the three averages
+//  (a, b, c), strictly monotone: the profile q_min + Delta/2 (1 + theta
+//  tanh(beta (xi - x0))) whose cell average is b, evaluated at the right
+//  edge (Deng, Boivin and Xiao 2018, eq. 2.14).  The left edge is this
+//  function on the reversed stencil, thinc_right(c, b, a), so a mirrored
+//  stencil gives the mirrored value bitwise.
+// ---------------------------------------------------------------------
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real thinc_right (Real a, Real b, Real c) noexcept
+{
+    const Real qmin = amrex::min(a, c), qmax = amrex::max(a, c);
+    const Real d = qmax - qmin;
+    const Real th = (c > a) ? Real(1.0) : Real(-1.0);
+    const Real C = (b - qmin) / d;
+    const Real tb = std::tanh(THINC_BETA), cb = std::cosh(THINC_BETA);
+    const Real B = std::exp(th * THINC_BETA * (Real(2.0) * C - Real(1.0)));
+    const Real A = (B / cb - Real(1.0)) / tb;
+    return qmin + Real(0.5) * d * (Real(1.0) + th * (tb + A) / (Real(1.0) + A * tb));
+}
 
 // ---------------------------------------------------------------------
 //  WENO5-Z right-edge value of the centre cell c from the averages
@@ -222,14 +256,16 @@ Real contact_keep (Real dalpha, Real alpha_cond) noexcept
 //  cell_edges: the two edge states (conserved arrays) of cell (i,j,k)
 //  in direction idir, written to rq(i,j,k, 0..NVAR-1) (low edge) and
 //  rq(i,j,k, NVAR..2NVAR-1) (high edge).  recon: 0 = WENO5-Z, 1 = PPM.
-//  taper: the contact-taper option; wpow: the WENO power.  Returns true
-//  when the cell fell back to its raw averages (the caller counts).
+//  taper: the contact-taper option; wpow: the WENO power; sharpen: the
+//  THINC-BVD option on alpha_1.  Returns 1 when the cell fell back to its
+//  raw averages, 2 when the THINC candidate was chosen, 0 otherwise (the
+//  caller counts).
 // ---------------------------------------------------------------------
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-bool cell_edges (int idir, int i, int j, int k,
-                 amrex::Array4<const Real> const& uin,
-                 amrex::Array4<Real> const& rq,
-                 int recon, int taper, int wpow, const PsPres& pr) noexcept
+int cell_edges (int idir, int i, int j, int k,
+                amrex::Array4<const Real> const& uin,
+                amrex::Array4<Real> const& rq,
+                int recon, int taper, int wpow, int sharpen, const PsPres& pr) noexcept
 {
     const int oi = (idir == 0), oj = (idir == 1), ok = (idir == 2);
     PsPrim P[5];
@@ -258,6 +294,7 @@ bool cell_edges (int idir, int i, int j, int k,
     }
 
     Real vl[NPRIM], vr[NPRIM];
+    bool thinc = false;
     if (!fallback) {
         for (int m = 0; m < NPRIM; ++m) {
             const Real a = P[0].v[m], b = P[1].v[m], c = P[2].v[m],
@@ -267,6 +304,37 @@ bool cell_edges (int idir, int i, int j, int k,
             } else {
                 vl[m] = weno5z_left (a, b, c, d, e, wpow);
                 vr[m] = weno5z_right(a, b, c, d, e, wpow);
+            }
+        }
+        // The THINC candidate for alpha_1 where both phases are present
+        // and the three averages are strictly monotone; chosen by the
+        // smaller total boundary variation against the neighbours'
+        // reconstructed edges (their stencils reach three cells out).
+        if (sharpen != 0 && !C.ab1 && !C.ab2) {
+            const Real a1 = P[1].v[IA1], b1 = C.v[IA1], c1 = P[3].v[IA1];
+            if ((b1 - a1) * (c1 - b1) > Real(0.0)) {
+                const Real tl = thinc_right(c1, b1, a1);
+                const Real tr = thinc_right(a1, b1, c1);
+                Real Um[NVAR], Up[NVAR];
+                for (int n = 0; n < NVAR; ++n) {
+                    Um[n] = uin(i - 3*oi, j - 3*oj, k - 3*ok, n);
+                    Up[n] = uin(i + 3*oi, j + 3*oj, k + 3*ok, n);
+                }
+                const Real am = prim_from_cons(Um, pr).v[IA1];
+                const Real ap = prim_from_cons(Up, pr).v[IA1];
+                const Real a0 = P[0].v[IA1], a4 = P[4].v[IA1];
+                Real nl, nr;   // the left neighbour's right edge, the right neighbour's left edge
+                if (recon == 1) {
+                    Real dummy;
+                    ppm_edges(am, a0, a1, b1, c1, dummy, nl);
+                    ppm_edges(a1, b1, c1, a4, ap, nr, dummy);
+                } else {
+                    nl = weno5z_right(am, a0, a1, b1, c1, wpow);
+                    nr = weno5z_left (a1, b1, c1, a4, ap, wpow);
+                }
+                const Real tbv_w = std::abs(vl[IA1] - nl) + std::abs(nr - vr[IA1]);
+                const Real tbv_t = std::abs(tl - nl) + std::abs(nr - tr);
+                if (tbv_t < tbv_w) { vl[IA1] = tl; vr[IA1] = tr; thinc = true; }
             }
         }
         if (taper != 0) {
@@ -295,6 +363,7 @@ bool cell_edges (int idir, int i, int j, int k,
     }
     if (fallback) {
         for (int m = 0; m < NPRIM; ++m) { vl[m] = C.v[m]; vr[m] = C.v[m]; }
+        thinc = false;
     }
     Real UL[NVAR], UR[NVAR];
     cons_from_prim(vl, C.ab1, C.ab2, Y, UL);
@@ -303,7 +372,7 @@ bool cell_edges (int idir, int i, int j, int k,
         rq(i, j, k, n)        = UL[n];
         rq(i, j, k, NVAR + n) = UR[n];
     }
-    return fallback;
+    return fallback ? 1 : (thinc ? 2 : 0);
 }
 
 } // namespace PS_RECON
