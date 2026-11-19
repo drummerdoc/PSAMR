@@ -375,6 +375,8 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long rm_ = pc.recon_mc_raw;
             amrex::Long rmf_ = pc.recon_mc_face;
             amrex::ParallelDescriptor::ReduceLongSum(rmf_);
+            amrex::Long rmb_ = pc.recon_mc_bdry;
+            amrex::ParallelDescriptor::ReduceLongSum(rmb_);
             amrex::Long pp_ = pc.proj_pt_raw;
             amrex::Real ppr_ = pc.proj_pt_resid;
             amrex::Real ppd_ = pc.proj_pt_dev;
@@ -395,6 +397,7 @@ PSAMR::PSAMR_advance (Real time,
                            << "  recon_thinc = " << rt_
                            << "  recon_mc_raw = " << rm_
                            << "  recon_mc_face = " << rmf_
+                           << "  recon_mc_bdry = " << rmb_
                            << "  proj_pt_raw = " << pp_
                            << "  proj_pt_resid = " << ppr_
                            << "  proj_pt_dev = " << ppd_

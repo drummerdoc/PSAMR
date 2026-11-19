@@ -27,6 +27,7 @@
 
 #include "PS_umeth.H"
 #include "IndexDefines.H"
+#include <iomanip>
 
 #include <AMReX_Array4.H>
 #include <AMReX_Box.H>
@@ -594,7 +595,7 @@ const char* ps_flux_name()
 // ---------------------------------------------------------------------
 void
 PS_umeth(const Box& bx,
-         const int* /*bclo*/, const int* /*bchi*/,
+         const int* bclo, const int* bchi,              // physical boundary codes (IndexDefines.H)
          const int* domlo, const int* domhi,   // transverse-term domain guard
          Array4<const Real> const& uin_arr,
          Array4<const Real> const& /*q*/,
@@ -737,6 +738,31 @@ PS_umeth(const Box& bx,
         return cached;
     };
     const int wp_mc = ps_wp_mc_cached();
+
+    // PSAMR.ps_wp_mc_bdry (0): under ps_wp_mc, 1 = the conversions refuse
+    // a cell whose stencil leaves the domain across a non-periodic face
+    // (the point conversion where a face neighbour is outside, the average
+    // conversion where a face neighbour was so refused), counted as
+    // recon_mc_bdry; the average's set stands there as at a presence front
+    // (follow-up 16b).  0 = the conversions run into the boundary ghosts.
+    auto ps_wp_mc_bdry_cached = []() -> int
+    {
+        static const int cached = []() -> int {
+            const int v = ps_dial_int("ps_wp_mc_bdry", 0);
+            if (v < 0 || v > 1) { amrex::Abort("PSAMR.ps_wp_mc_bdry must be 0 or 1"); }
+            return v; }();
+        return cached;
+    };
+    const int wp_mc_bdry = ps_wp_mc_bdry_cached();
+    // PSAMR.ps_wp_mc_trace (-1): under ps_pres_diag on a host build, the
+    // face (2*dir + hi) whose boundary cell and first ghost have their
+    // average and converted sets printed per conversion pass (follow-up 16b).
+    auto ps_wp_mc_trace_cached = []() -> int
+    {
+        static const int cached = ps_dial_int("ps_wp_mc_trace", -1);
+        return cached;
+    };
+    const int wp_mc_trace = (ps_dial_int("ps_pres_diag", 0) != 0) ? ps_wp_mc_trace_cached() : -1;
 
     // PSAMR.ps_wp_limiter (vanleer): "none"/"unlimited" sets φ=1 (pure
     // Lax-Wendroff correction).  Unlimited is not monotone and is meant only
@@ -907,6 +933,21 @@ PS_umeth(const Box& bx,
         const int  wpow_l  = wp_wpow;
         const int  sharp_l = wp_sharpen;
         const int  mc_l    = wp_mc;
+        const int  mcb_l   = wp_mc_bdry;
+        // The cells whose conversion stencil stays inside the domain: one
+        // (point) and two (average) cells in from every non-periodic face;
+        // a periodic face's ghosts are interior cells and no bound applies.
+        amrex::GpuArray<int, 3> mc_lo1{{-2000000000, -2000000000, -2000000000}}, mc_hi1{{2000000000, 2000000000, 2000000000}};
+        amrex::GpuArray<int, 3> mc_lo2 = mc_lo1, mc_hi2 = mc_hi1;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if (bclo[d] != Interior) { mc_lo1[d] = domlo[d] + 1; mc_lo2[d] = domlo[d] + 2; }
+            if (bchi[d] != Interior) { mc_hi1[d] = domhi[d] - 1; mc_hi2[d] = domhi[d] - 2; }
+        }
+        auto mc_inside = [] (int i, int j, int k, const amrex::GpuArray<int, 3>& lo, const amrex::GpuArray<int, 3>& hi) noexcept -> bool {
+            const int idx[3] = {i, j, k};
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) { if (idx[d] < lo[d] || idx[d] > hi[d]) return false; }
+            return true;
+        };
 
         // Per-face store of the non-conserved fluctuations A⁻/A⁺ (comps
         // 0/1 UALPHA1, 2/3 UE1, 4/5 UE2).  The wave store is grown by one
@@ -1007,6 +1048,14 @@ PS_umeth(const Box& bx,
                     }
                 }
                 if (raw) ps_guard::count_recon_mc_raw();
+                if (mcb_l != 0 && wc_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !mc_inside(i, j, k, mc_lo1, mc_hi1)) {
+                    Real U[NVAR];
+                    for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
+                    const PS_RECON::PsPrim Pa = PS_RECON::prim_from_cons(U, l_pres);
+                    for (int m = 0; m < PS_RECON::NPRIM; ++m) wc_arr(i, j, k, m) = Pa.v[m];
+                    wc_arr(i, j, k, PS_RECON::WC_PT) = Real(0.0);
+                    ps_guard::count_recon_mc_bdry();
+                }
             });
             //  The converted average must be a state as well (its phase
             //  energies are the point values' plus a 24th of their second
@@ -1032,7 +1081,46 @@ PS_umeth(const Box& bx,
                         ps_guard::count_recon_mc_raw();
                     }
                 }
+                if (mcb_l != 0 && wq_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !mc_inside(i, j, k, mc_lo2, mc_hi2)) {
+                    Real U[NVAR];
+                    for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
+                    const PS_RECON::PsPrim Pa = PS_RECON::prim_from_cons(U, l_pres);
+                    for (int m = 0; m < PS_RECON::NPRIM; ++m) wq_arr(i, j, k, m) = Pa.v[m];
+                    wq_arr(i, j, k, PS_RECON::WC_PT) = Real(0.0);
+                    ps_guard::count_recon_mc_bdry();
+                }
             });
+#if !defined(AMREX_USE_GPU)
+            //  The trace (ps_wp_mc_trace under ps_pres_diag): the boundary
+            //  cell and the first ghost of the named face, their average set
+            //  against the point and converted sets (follow-up 16b).
+            if (wp_mc_trace >= 0 && wp_mc_trace < 2 * AMREX_SPACEDIM) {
+                const int td = wp_mc_trace / 2, thi = wp_mc_trace % 2;
+                const int ib = thi ? domhi[td] : domlo[td];
+                const int ig = thi ? domhi[td] + 1 : domlo[td] - 1;
+                amrex::Array4<const Real> const wc_t = wc_fab.const_array();
+                amrex::Array4<const Real> const wq_t = wq_fab.const_array();
+                const amrex::Box tb = amrex::grow(bx, 3 + eg);
+                amrex::LoopOnCpu(tb, [&] (int i, int j, int k) {
+                    const int idx = (td == 0) ? i : (td == 1) ? j : k;
+                    if (idx != ib && idx != ig) return;
+                    Real U[NVAR];
+                    for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
+                    const PS_RECON::PsPrim Pa = PS_RECON::prim_from_cons(U, l_pres);
+                    const Real Pm = ps_cell_state(U, l_pres).P_mix;
+                    amrex::AllPrint() << std::setprecision(10)
+                        << "[MC-TRACE] face=" << wp_mc_trace << (idx == ib ? " cell " : " ghost ")
+                        << i << " " << j << " " << k
+                        << " avg: u=" << Pa.v[PS_RECON::IU + td] << " a1=" << Pa.v[PS_RECON::IA1]
+                        << " r1=" << Pa.v[PS_RECON::IR1] << " r2=" << Pa.v[PS_RECON::IR2] << " P=" << Pm
+                        << " | pt(" << wc_t(i, j, k, PS_RECON::WC_PT) << "): u=" << wc_t(i, j, k, PS_RECON::IU + td)
+                        << " a1=" << wc_t(i, j, k, PS_RECON::IA1) << " r1=" << wc_t(i, j, k, PS_RECON::IR1)
+                        << " | cavg(" << wq_t(i, j, k, PS_RECON::WC_PT) << "): u=" << wq_t(i, j, k, PS_RECON::IU + td)
+                        << " a1=" << wq_t(i, j, k, PS_RECON::IA1) << " r1=" << wq_t(i, j, k, PS_RECON::IR1)
+                        << "\n";
+                });
+            }
+#endif
             BL_PROFILE_VAR_STOP(ps_wp_mc_prof);
         }
         if (o4) {

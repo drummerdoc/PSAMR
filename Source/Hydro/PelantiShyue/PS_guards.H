@@ -164,6 +164,7 @@ inline void  count_recon_fallback()  { ++ps_counters().recon_fallback; }
 inline void  count_recon_thinc()     { ++ps_counters().recon_thinc; }
 inline void  count_recon_mc_raw()    { ++ps_counters().recon_mc_raw; }
 inline void  count_recon_mc_face()   { ++ps_counters().recon_mc_face; }
+inline void  count_recon_mc_bdry()   { ++ps_counters().recon_mc_bdry; }
 inline void  count_reflux_absent() { ++ps_counters().reflux_absent; }
 inline void  count_reflux_sliver() { ++ps_counters().reflux_sliver; }
 inline void  count_reflux_badrho() { ++ps_counters().reflux_badrho; }
@@ -178,6 +179,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_fallback()  noexcept {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_thinc()     noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_mc_raw()    noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_mc_face()   noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_mc_bdry()   noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_absent() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_sliver() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_badrho() noexcept {}

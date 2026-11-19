@@ -218,6 +218,7 @@ struct PsCounters {
     long   recon_thinc       = 0;   //   a cell-direction whose alpha_1 edges took the THINC candidate (ps_wp_sharpen=1; follow-up 11)
     long   recon_mc_raw      = 0;   //   a cell away from a presence front whose point value was inadmissible and kept W(<U>) (ps_wp_mc; follow-up 12)
     long   recon_mc_face     = 0;   //   a face whose point side states were inadmissible and kept the stored edges (ps_wp_mc=2)
+    long   recon_mc_bdry     = 0;   //   a cell whose conversion stencil leaves the domain across a non-periodic face and kept the average's set (ps_wp_mc_bdry=1; follow-up 16b)
     long   proj_pt_raw       = 0;   // the stage projection on point values (ps_rk_project_pt=1): a cell that took the projection of its average instead (follow-up 13)
     double proj_pt_resid     = 0.0; //   the worst |P1-P2|/P of the converted averages since the last report (ps_pres_diag)
     double proj_pt_dev       = 0.0; //   the worst |P1-P2|/P of the stage point values the kernel receives (ps_pres_diag; follow-up 14)
@@ -303,7 +304,7 @@ struct PsCounters {
         ctop_seen = ctop_sub = ctop_host_floor = 0;
         flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
         lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
-        recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = 0;
+        recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = recon_mc_bdry = 0;
         proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;

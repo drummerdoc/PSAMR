@@ -1,4 +1,5 @@
 #include <AMReX_FArrayBox.H>
+#include <iomanip>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PhysBCFunct.H>
@@ -220,6 +221,20 @@ struct PCHypFillExtDir
                 if (Pg > pc.nscbc_gP_max) pc.nscbc_gP_max = Pg;
                 if (ug < pc.nscbc_gu_min) pc.nscbc_gu_min = ug;
                 if (ug > pc.nscbc_gu_max) pc.nscbc_gu_max = ug;
+                //  The trace (follow-up 16b): the boundary cell's outward
+                //  velocity, mixture pressure and alpha_1, its neighbour's
+                //  velocity, the branch, the ghost's pressure and outward
+                //  velocity, per fill.
+                const amrex::Real uN = -static_cast<amrex::Real>(sgn) * s_N[UMX + idir] / s_N[URHO];
+                amrex::AllPrint() << std::setprecision(10)
+                    << "[NSCBC-TRACE] t=" << time << " face=" << (2 * idir + ((sgn > 0) ? 0 : 1))
+                    << " iv=" << iv[0] << " " << iv[1]
+#if (AMREX_SPACEDIM == 3)
+                    << " " << iv[2]
+#endif
+                    << " uN=" << uN << " PN=" << ps_cell_state(s_N, pres).P_mix << " a1N=" << s_N[UALPHA1]
+                    << " uNm1=" << -static_cast<amrex::Real>(sgn) * s_Nm1[UMX + idir] / s_Nm1[URHO]
+                    << " br=" << br << " Pg=" << Pg << " ug=" << ug << "\n";
             }
         }
 #endif
