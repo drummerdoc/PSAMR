@@ -3827,8 +3827,11 @@ predictions:
       presence-front runs, the order-4 tube at 300 steps and XC2D at 40
       steps on four ranks: \textbf{held}.
 \item The 1-D two-phase contact: 2.37 cells after 32 and 2.37 after 64
-      cells of travel (3.25 and 3.77 without), monotone with no
-      overshoot beyond the plateaus ($3\times10^{-17}$): \textbf{held}.
+      cells of travel (3.25 and 3.77 without), monotone (no extremum
+      above $10^{-6}$ of the jump) with no overshoot beyond the plateaus
+      ($2\times10^{-14}$, round-off; the presence-front case carries an
+      overshoot of $8\times10^{-4}$ of its jump under both settings, the
+      front's own): \textbf{held}.
       The presence front too, 2.35 and 2.28 (the THINC acts in the
       two-phase cells beside the fallback band).
 \item ADV2D: the rates 5.00 and 4.99 at amplitude 0.0025 and 5.00 and 5.00 at 0.25, the $L_1(\alpha_1)$ errors bitwise those without the dial at every $N$, and THINC chosen in no cell of any run (\code{recon\_thinc} 0): \textbf{held}; on a resolved smooth profile the reconstructed edges vary less across the faces than the tanh does and the rule never takes it.  (These rates are read with the new scorer \code{adv2d\_err.py}, the translation by a quarter of the box, an integer number of cells on every grid; it reproduces the Stage~3 rates.)
