@@ -3454,4 +3454,56 @@ the maximum, which sits at the waves, not at the phase front.  The
 instrument is the one the next B5-type measurement at a front should
 use.
 
+
+\subsection{Follow-up 9: the IMEX stage sweeps under the class-compacted launch (18--19 November 2026, Mac \code{llvm} and peart; commit \code{b16b0a23})}
+\label{sec:fu9}
+
+Built as planned: the two sweep routines of step B are one launcher
+(\code{ps\_apply\_imex\_sweep}) with the three forms of
+\code{ps\_class\_compact}; the stage and final operators are split into
+the gated wrapper and the admitted body, as the relaxation sweep's are,
+and the work every cell needs whatever the form (the stage's transfer
+slot zeroed, the corridor projection, the dropped-transfer census of the
+final) is one preparation routine that the whole-box wrapper and the
+class pass both run.  Against the predictions:
+\begin{enumerate}[nosep]
+\item Forms 0, 1 and 2 bitwise each other and the previous whole-box
+      sweeps on B5 at \code{cfl} 0.25, the tube at 300 steps and XC2D at
+      40 steps under the pairing: \textbf{held}.  One host counter
+      changed its meaning: a cell admitted at a stage and refused by the
+      presence gate at the final was counted as a fallback though no
+      operator ran on it; it is now counted as dropped, in every form
+      alike.
+\item GPU cost (peart, CUDA, at \code{b16b0a23}, the tube 300 steps
+      under the pairing, the five runs back to back, nothing else
+      running): form 0 169.8 and 169.1\,s, form 1 168.4 and 168.1\,s,
+      form 2 169.2\,s; a saving of $0.7\,\%$ at form 1, outside the
+      run-to-run spread of $0.4\,\%$ but below the predicted 5 to
+      25\,\%: \textbf{refuted} on the size.  The premise was wrong: the
+      admitted cells of the tube are the band region, a contiguous run
+      of about 900 cells, so the whole-box launch's idle threads sit in
+      whole warps that retire at the gate, and the divergence a compact
+      list packs away is confined to the two warps at the region's
+      ends.  Form 2 costs form 0's time for the same reason.  The
+      compact launch buys on the GPU what it bought the relaxation sweep
+      in \S12: nothing to lose, little to gain while the admitted set is
+      contiguous; a scattered admitted set (nucleation in 2-D) is where
+      the band would be.
+\item The GPU result against its own form 0: forms 0, 1 and 2
+      byte-identical (\code{Header} and the level-0 cell data), and
+      against the Mac form 0 at $2.1\times10^{-8}$ of range at the worst
+      slot ($\alpha_2\rho_2$; $3.4\times10^{-9}$ in $\rho$,
+      $9.3\times10^{-9}$ in $P$), the line of the step B record to two
+      digits: \textbf{held}.
+\item Mac cost: the tube under the pairing, back to back, 52.2\,s at
+      form 1 against 53.2\,s at form 0 ($-1.8\,\%$): \textbf{held}.
+\end{enumerate}
+
+\paragraph{State.}  Landed; the dial's default (0) is the whole-box
+launch as before, and the IMEX sweeps follow the relaxation sweep under
+every setting of it.  The cost line of \code{FUTURE\_WORK.md} \S0 next
+step 6 is closed by this record: the five stage sweeps are not the GPU
+step's cost under the pairing, and the pairing's $-19\,\%$ against
+Strang stands as the whole of what the stage structure buys there.
+
 \end{document}

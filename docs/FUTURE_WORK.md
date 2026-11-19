@@ -38,7 +38,7 @@
 3. The floor's cause: the EOS inversion tolerances carry a sixth (18 Nov); the rest unnamed, not chased.
 4. The GPU two-level spread: localized 18 Nov to the shared two-level machinery, amplified by the reconstruction; a deterministic flux register would close it.
 5. The follow-up 6 comparison at the raised cap under step A: DONE 18 Nov, the reading stands (the stiff tube's step is set by the splitting error, not the cap).
-6. The cost of the five stage sweeps on the GPU: the class-compacted launch of item 12 applied to them.
+6. The cost of the five stage sweeps on the GPU: DONE 18–19 Nov, the class-compacted launch of item 12 applied to them (`docs/PLAN_high_order.pdf` follow-up 9); the three launch forms bitwise on the Mac and the GPU, and the saving on the GPU is 0.7 %, not the 5 to 25 % predicted: the admitted cells of the tube are one contiguous band, so the idle threads of the whole-box launch retire in whole warps and the sweeps were not the cost.
 7. Larger, parked: the McCorquodale–Colella conversions for formal fourth order in 2-D (item 13.5), interface sharpening (item 13.7); a deterministic flux register on the device.
 
 Scoped, measured as far as possible without new code, and parked; each entry states the item, the evidence, and the gate it must pass. Nothing here is implemented.
