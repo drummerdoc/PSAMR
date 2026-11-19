@@ -1461,6 +1461,110 @@ Predictions:
       cells only).
 \end{enumerate}
 
+\subsection*{Follow-up 11: interface sharpening (planned 18 November 2026)}
+
+Parked under the gate ``only if the WENO5 contact is measurably more
+smeared than the tapered second-order scheme on the pipe-break'', which
+demo3 at step 50 did not meet (the order-4 front steeper, the jet-edge
+wiggle seventeen times smaller).  Marc's word (18 November) is to carry
+on, so the gate is re-measured with an instrument that sees a contact's
+width, and the sharpening is built as an option whatever the gate says.
+The two schemes smear the two kinds of interface this solver has
+differently.  A two-phase contact (both phases present on both sides,
+$\alpha_1$ the only primitive that jumps) is reconstructed by WENO5-Z on
+$\alpha_1$ under order 4 and smears at WENO's rate; under order 2 the
+contact taper (H-5) drops the correction where the $\alpha$ jump exceeds
+$\alpha_{\mathrm{cond}}$, so the contact is first order there.  A
+presence front (a phase Absent on one side) takes the raw averages at
+both edges of every cell whose five-cell stencil crosses it
+(\src{PS_recon.H}), first order over a band of four cells, under order 4
+as under order 2.  The pipe-break's jet edge and head are presence
+fronts.
+
+\paragraph{Step A, the measurement (instruments only).}
+\begin{enumerate}[nosep]
+\item A two-phase contact advected in 1-D on the suite's deck
+      (\code{phase\_L=phase\_R=3}, \code{x\_qual} 0.3 and 0.7 at one $T$
+      and $P$, \code{u\_L=u\_R=50}\,m/s): the exact solution is the
+      translated step; the instrument reads the 10--90\,\% width of
+      $\alpha_1$ in cells after the contact has moved 32 and 64 cells at
+      256 cells, under order 2 and under the order-4 default.
+      Prediction: order 2 at 6 to 10 cells growing as the square root of
+      the travel (first order at the contact); order 4 at 3 to 5 cells,
+      growing slower.  Falsifier: order 4 wider than order 2, which is
+      the parked gate met.
+\item The same with \code{phase\_R=2} (pure vapour, phase 1 Absent): a
+      presence front.  Prediction: both orders at 6 to 10 cells, within
+      one cell of each other (the fallback band is first order under
+      both).
+\item demo3 at steps 50 and 200 under order 2 and the order-4 default:
+      the 10--90\,\% width of $\alpha_1$ along the axis across the head.
+      Prediction: alike within two cells (a presence front), and the
+      order-4 width not above the order-2 one.
+\end{enumerate}
+The instrument is one script, \code{contact\_width.py} (a 1-D plotfile
+or the demo3 centreline, the width of the first monotone crossing of
+$\alpha_1$ between the 10 and 90\,\% levels of its jump).
+
+\paragraph{Step B, THINC-BVD on $\alpha_1$ at two-phase contacts.}
+Under \code{PSAMR.ps\_wp\_sharpen} (0 = as now; 1 = the sharpened
+contact), per cell and direction a second candidate pair of edge values
+for $\alpha_1$ from the THINC profile (Xiao, Honma and Kono 2005; the
+BVD selection of Sun, Inaba and Xiao 2016 and Deng, Boivin and Xiao
+2018): with $q_{\min}$, $q_{\max}$ the smaller and larger of the two
+neighbours, $\Delta = q_{\max} - q_{\min}$, $\theta$ the sign of
+$q_{i+1} - q_{i-1}$, $C = (\bar q_i - q_{\min})/\Delta$,
+$B = \exp(\theta\beta(2C-1))$ and $A = (B/\cosh\beta - 1)/\tanh\beta$,
+the left edge is $q_{\min} + \tfrac12\Delta(1 + \theta A)$ and the right
+edge $q_{\min} + \tfrac12\Delta\,(1 + \theta\,(\tanh\beta + A)/(1 + A\tanh\beta))$,
+applicable where the three cells are strictly monotone (so $C$ is in
+$(0,1)$ and both edges inside $[q_{\min}, q_{\max}]$).  $\beta = 1.6$:
+the profile crosses from 5 to 95\,\% of its jump in 1.8 cells, the
+literature value; it is a constant of the method like WENO's
+$\varepsilon$, not a threshold on the state, and switches nothing.  One
+function \code{thinc\_right(a, b, c)}, the left edge as
+\code{thinc\_right(c, b, a)} (the mirror rule of \src{PS_recon.H}).  The
+choice per cell is the candidate with the smaller total boundary
+variation, the sum over the cell's two faces of the distance between its
+edge and the neighbour's WENO edge; a tie goes to WENO.  Two passes: the
+present edge pass stores the THINC candidate beside the WENO edges, a
+selection pass replaces $\alpha_1$'s two edges where THINC wins and
+rebuilds the conserved edge arrays; the other primitives stay WENO
+(continuous across a two-phase contact at uniform $P$ and $u$).
+Presence fronts are unchanged in this step.  The choice is a switch
+between two reconstructions, by the design of the method, which rule 12
+weighs against: a [DECIDE] item, measured on the mirror cases below.
+A host counter \code{recon\_thinc} counts the cells where THINC is
+chosen.  Predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the present code on the 22-run reference set.
+\item The 1-D two-phase contact of step A: width 2 to 3 cells after 32
+      and after 64 cells of travel, not growing.  Falsifier: above 4, or
+      growing by a cell between the two.
+\item ADV2D rates 5.00 unchanged to two digits at amplitude 0.0025 and
+      0.25 (on a resolved smooth profile the THINC candidate's boundary
+      variation exceeds WENO's and is never chosen).  Falsifier: a rate
+      below 4.5, or THINC chosen in more than 1\,\% of the cells.
+\item The single-phase battery bitwise ($\alpha_1$ uniform at a trace,
+      never strictly monotone).  The two-phase B cases: PASS set
+      identical, the table within 2\,\%, B5's both-two-phase contact
+      sharper.
+\item B12's mirror and the tube's mirrored orientations as now (exact
+      at step 1).
+\item demo3 at step 50: the contact-window and front-window figures
+      within 5\,\% (the axis inside the jet is two-phase and smooth; the
+      head a presence front), THINC chosen in under 1\,\% of the cells.
+\item Cost within 5\,\% on the tube.
+\end{enumerate}
+
+\paragraph{Step C, conditional.}  If step A's items 2 and 3 show the
+production fronts smeared at first order under both schemes, the
+follow-on is THINC for $\alpha_1$ through a presence front, the present
+phase's intensive slots carried raw to both edges and the absent phase's
+pinned, the realizability of the edges by the existing admissible
+check.  It changes the presence rule of the reconstruction and is
+planned in its own amendment on step A's record, with Marc's word.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
