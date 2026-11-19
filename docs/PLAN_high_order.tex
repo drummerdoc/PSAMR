@@ -2006,6 +2006,37 @@ row moving by more than the two-phase rows' 3\,\% of follow-up 15,
 which would say the end cells matter to a Riemann case and the rule
 needs the open-end faces thought through.
 
+\subsection*{Follow-up 16d: the branch solve's own domain test (planned 19 November 2026, Marc's word)}
+
+Follow-up 16c put the density-domain test at the conversions' guard
+and left the branch solve as it was.  Marc's word: the solve itself,
+\code{EOS::REY2PTS\_phase\_try} and its sound-speed form
+\code{REY2PTSc\_phase\_try} (\code{pr\_contract.H}, both backends),
+refuses a density outside $[\rho_{\min}, \rho_{\max}]$ before it
+brackets the energy, so no caller can be told that a state beyond the
+covolume pole exists.  One correction to 16c's wording: the fill's
+clamp (\code{ps\_guard::clamp\_phase\_density}) receives
+$\rho_{\max}$ and ignores it, bounding below only; the bound is the
+EOS's own ($0.98\,\rho_{\mathrm{pole}}$, \code{pr\_base.H}), not one the
+clamp enforces.  The GERG family's wrappers are not touched (no GERG
+build runs here; recorded).  The callers reached: the corridor's
+host-state and own-branch probes (\code{PS\_corridor.H}), the promotion
+test (\code{PS\_promote.H}), the point-value projection's state test
+(\code{PS\_relax.H}), the NSCBC fan's and dispatch's state tests
+(\code{PS\_nscbc.H}, the \code{c} form), the PsPhaseAPI callback
+(\code{hem\_eos\_api.H}), the conversions' guard (already preceded by
+16c's test) and the fill's ghost-state count.  Predictions: the 22-run
+reference set bitwise, since no production state carries a phase
+density beyond the pole (the fill clamps below only, but a density
+above $\rho_{\max}$ would already have failed the solve's temperature
+bracket or produced a pressure the validator would have caught); the
+tube under the first conversion bitwise follow-up 16c's run (its
+out-of-domain point values are refused by 16c's test first).
+Falsifier: any run of the set changing, which would locate a production
+call that today accepts an impossible density and is a finding in its
+own right, to be recorded with the cell and the caller before anything
+else is done.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
