@@ -1565,6 +1565,91 @@ pinned, the realizability of the edges by the existing admissible
 check.  It changes the presence rule of the reconstruction and is
 planned in its own amendment on step A's record, with Marc's word.
 
+\subsection*{Follow-up 12: the average-to-point conversions (planned 18 November 2026)}
+
+\S\ref{sec:claim} parks the McCorquodale--Colella conversions with the
+claim that for a flashing jet the difference is not measurable; the
+claim was never measured, and the ADV2D rate of 5 cannot see the terms
+(with $u$, $P$ and $\rho_k$ uniform every nonlinear map in the chain,
+$m_1/\alpha_1$, $E_k/m_k - \tfrac12 u^2$, $F(W)$, is linear on that
+data).  Where the terms enter this scheme: (a) the primitive set is
+formed from cell averages, $W(\langle U\rangle) = \langle W\rangle +
+O(h^2)$, a smooth second-order field that the reconstruction carries
+to the faces, so the face states are second-order accurate wherever
+$\rho_k$ or $u$ vary, in 1-D as in 2-D; (b) in 2-D the face value
+reconstructed along the normal from cell averages is a transverse
+average, and the fluctuations of a transverse average are not the
+transverse average of the fluctuations, $O(h^2)$ again; (c) the in-cell
+products (\S\ref{sec:bounds} item 4) and the relaxation operator act on
+averages, $O(h^2)$, and stay so under this follow-up (the stiff operator
+on point values would need its result converted back, and the converted
+average is off the constraint; the full step is first order there in
+any case, follow-up 1).
+
+\paragraph{Step A, the measurement (instruments only).}
+\begin{enumerate}[nosep]
+\item ADV2D with a smooth phase-1 temperature variation
+      (\code{prob.T1\_amp}: $T_1 = T_{1,0} + T_{1,\mathrm{amp}}\sin\sin$
+      at uniform $P$ and $u$, so $\rho_1$ and $e_1$ vary and
+      $m_1 = \alpha_1\rho_1$ is the product of two varying fields; the
+      exact solution is still the translation): the rates of
+      $L_1(\alpha_1)$ and $L_1(m_1)$ at $32^2$ to $128^2$ under the
+      order-4 default with the step driven down as $N^{-2/3}$.
+      Prediction: the $m_1$ rate falls from 5 to between 2 and 3 (term
+      (a) at the $h^2$ level above the reconstruction's $h^5$ on a
+      resolved profile), $\alpha_1$ stays at 5.  Falsifier: an $m_1$
+      rate above 4, which closes term (a) as unmeasurable.
+\item A smooth acoustic pulse in single-phase vapour on the ADV2D deck
+      (\code{prob.p\_amp}: $P = P_0(1 + p_{\mathrm{amp}}
+      \exp(-r^2/w^2))$ at rest, phase 1 at its trace), self-convergence
+      of $L_1(P)$ and $L_1(\rho)$ at $32^2$ to $256^2$ against the
+      $512^2$ run of the same scheme at the time the pulse has crossed a
+      quarter of the box, the step as $N^{-2/3}$.  Prediction: rate 2
+      under the order-4 default (terms (a) and (b) both act), 2 under
+      order 2 too, so the two schemes differ in the constant only.
+      Falsifier: a rate at or above 3.5, which closes term (b).
+\end{enumerate}
+
+\paragraph{Step B, the conversions.}  Under \code{PSAMR.ps\_wp\_mc}
+(0 = as now; 1 = term (a); 2 = terms (a) and (b)), built only where
+step A finds the term measurable.  Term (a): the point value
+$U_c = \langle U\rangle - \tfrac{h^2}{24}\sum_d \delta_d^2\langle U\rangle$
+of every cell, the primitive set $W(U_c)$ there, and the cell average
+$\langle W\rangle = W(U_c) + \tfrac{h^2}{24}\sum_d \delta_d^2 W(U_c)$
+from the neighbours' point values, in place of $W(\langle U\rangle)$ as
+the reconstruction's input; one more ghost cell is read (the edge pass
+on the box grown by one reads cell averages five cells out), so
+\code{numGrow} is 5 under the dial.  Term (b): the side states of the
+fluctuation solve are the face point values
+$\langle W\rangle_f - \tfrac{h^2}{24}\,\delta_\perp^2\langle W\rangle_f$
+from the stored edges of the transverse neighbours, and the
+fluctuations are converted back,
+$\mathcal{A}^\pm\Delta Q + \tfrac{h^2}{24}\,\delta_\perp^2(\mathcal{A}^\pm\Delta Q)$,
+over the wave box grown transversally by one, before the update and the
+in-cell term read them.  Realizability: a cell whose edges leave the
+admissible set falls back to its raw averages as now, and a face whose
+transverse neighbours include a fallback cell takes the uncorrected
+state and fluctuation (the cells there are first order already); the
+Laplacian corrections are not limited otherwise, which is where the
+battery can refute the step.  Predictions:
+\begin{enumerate}[nosep]
+\item The default bitwise the present code on the 22-run reference set.
+\item Step A item 1 at \code{ps\_wp\_mc=1}: the $m_1$ rate at or above
+      4; $\alpha_1$ at 5.
+\item Step A item 2 at \code{ps\_wp\_mc=2}: rate at or above 3.5.
+\item ADV2D at the deck defaults: the rates 5.00 unchanged to two
+      digits (the conversions change $\alpha_1$'s input by $O(h^4)$).
+\item The battery: the A/C mean within 2\,\% of the order-4 figure;
+      every PASS kept.  Falsifier: the mean worse by more than 2\,\%,
+      which is the unlimited correction at the shocks, and the step
+      then needs McCorquodale and Colella's limiting of the correction.
+\item The tube's mirror exact at step 1; the vacuum folds on the AMR
+      tube not above the order-4 count; XC2D within $10^{-3}$ of range
+      of \code{ps\_wp\_mc=0}.
+\item Cost within 10\,\% on the tube; the GPU bitwise its own, at the
+      Mac line.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
