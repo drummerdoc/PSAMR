@@ -350,9 +350,11 @@ ps_wp_face(int idir, int i, int j, int k, int iL, int jL, int kL,
 
 // ---------------------------------------------------------------------
 //  ps_wp_face_pt (ps_wp_mc=2): the face between the cells (iL,jL,kL) and
-//  (i,j,k) from the face point values of the two edge states, each the
-//  stored edge less a 24th of its transverse second difference
-//  (McCorquodale and Colella 2011), unless an edge of the three transverse
+//  (i,j,k) from the face point values of the two edge states: each
+//  side's primitive edge less a 24th of its transverse second difference
+//  (McCorquodale and Colella 2011), mapped to the conserved array after
+//  the conversion (the map is nonlinear, so converting after it would
+//  keep its second-order term), unless an edge of the three transverse
 //  neighbours belongs to a fallback cell or a point state leaves the
 //  admissible set, when both sides keep the stored edges (counted
 //  recon_mc_face).  The fluctuations it writes are face point values;
@@ -362,6 +364,7 @@ AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
 ps_wp_face_pt(int idir, int i, int j, int k, int iL, int jL, int kL,
+              amrex::Array4<const amrex::Real> const& uin,
               amrex::Array4<const amrex::Real> const& rq,
               amrex::Array4<amrex::Real> const& flx,
               amrex::Array4<amrex::Real> const& wpf,
@@ -370,41 +373,52 @@ ps_wp_face_pt(int idir, int i, int j, int k, int iL, int jL, int kL,
               const PsPres& l_pres) noexcept
 {
     using amrex::Real;
-    Real UL[NVAR], UR[NVAR], UL0[NVAR], UR0[NVAR];
+    using namespace PS_RECON;
+    Real UL[NVAR], UR[NVAR];
     for (int n = 0; n < NVAR; ++n) {
-        UL0[n] = ps_finite_or(rq(iL, jL, kL, NVAR + n), Real(0.0));
-        UR0[n] = ps_finite_or(rq(i,  j,  k,  n), Real(0.0));
-        UL[n] = UL0[n]; UR[n] = UR0[n];
+        UL[n] = ps_finite_or(rq(iL, jL, kL, NVAR + n), Real(0.0));
+        UR[n] = ps_finite_or(rq(i,  j,  k,  n), Real(0.0));
     }
-    bool conv = (rq(iL, jL, kL, PS_RECON::RQ_FB) == Real(0.0)) && (rq(i, j, k, PS_RECON::RQ_FB) == Real(0.0));
-    for (int tdir = 0; tdir < AMREX_SPACEDIM; ++tdir) {
+    // The primitive edges, converted to face point values by their
+    // transverse second differences, then mapped to the conserved array
+    // with each cell's presence flags and species.
+    Real vL[NPRIM], vR[NPRIM];
+    for (int m = 0; m < NPRIM; ++m) { vL[m] = rq(iL, jL, kL, RQ_PH + m); vR[m] = rq(i, j, k, RQ_PL + m); }
+    bool conv = (rq(iL, jL, kL, RQ_FB) == Real(0.0)) && (rq(i, j, k, RQ_FB) == Real(0.0));
+    for (int tdir = 0; tdir < AMREX_SPACEDIM && conv; ++tdir) {
         if (tdir == idir) continue;
         const int oi = (tdir == 0), oj = (tdir == 1), ok = (tdir == 2);
-        if (rq(iL + oi, jL + oj, kL + ok, PS_RECON::RQ_FB) != Real(0.0) || rq(iL - oi, jL - oj, kL - ok, PS_RECON::RQ_FB) != Real(0.0) ||
-            rq(i + oi, j + oj, k + ok, PS_RECON::RQ_FB) != Real(0.0) || rq(i - oi, j - oj, k - ok, PS_RECON::RQ_FB) != Real(0.0)) { conv = false; }
-        if (!conv) break;
-        for (int n = 0; n < NVAR; ++n) {
-            UL[n] -= (rq(iL + oi, jL + oj, kL + ok, NVAR + n) - Real(2.0) * UL0[n] + rq(iL - oi, jL - oj, kL - ok, NVAR + n)) / Real(24.0);
-            UR[n] -= (rq(i + oi, j + oj, k + ok, n) - Real(2.0) * UR0[n] + rq(i - oi, j - oj, k - ok, n)) / Real(24.0);
+        if (rq(iL + oi, jL + oj, kL + ok, RQ_FB) != Real(0.0) || rq(iL - oi, jL - oj, kL - ok, RQ_FB) != Real(0.0) ||
+            rq(i + oi, j + oj, k + ok, RQ_FB) != Real(0.0) || rq(i - oi, j - oj, k - ok, RQ_FB) != Real(0.0)) { conv = false; break; }
+        for (int m = 0; m < NPRIM; ++m) {
+            vL[m] -= (rq(iL + oi, jL + oj, kL + ok, RQ_PH + m) - Real(2.0) * rq(iL, jL, kL, RQ_PH + m) + rq(iL - oi, jL - oj, kL - ok, RQ_PH + m)) / Real(24.0);
+            vR[m] -= (rq(i + oi, j + oj, k + ok, RQ_PL + m) - Real(2.0) * rq(i, j, k, RQ_PL + m) + rq(i - oi, j - oj, k - ok, RQ_PL + m)) / Real(24.0);
         }
     }
     if (conv) {
-        // The point states must stay in the admissible set of their own
-        // averages (the same phases present, alpha in [0,1], positive
-        // finite phase densities).
-        auto admissible = [&] (const Real* U, const Real* U0) noexcept -> bool {
-            const PS_RECON::PsPrim P0 = PS_RECON::prim_from_cons(U0, l_pres);
-            const PS_RECON::PsPrim P  = PS_RECON::prim_from_cons(U,  l_pres);
-            if (P.ab1 != P0.ab1 || P.ab2 != P0.ab2) return false;
-            if (!(P.v[PS_RECON::IA1] >= Real(0.0) && P.v[PS_RECON::IA1] <= Real(1.0))) return false;
-            if (!P.ab1 && (!(P.v[PS_RECON::IR1] > Real(0.0)) || !std::isfinite(P.v[PS_RECON::IR1]) || !std::isfinite(P.v[PS_RECON::IE1]))) return false;
-            if (!P.ab2 && (!(P.v[PS_RECON::IR2] > Real(0.0)) || !std::isfinite(P.v[PS_RECON::IR2]) || !std::isfinite(P.v[PS_RECON::IE2]))) return false;
-            for (int m = 0; m < AMREX_SPACEDIM; ++m) if (!std::isfinite(P.v[PS_RECON::IU + m])) return false;
+        Real UcL[NVAR], UcR[NVAR];
+        for (int n = 0; n < NVAR; ++n) { UcL[n] = uin(iL, jL, kL, n); UcR[n] = uin(i, j, k, n); }
+        const PsPrim PL = prim_from_cons(UcL, l_pres), PR = prim_from_cons(UcR, l_pres);
+        auto admissible = [&] (const Real* v, const PsPrim& C) noexcept -> bool {
+            if (!(v[IA1] >= Real(0.0) && v[IA1] <= Real(1.0))) return false;
+            if (!C.ab1 && (!(v[IA1] > l_pres.alpha_vanish) || !(v[IR1] > Real(0.0)) || !std::isfinite(v[IR1]) || !std::isfinite(v[IE1]))) return false;
+            if (!C.ab2 && (!(Real(1.0) - v[IA1] > l_pres.alpha_vanish) || !(v[IR2] > Real(0.0)) || !std::isfinite(v[IR2]) || !std::isfinite(v[IE2]))) return false;
+            for (int m = 0; m < AMREX_SPACEDIM; ++m) if (!std::isfinite(v[IU + m])) return false;
             return true;
         };
-        if (!admissible(UL, UL0) || !admissible(UR, UR0)) { conv = false; ps_guard::count_recon_mc_face(); }
+        if (admissible(vL, PL) && admissible(vR, PR)) {
+            auto species = [&] (const Real* U, Real* Y) noexcept {
+                const Real rho = amrex::max(ps_finite_or(U[URHO], Real(ps_const::RHO_MIX_MIN)), Real(ps_const::RHO_MIX_MIN));
+                for (int n = 0; n < NUM_SPECIES; ++n) Y[n] = ps_finite_or(U[UFS + n], Real(0.0)) / rho;
+            };
+            Real YL[NUM_SPECIES], YR[NUM_SPECIES];
+            species(UcL, YL); species(UcR, YR);
+            cons_from_prim(vL, PL.ab1, PL.ab2, YL, UL);
+            cons_from_prim(vR, PR.ab1, PR.ab2, YR, UR);
+        } else {
+            ps_guard::count_recon_mc_face();
+        }
     }
-    if (!conv) { for (int n = 0; n < NVAR; ++n) { UL[n] = UL0[n]; UR[n] = UR0[n]; } }
     ps_wp_face_core(idir, i, j, k, UL, UR, flx, wpf, wv, store_waves, true, vbox, l_pres);
 }
 
@@ -935,16 +949,16 @@ PS_umeth(const Box& bx,
         const int eg = (mc_l == 2) ? 1 : 0;
         const amrex::Box rbx = amrex::grow(bx, 1 + eg);
         amrex::FArrayBox rq_x_fab;
-        if (o4) { rq_x_fab.resize(rbx, 2*NVAR + 1, amrex::The_Async_Arena()); }
+        if (o4) { rq_x_fab.resize(rbx, PS_RECON::RQ_NCOMP, amrex::The_Async_Arena()); }
         auto const& rq_x = rq_x_fab.array();
 #if (AMREX_SPACEDIM >= 2)
         amrex::FArrayBox rq_y_fab;
-        if (o4) { rq_y_fab.resize(rbx, 2*NVAR + 1, amrex::The_Async_Arena()); }
+        if (o4) { rq_y_fab.resize(rbx, PS_RECON::RQ_NCOMP, amrex::The_Async_Arena()); }
         auto const& rq_y = rq_y_fab.array();
 #endif
 #if (AMREX_SPACEDIM == 3)
         amrex::FArrayBox rq_z_fab;
-        if (o4) { rq_z_fab.resize(rbx, 2*NVAR + 1, amrex::The_Async_Arena()); }
+        if (o4) { rq_z_fab.resize(rbx, PS_RECON::RQ_NCOMP, amrex::The_Async_Arena()); }
         auto const& rq_z = rq_z_fab.array();
 #endif
         // The conversion passes (ps_wp_mc): the point-value primitive set on
@@ -1071,7 +1085,7 @@ PS_umeth(const Box& bx,
             amrex::FArrayBox fpx_fab(xtb, NVAR, amrex::The_Async_Arena()), wpx_fab(xtb, pc, amrex::The_Async_Arena());
             auto const& fpx = fpx_fab.array(); auto const& wpx = wpx_fab.array();
             amrex::ParallelFor(xtb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_pt(0, i, j, k, i-1, j, k, rqc_x, fpx, wpx, wp_wave_x, store_w, xtb, l_pres); });
+                ps_wp_face_pt(0, i, j, k, i-1, j, k, uin_arr, rqc_x, fpx, wpx, wp_wave_x, store_w, xtb, l_pres); });
             const amrex::Array4<const Real> fpxc(fpx), wpxc(wpx);
             amrex::ParallelFor(xfbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                 back(0, i, j, k, fpxc, flx1, NVAR); back(0, i, j, k, wpxc, wp_fluct_x, pc); });
@@ -1081,7 +1095,7 @@ PS_umeth(const Box& bx,
             amrex::FArrayBox fpy_fab(ytb, NVAR, amrex::The_Async_Arena()), wpy_fab(ytb, pc, amrex::The_Async_Arena());
             auto const& fpy = fpy_fab.array(); auto const& wpy = wpy_fab.array();
             amrex::ParallelFor(ytb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_pt(1, i, j, k, i, j-1, k, rqc_y, fpy, wpy, wp_wave_y, store_w, ytb, l_pres); });
+                ps_wp_face_pt(1, i, j, k, i, j-1, k, uin_arr, rqc_y, fpy, wpy, wp_wave_y, store_w, ytb, l_pres); });
             const amrex::Array4<const Real> fpyc(fpy), wpyc(wpy);
             amrex::ParallelFor(yfbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                 back(1, i, j, k, fpyc, flx2, NVAR); back(1, i, j, k, wpyc, wp_fluct_y, pc); });
@@ -1092,7 +1106,7 @@ PS_umeth(const Box& bx,
             amrex::FArrayBox fpz_fab(ztb, NVAR, amrex::The_Async_Arena()), wpz_fab(ztb, pc, amrex::The_Async_Arena());
             auto const& fpz = fpz_fab.array(); auto const& wpz = wpz_fab.array();
             amrex::ParallelFor(ztb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                ps_wp_face_pt(2, i, j, k, i, j, k-1, rqc_z, fpz, wpz, wp_wave_z, store_w, ztb, l_pres); });
+                ps_wp_face_pt(2, i, j, k, i, j, k-1, uin_arr, rqc_z, fpz, wpz, wp_wave_z, store_w, ztb, l_pres); });
             const amrex::Array4<const Real> fpzc(fpz), wpzc(wpz);
             amrex::ParallelFor(zfbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                 back(2, i, j, k, fpzc, flx3, NVAR); back(2, i, j, k, wpzc, wp_fluct_z, pc); });

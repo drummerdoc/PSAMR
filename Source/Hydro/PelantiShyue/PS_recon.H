@@ -270,8 +270,11 @@ Real contact_keep (Real dalpha, Real alpha_cond) noexcept
 //  converted average stands).
 constexpr int WC_AB1 = NPRIM, WC_AB2 = NPRIM + 1, WC_PT = NPRIM + 2;
 //  The edge store: comps 0..NVAR-1 the low edge, NVAR..2NVAR-1 the high
-//  edge, RQ_FB 1 where the cell took its raw averages.
+//  edge, RQ_FB 1 where the cell took its raw averages, then the two
+//  edges' primitive sets (RQ_PL, RQ_PH; the face point conversion of
+//  ps_wp_mc=2 acts on these, before the map to the conserved array).
 constexpr int RQ_FB = 2 * NVAR;
+constexpr int RQ_PL = 2 * NVAR + 1, RQ_PH = RQ_PL + NPRIM, RQ_NCOMP = RQ_PH + NPRIM;
 
 // ---------------------------------------------------------------------
 //  point_prims: the primitive set of the cell's point value, W(U_c), at
@@ -476,6 +479,7 @@ int cell_edges (int idir, int i, int j, int k,
         rq(i, j, k, NVAR + n) = UR[n];
     }
     rq(i, j, k, RQ_FB) = fallback ? Real(1.0) : Real(0.0);
+    for (int m = 0; m < NPRIM; ++m) { rq(i, j, k, RQ_PL + m) = vl[m]; rq(i, j, k, RQ_PH + m) = vr[m]; }
     return fallback ? 1 : (thinc ? 2 : 0);
 }
 
