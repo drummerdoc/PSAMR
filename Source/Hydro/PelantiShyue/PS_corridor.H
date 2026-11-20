@@ -77,7 +77,14 @@ void ps_corridor_project(int i, int j, int k,
         ++ps_counters().corridor_probed;   // one own-branch inversion per (Corridor, Independent) cell
 #endif
         if (std::isfinite(rk) && std::isfinite(ek)
-            && EOS::REY2PTS_phase_try(rk, ek, Yq, own_br, Pk, Tk, Sk)) return;
+            && EOS::REY2PTS_phase_try(rk, ek, Yq, own_br, Pk, Tk, Sk)) {
+#if !defined(AMREX_USE_GPU)
+            //  The kept probes, and the liquids kept above T_c (follow-up 17).
+            ++ps_counters().corridor_kept;
+            if (kc == 1 && Tk > EOS::T_crit()) ++ps_counters().corridor_kept_sc;
+#endif
+            return;
+        }
     }
     const Real ah = (kc == 1) ? a2 : a1, mh = (kc == 1) ? m2 : m1;
     const Real Eh = U(i,j,k, (kc == 1) ? UE2 : UE1);

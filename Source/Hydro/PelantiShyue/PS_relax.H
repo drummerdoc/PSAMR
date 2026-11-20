@@ -200,6 +200,14 @@ ps_mechanical_relax_admitted(int i, int j, int k,
     prp.tol_P_rel = tol_P_rel;
     const bool ok = hem::ps_pressure_relax_cell(Uv, eos, prp, &reason);
     if (!ok) {
+#if !defined(AMREX_USE_GPU)
+        //  The failure, counted by the kernel's reason (follow-up 17).
+        PsCounters& pc = ps_counters();
+        if      (reason == hem::PSR_BAD_INPUT) ++pc.proj_fail_input;
+        else if (reason == hem::PSR_BAD_EOS)   ++pc.proj_fail_eos;
+        else if (reason == hem::PSR_SLOPE)     ++pc.proj_fail_slope;
+        else if (reason == hem::PSR_MAXITER)   ++pc.proj_fail_maxiter;
+#endif
         return;   // failure: leave the cell unchanged
     }
 
@@ -594,6 +602,7 @@ ps_relax_reset_sweep_counters()
     ps_counters().n_gate_presence = 0;
     ps_counters().corridor_projected = ps_counters().corridor_host_fail = ps_counters().corridor_noroot = 0;
     ps_counters().corridor_probed = 0;
+    ps_counters().corridor_kept = ps_counters().corridor_kept_sc = 0;
     ps_pres_diag_data().reset();
 }
 
@@ -645,7 +654,9 @@ ps_relax_report(amrex::Long n_relax, amrex::Long n_cells, int form)
                 << "[PS-CORRIDOR] probed=" << ps_counters().corridor_probed
                 << " projected=" << ps_counters().corridor_projected
                 << " host_fail=" << ps_counters().corridor_host_fail
-                << " noroot=" << ps_counters().corridor_noroot << "\n";
+                << " noroot=" << ps_counters().corridor_noroot
+                << " kept=" << ps_counters().corridor_kept
+                << " kept_sc=" << ps_counters().corridor_kept_sc << "\n";
         }
         if (ps_counters().n_gate_presence > 0) {
             amrex::AllPrint()

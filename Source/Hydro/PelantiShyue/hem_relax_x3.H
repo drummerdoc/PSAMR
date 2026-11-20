@@ -188,6 +188,8 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         if (step >  cap) step =  cap;
         if (step < -cap) step = -cap;
         double alpha_new = alpha + step;
+        if (alpha_new < a_bar_lo) { PS_COUNT(++ps_pr_stats().barrier_lo); }   // the barrier reached (follow-up 17)
+        if (alpha_new > a_bar_hi) { PS_COUNT(++ps_pr_stats().barrier_hi); }
         alpha_new = std::max(a_bar_lo, std::min(a_bar_hi, alpha_new));  // domain barrier
 
         // Energies via mechanical work; densities via mass.

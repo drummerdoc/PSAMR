@@ -151,8 +151,10 @@ struct PsMtCoexist {
 struct PsPrStats {
     long seen = 0, trivial = 0, nt_iters = 0, nt_ok = 0;
     long fb = 0, fb_samples = 0, fb_bisect = 0, fb_ok = 0, refused = 0;
+    long barrier_lo = 0, barrier_hi = 0;   // Newton steps clamped to the density barrier (follow-up 17)
     void reset() { seen = trivial = nt_iters = nt_ok = 0;
-                   fb = fb_samples = fb_bisect = fb_ok = refused = 0; }
+                   fb = fb_samples = fb_bisect = fb_ok = refused = 0;
+                   barrier_lo = barrier_hi = 0; }
 };
 
 //  [PS-X3]: the coupled operator's outcome, cause-split, including the
@@ -223,6 +225,10 @@ struct PsCounters {
     double proj_pt_resid     = 0.0; //   the worst |P1-P2|/P of the converted averages since the last report (ps_pres_diag)
     double proj_pt_dev       = 0.0; //   the worst |P1-P2|/P of the stage point values the kernel receives (ps_pres_diag; follow-up 14)
     double proj_pt_move      = 0.0; //   the worst |delta alpha_1| the kernel applies to them
+    long   proj_fail_input   = 0;   // the stage projection's failures by the kernel's reason (follow-up 17): entry
+    long   proj_fail_eos     = 0;   //   an iterate's phase state invalid
+    long   proj_fail_slope   = 0;   //   no usable dP/dalpha
+    long   proj_fail_maxiter = 0;   //   not converged within max_iter
     long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
     long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
     long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
@@ -283,6 +289,7 @@ struct PsCounters {
     //  that no compaction of the relaxation kernel removes.
     long        corridor_projected = 0, corridor_host_fail = 0, corridor_noroot = 0;
     long        corridor_probed = 0;
+    long        corridor_kept = 0, corridor_kept_sc = 0;   // own-branch probes that kept their phase; of those, liquids above T_c (follow-up 17)
     PsPresDiag  pres;
     PsFoldAudit fold;
 
@@ -306,6 +313,8 @@ struct PsCounters {
         lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
         recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = recon_mc_bdry = 0;
         proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;
+        proj_fail_input = proj_fail_eos = proj_fail_slope = proj_fail_maxiter = 0;
+        pr_stats.barrier_lo = pr_stats.barrier_hi = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;
