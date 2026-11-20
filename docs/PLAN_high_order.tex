@@ -2057,6 +2057,49 @@ Falsifier: any run of the set changing, which would mean a barrier
 evaluation more than four units above the ceiling and the derivation
 wrong.
 
+\subsection*{Follow-up 17: the supercritical trace liquid, instrumented (planned 20 November 2026, Marc's word)}
+
+Follow-up 16d found, on XC2D's cross-critical contact, trace-liquid
+cells on the supercritical side ($\alpha_1$ about one percent, below
+the corridor's $\alpha_{\mathrm{cond}} = 0.02$, so a Corridor liquid
+beside an Independent vapour; $T$ above $T_c$) whose liquid the
+corridor's saturation projection keeps, because its own-branch probe
+finds a root (the liquid branch is a formal root at any density below
+the pole), and whose pressure relaxation then compresses that liquid
+toward the EOS's density barrier, to $1427$\,kg/m$^3$ in the committed
+state by step 40 and to the barrier inside the iteration.  Rule 7:
+instruments before any rule.  Three counts, host-only, inert by
+construction:
+\begin{enumerate}[nosep]
+\item \code{PS\_corridor.H}: the own-branch probes that kept their
+      Corridor phase (\code{corridor\_kept}) and, of those, the liquids
+      kept at a probe temperature above $T_c$
+      (\code{corridor\_kept\_sc}), on the \code{[PS-CORRIDOR]} line.
+      The probe's temperature is already in hand; no new EOS call.
+\item \code{PS\_relax.H}: the stage projection's failures by the
+      kernel's reason (input, EOS, slope, iterations), on the
+      \code{[PS-GUARD]} line; today a failed cell is left unchanged
+      and uncounted.
+\item \code{hem\_relax\_x3.H}: the Newton steps clamped to the density
+      barrier, low side and high side (\code{PsPrStats}), reported with
+      the projection's failures.
+\end{enumerate}
+Predictions, on the serial order-4 XC2D run of 40 steps with
+\code{ps\_diag\_mass=1}: \code{corridor\_kept\_sc} is nonzero from the
+first sweep (the initial data's trace liquid on the supercritical side
+is a Corridor liquid at $989$\,kg/m$^3$) and grows with the contact's
+smearing, of the order of the 189 trace cells counted at step 31; the
+barrier clamps begin near step 30, where follow-up 16d's refusals
+began, and their count is of the order of the forty refusals seen;
+the projection's failures are zero by EOS reason under follow-up 16e's
+tolerance, and whatever they are by iterations is recorded.  On the
+blowdown tube and the Riemann battery's subcritical cases the
+supercritical count is zero (nothing there is above $T_c$); on B4, the
+cross-critical case, it is nonzero.  Falsifier for the item itself: a
+zero supercritical count on XC2D, which would mean the kept trace
+liquid is not the corridor's but Independent, and the item moves to
+the promotion test.  The reference set bitwise (counting only).
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
