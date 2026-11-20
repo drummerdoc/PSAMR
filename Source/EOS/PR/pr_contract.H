@@ -551,12 +551,28 @@
   //  REY2PTS_phase uses, so _try(valid) equals REY2PTS_phase by
   //  construction and the PR fallback inside cannot abort, the probe
   //  having proven the root.
+  //  The density domain the branch solves accept: [rho_min, rho_max (1 + 4 eps)].
+  AMREX_GPU_HOST_DEVICE
+  AMREX_FORCE_INLINE
+  bool rho_in_domain(amrex::Real R)
+  {
+      constexpr amrex::Real four_eps = amrex::Real(4.0) * std::numeric_limits<amrex::Real>::epsilon();
+      return R >= rho_min() && R <= rho_max() * (amrex::Real(1.0) + four_eps);
+  }
+
   AMREX_GPU_HOST_DEVICE
   AMREX_FORCE_INLINE
   bool REY2PTS_phase_try(amrex::Real R, amrex::Real E, amrex::Real* /*Y*/,
                          hem::Phase3 phase,
                          amrex::Real& P, amrex::Real& T, amrex::Real& S)
   {
+      //  A density outside the EOS's own domain is not a state on any
+      //  branch, whatever the energy bracket below would say of it (a
+      //  point value past the covolume pole had passed; follow-up 16d).
+      //  The ceiling admits four units of round-off: the relaxation's
+      //  domain barrier forms its density by two divisions and lands an
+      //  ulp or two past rho_max (follow-up 16e, Marc's word).
+      if (!rho_in_domain(R)) return false;
 #ifdef USE_PRTAB_EOS
       hem::State probe{};
       if (!hem::state_from_rho_e_phase_try(co2_fluid(), R, E, phase, probe))
@@ -585,6 +601,7 @@
                           amrex::Real& P, amrex::Real& T, amrex::Real& S,
                           amrex::Real& Cs)
   {
+      if (!rho_in_domain(R)) return false;   // the domain test, as above
 #ifdef USE_PRTAB_EOS
       hem::State probe{};
       if (!hem::state_from_rho_e_phase_try(co2_fluid(), R, E, phase, probe))
