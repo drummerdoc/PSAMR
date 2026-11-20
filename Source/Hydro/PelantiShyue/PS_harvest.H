@@ -328,7 +328,11 @@ ps_harvest_cells(amrex::MultiFab& S_new, int nghost, amrex::Real dt)
             if (a1 < alpha_floor || a1 > Real(1.0) - alpha_floor) return;
             const Real m1 = U(i,j,k, UM1RHO1), m2 = U(i,j,k, UM2RHO2);
             if (m1 <= Real(0.0) || m2 <= Real(0.0)) return;
-            if (!ps_presence_relax_gate(a1, m1, m2, pr)) return;
+            {
+                //  e1 for the band's branch test (follow-up 18), as the entry gate forms it.
+                const Real ke_g = ps_kinetic_energy(U, i, j, k, m1 + m2);
+                if (!ps_presence_relax_gate(a1, m1, m2, U(i,j,k, UE1) / m1 - ke_g, pr)) return;
+            }
             ++C.nseen;
             const hem::V6 Uv = ps_pack_v6(U, i, j, k, a1, m1, m2);
             const double rho_mix = Uv[1] + Uv[2];

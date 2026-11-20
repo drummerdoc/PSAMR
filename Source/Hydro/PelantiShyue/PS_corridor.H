@@ -55,11 +55,12 @@ void ps_corridor_project(int i, int j, int k,
     else return;
     //  The hysteresis band of the relax gate treats an upper-corridor phase
     //  as relaxable; those cells belong to the relaxation, not to this.
-    if (ps_presence_relax_gate(a1, m1, m2, pr)) return;
-
     const Real rho_mix = m1 + m2;
     if (!(rho_mix > Real(0.0))) return;
     const Real ke = ps_kinetic_energy(U, i, j, k, rho_mix);
+    if (ps_presence_relax_gate(a1, m1, m2,
+                               (m1 > Real(0.0)) ? U(i,j,k, UE1) / m1 - ke : Real(0.0), pr)) return;
+
     Real Yq[NUM_SPECIES]; ps_pure_species(Yq);
 
     //  A Corridor phase whose own (rho_k, e_k) has a root on its branch

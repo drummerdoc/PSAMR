@@ -563,6 +563,8 @@ PSAMR::PSAMR_advance (Real time,
                 long nc = fa.n_cdeg, ne = fa.n_edeg;
                 amrex::Real mc = fa.m_cdeg, me = fa.m_edeg;
                 long nf1 = pc.pres_f1_demote, nf3 = pc.pres_f3_hyst;
+                long nf3s = pc.pres_f3_sc_refuse;
+                amrex::ParallelDescriptor::ReduceLongSum(nf3s);
                 amrex::ParallelDescriptor::ReduceLongSum(nv);
                 amrex::ParallelDescriptor::ReduceLongSum(nt);
                 amrex::ParallelDescriptor::ReduceLongSum(nx);
@@ -575,7 +577,7 @@ PSAMR::PSAMR_advance (Real time,
                 amrex::ParallelDescriptor::ReduceRealSum(mx);
                 amrex::ParallelDescriptor::ReduceRealSum(mc);
                 amrex::ParallelDescriptor::ReduceRealSum(me);
-                if (nv + nt + nx + nc + ne + nf1 + nf3 > 0) {
+                if (nv + nt + nx + nc + ne + nf1 + nf3 + nf3s > 0) {
                     amrex::Print() << "[PS-FOLD] L" << level << " step "
                                    << parent->levelSteps(level) << " " << label
                                    << ": vanish n=" << nv << " m=" << mv
@@ -584,7 +586,7 @@ PSAMR::PSAMR_advance (Real time,
                                    << " | cdeg n=" << nc << " m=" << mc
                                    << " | edeg n=" << ne << " m=" << me
                                    << " | f1_demote_ev=" << nf1
-                                   << " | f3_hyst_ev=" << nf3 << "\n";
+                                   << " | f3_hyst_ev=" << nf3 << " f3_sc_refuse=" << nf3s << "\n";
                 }
                 pc.reset_presence();
                 fa.reset();

@@ -100,8 +100,15 @@ ps_make_psamr_eos_api()
 //  relaxation itself moves.  Gate passes granted through the band are
 //  counted per evaluation in PsCounters::pres_f3_hyst.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+//  The band's branch test (follow-up 18, Marc's word): a liquid admitted
+//  through the band must be a liquid, a root on the liquid branch at
+//  (rho_1, e_1) with its temperature below T_c, the EOS's own constant;
+//  a supercritical "liquid" is a formal root and nothing more, and the
+//  relaxation would compress it toward the density barrier.  The vapour
+//  slot is the vapour/supercritical branch and is not tested.  e1 is the
+//  liquid's specific internal energy from the cell.
 bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
-                            const PsPres& pr) noexcept
+                            amrex::Real e1, const PsPres& pr) noexcept
 {
     const amrex::Real a2 = amrex::Real(1.0) - a1;
     const bool i1 = ps_regime(a1, m1, pr) == PsRegime::Independent;
@@ -114,9 +121,18 @@ bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
             return a >= amrex::Real(0.5) * pr.alpha_cond
                 && m > pr.rho_deg * a;
         };
-        const bool q1 = i1 || band(a1, m1);
-        const bool q2 = i2 || band(a2, m2);
-        if (q1 && q2 && (band(a1, m1) || band(a2, m2))) {
+        const bool b1 = band(a1, m1), b2 = band(a2, m2);
+        const bool q1 = i1 || b1;
+        const bool q2 = i2 || b2;
+        if (q1 && q2 && (b1 || b2)) {
+            if (!i1 && b1) {
+                amrex::Real Yq[NUM_SPECIES]; ps_pure_species(Yq);
+                amrex::Real Pq, Tq, Sq;
+                const bool liquid = std::isfinite(e1)
+                    && EOS::REY2PTS_phase_try(m1 / a1, e1, Yq, hem::Phase3::Liquid, Pq, Tq, Sq)
+                    && Tq < EOS::T_crit();
+                if (!liquid) { PS_COUNT(++ps_counters().pres_f3_sc_refuse); return false; }
+            }
             PS_COUNT(++ps_counters().pres_f3_hyst);
             return true;
         }
@@ -150,8 +166,11 @@ ps_relax_entry_gate(int i, int j, int k,
     m1 = U(i,j,k, UM1RHO1);
     m2 = U(i,j,k, UM2RHO2);
     if (m1 <= Real(0.0) || m2 <= Real(0.0)) return false;
-    // presence gate; refusal counted
-    if (!ps_presence_relax_gate(alpha1_in, m1, m2, pr)) {
+    // presence gate; refusal counted.  e1 for the band's branch test.
+    const Real rho_mix = m1 + m2;
+    const Real ke = ps_kinetic_energy(U, i, j, k, rho_mix);
+    const Real e1 = U(i,j,k, UE1) / m1 - ke;
+    if (!ps_presence_relax_gate(alpha1_in, m1, m2, e1, pr)) {
         PS_COUNT(++ps_counters().n_gate_presence);
         return false;
     }
