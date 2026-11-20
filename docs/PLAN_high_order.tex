@@ -4984,4 +4984,25 @@ what XC2D's change exposes.
 The working tree holds the strict test and a temporary print; neither is
 committed.
 
+
+\subsection{Follow-up 16e: the solve's domain test admits the barrier's round-off (20 November 2026, Mac \code{llvm}; commits \code{7b96dc78} and \code{0eae71ce})}
+
+\code{EOS::REY2PTS\_phase\_try} and \code{REY2PTSc\_phase\_try} refuse
+a density outside $[\rho_{\min}, \rho_{\max}(1 + 4\varepsilon)]$ before
+the energy bracket (\code{EOS::rho\_in\_domain}, \code{pr\_contract.H},
+both backends); the temporary print of follow-up 16d is gone.
+\begin{enumerate}[nosep]
+\item \textbf{The reference set:} bitwise (21 identical, the IMEX pair at its known $4.4\times10^{-11}$); the three XC2D runs that follow-up 16d changed are back to their records, so every barrier evaluation lay within four units of the ceiling.  \textbf{Held.}
+\item \textbf{The tube under the first conversion:} bitwise follow-up 16c's run over 300 steps, \code{recon\_mc\_raw} $52\,794$ as before: the conversions' out-of-domain point values stay refused.  \textbf{Held.}
+\end{enumerate}
+
+\paragraph{State.}  The branch solve's verdict now includes the
+density domain, with the relaxation barrier's round-off admitted by
+derivation; a point value past the pole is refused by the solve itself,
+not only by the conversions' guard.  The trace liquid above $T_c$ that
+follow-up 16d found compressed toward the pole on XC2D's contact remains
+the open presence-machinery item of \code{FUTURE\_WORK} 7b: the
+corridor's own-branch probe keeps it, the relaxation squeezes it, and
+the stage projection does not count its failures.
+
 \end{document}
