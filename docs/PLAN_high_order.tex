@@ -2037,6 +2037,26 @@ call that today accepts an impossible density and is a finding in its
 own right, to be recorded with the cell and the caller before anything
 else is done.
 
+\subsection*{Follow-up 16e: the solve's domain test admits the barrier's round-off (planned 20 November 2026, Marc's word)}
+
+Marc's choice on follow-up 16d's record, (A): the branch solve's test
+becomes $\rho_{\min} \le \rho \le \rho_{\max}(1 + 4\varepsilon)$, with
+$\varepsilon$ the double precision unit round-off
+(\code{std::numeric\_limits<double>::epsilon()}).  Derivation: the
+relaxation's barrier density is formed by two divisions,
+$\alpha = m_1/\rho_{\max}$ then $\rho_1 = m_1/\alpha$, each correctly
+rounded within half an ulp, so the result lies within two ulps of
+$\rho_{\max}$ and four units of round-off cover it with margin; no other
+constant enters.  The temporary refusal print is removed.  Predictions:
+the 22-run reference set bitwise (every density the solve accepted at
+the barrier it accepts again, and nothing else changes); the tube under
+the first conversion bitwise follow-up 16c's run with the same
+\code{recon\_mc\_raw} total ($52\,794$: the point values past the
+ceiling are a thousand ulps and more above it and stay refused).
+Falsifier: any run of the set changing, which would mean a barrier
+evaluation more than four units above the ceiling and the derivation
+wrong.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
