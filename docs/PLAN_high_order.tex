@@ -5048,4 +5048,90 @@ the open presence-machinery item of \code{FUTURE\_WORK} 7b: the
 corridor's own-branch probe keeps it, the relaxation squeezes it, and
 the stage projection does not count its failures.
 
+
+\subsection{Follow-up 17: the supercritical trace liquid, instrumented (20 November 2026, Mac \code{llvm}; commits \code{d5b1f38e} and \code{bb1c998e})}
+
+Three counts, host-only: the corridor's kept own-branch probes and the
+liquids among them kept above $T_c$ (\code{kept}, \code{kept\_sc} on
+the \code{[PS-CORRIDOR]} line); the stage projection's failures by the
+kernel's reason and the relaxation Newton's steps clamped to the density
+barrier (\code{proj\_fail(input,eos,slope,iter)} and
+\code{barrier(lo,hi)} on the \code{[PS-GUARD]} line).  Runs under
+\code{ps\_diag\_mass=1 ps\_pres\_diag=1}: XC2D serial, 40 steps, two
+levels; the tube 300 steps; B4 and B1 of the battery at the order-4
+overrides.
+\begin{enumerate}[nosep]
+\item \textbf{XC2D's corridor count is zero because the corridor never
+      runs there.}  The XC2D deck sets \code{ps\_do\_relax=0} (its
+      purpose is the hydro's coarse--fine gap, with the relaxation
+      operator off), so the relaxation sweep, and with it the corridor's
+      saturation projection, is never called: no \code{[PS-CORRIDOR]}
+      line in the run.  The prediction of a nonzero supercritical count
+      is \textbf{refuted}, and not for the reason the falsifier named:
+      the trace liquid is a Corridor liquid ($\alpha_1$ between $0.009$
+      and $0.014$, under $\alpha_{\mathrm{cond}} = 0.02$), but nothing
+      on that deck asks the corridor about it.  What does act on it is
+      the stage projection (\code{ps\_rk\_project=1}, the mode-0 kernel
+      on every stage), whose entry gate admits the cell through the
+      presence gate's hysteresis band: a phase with
+      $\alpha \ge \alpha_{\mathrm{cond}}/2 = 0.01$ and a non-degenerate
+      density quotient counts as relaxable (\code{PS\_relax.H},
+      \code{ps\_presence\_relax\_gate}), whatever its branch state.  The
+      liquid at $\alpha_1 = 0.0144$ is in the band and is relaxed; at
+      $0.0092$ it is not.  The band's passes are counted
+      (\code{pres\_f3\_hyst}, \code{f3\_hyst\_ev} on the \code{[PS-FOLD]}
+      line), and they tell the story with the two new counts: on level 0
+      the band passes 62 cells per step in steps 20 to 29 (63, 97, 93
+      and 93 at steps 22, 24, 26 and 28, the rest elsewhere) and the
+      projection fails 62 per step by EOS reason in exactly those steps;
+      from step 30 the passes grow (89, 34, 39, 38, 279, 228, 375, 254,
+      381, 254 per step) while the failures stop and the barrier clamps
+      begin (26, 26, 0, 0, 0, 35, 60, 62, 62, 62).  The band admits the
+      supercritical trace liquid; while its walk can go wrong it fails
+      (the cell left unrelaxed), and once the barrier bounds the walk the
+      kernel converges with the liquid at the ceiling.
+\item \textbf{The barrier clamps} begin at step 30, low side only
+      (the liquid compressed to $\rho_{\max}$): 26 per step at steps 30
+      and 31, 35 at 35, 60 to 62 per step from step 36 to 39, 333 in
+      all on level 0; none on level 1.  \textbf{Held} (the step, the
+      side, the order of magnitude).  No projection failure by EOS
+      reason accompanies them: follow-up 16e's tolerance admits the
+      barrier's round-off as derived.
+\item \textbf{The projection's failures}, uncounted until now: 62
+      cells per step by EOS reason on level 0 in every step from 20 to
+      29, none before and none after; 2 per fine step at fine steps 40
+      to 43 and 14 per fine step from 44 to 51 on level 1; no failure by
+      input, slope or iterations anywhere.  These are iterates whose
+      phase state has no root on its branch (the energy bracket, not the
+      barrier), and the kernel leaves those cells unrelaxed.  Which
+      cells, and why steps 20 to 29, is not located here.
+\item \textbf{The tube}: the corridor probes every cell of every sweep
+      (16\,384 per sweep at the start, the deck's trace phase in every
+      cell), keeps every one, none above $T_c$; no barrier clamp, no
+      projection failure.  \textbf{Held.}
+\item \textbf{B4}, the cross-critical case: 2 to 6 probes per sweep,
+      all kept, none above $T_c$: the prediction of a nonzero count is
+      \textbf{refuted}; its Corridor phases sit on the cold side.  B1:
+      no corridor line.
+\item \textbf{The reference set:} bitwise (21 identical, the IMEX pair at its known $4.4\times10^{-11}$); counting only.  \textbf{Held.}
+\end{enumerate}
+
+\paragraph{The finding, restated.}  On XC2D the supercritical trace
+liquid is not the corridor's to project because the deck turns the
+relaxation operator off; it is the stage projection's, which admits it
+through the presence gate's hysteresis band and compresses it toward
+the EOS's barrier.  The band was designed to keep the relaxation's
+on/off boundary away from the $\alpha$ the relaxation moves; it does not
+ask whether the admitted phase is a phase (a liquid above $T_c$ is a
+formal root of the liquid branch and nothing more).  Two design points
+for Marc, neither built: (i) the band asks the regime's own question of
+the admitted phase, a root on its branch at a temperature where that
+branch is a phase ($T < T_c$ for the liquid), which is a predicate the
+tree already owns; (ii) the XC2D deck runs its relaxation operator, so
+the corridor's projection sees the trace and the production tube's
+treatment applies.  Either changes XC2D's order-4 record by more than
+round-off and wants its own amendment.  The projection's failures of
+steps 20 to 29 are the same cells in the walk's earlier phase, not a
+separate item.
+
 \end{document}
