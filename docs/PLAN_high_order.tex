@@ -4866,4 +4866,102 @@ and the blowdown tube.  It remains an option for order measurements
 are on by default under it.  Open: the branch solve's own domain test
 ([DECIDE], 7b).
 
+
+\subsection{Follow-up 16d: the branch solve's own domain test (19--20 November 2026, Mac \code{llvm}; commit \code{c7fcb92c}; the code not committed)}
+
+\code{EOS::REY2PTS\_phase\_try} and \code{REY2PTSc\_phase\_try} were
+given the test $\rho_{\min} \le \rho \le \rho_{\max}$ before the energy
+bracket and the cycle run.  \textbf{The falsifier fired}: the three
+order-4 XC2D runs of the reference set change (the bare run and the
+nineteen others are bitwise), the tube under the first conversion is
+bitwise follow-up 16c's.  Recorded first, as the amendment asks.
+\begin{enumerate}[nosep]
+\item \textbf{What is refused.}  A print of the first forty refusals
+      on a serial run: every one is the sound-speed form, and every one
+      has $\rho = 1617.423547$ to ten digits, which is $\rho_{\max}$
+      itself ($0.98\,\rho_{\mathrm{pole}} = 1617.4235474781$); thirty
+      eight distinct energies.  The density is above the ceiling by
+      round-off only, and the refusals begin in step 30.
+\item \textbf{The caller.}  The alpha-walk pressure relaxation
+      (\code{hem\_relax\_x3.H}, \code{ps\_pressure\_relax\_cell}, the
+      mode-0 kernel of the stage projection and of the sources) bounds
+      its walk by the EOS's density domain: $\alpha \ge m_1/\rho_{\max}$
+      and $\alpha \le 1 - m_2/\rho_{\max}$ (\code{rho\_dom\_hi} of the
+      PsPhaseAPI, set from \code{EOS::rho\_max()} in
+      \code{PS\_relax.H}).  A Newton step clamped to that barrier then
+      evaluates $\rho_1 = m_1/\alpha$ with $\alpha = m_1/\rho_{\max}$, and
+      the two divisions land an ulp or so above $\rho_{\max}$.  The
+      solve used to accept that density (it brackets the energy in
+      temperature at the given density and never looked at the density);
+      with the test it refuses, the iterate's state is \code{valid =
+      false}, and the kernel returns \code{PSR\_BAD\_EOS}: the cell is
+      left unrelaxed where before it relaxed at the barrier.  A finite
+      difference probe at the barrier falls to a one-sided difference
+      instead and does not change the path; it is the clamped iterate
+      that does.  The guard counters move only in \code{seen} ($+186$)
+      and \code{recon\_fallback} ($+42$).
+\item \textbf{The cells.}  The refused phase is the liquid (\code{Phase3::Liquid}).  No cell of
+      any plotfile holds a liquid at the ceiling: the barrier is reached
+      inside the kernel's iteration, by a Newton step clamped to it.
+      The cells whose state changes are the trace-liquid cells on the
+      supercritical side of the diagonal contact: at step 31 on level 0,
+      twenty cells differ by more than $10^{-3}$ of range, in two
+      clusters on the contact ((23--25, 103--105) and (51--53, 75--77)
+      and their mirror); the worst, (76, 52), holds
+      $\alpha_1 = 0.0092$, $\rho_1 = 848$, $\rho_2 = 91$\,kg/m$^3$,
+      $T = 364.6$\,K, $P = 5.31$\,MPa in the run that relaxed it at the
+      barrier and $\alpha_1 = 0.0144$, $\rho_1 = 552$, $T = 361.0$\,K,
+      $P = 5.27$\,MPa, $u$ lower by $0.39$\,m/s in the run that left it
+      unrelaxed.  Every trace-liquid cell of the run (189 at step 31, 334
+      at step 40, $10^{-4} < \alpha_1 < 0.05$) is above $T_c$; their
+      liquid sits at $989$\,kg/m$^3$, the left state's density, and by
+      step 40 thirty one of them in both runs carry a liquid above
+      $1000$\,kg/m$^3$, up to $1427$: the walk compresses the trace toward
+      the pole whether or not the barrier is reached.  The stage
+      projection leaves a failed cell unchanged and does not count the
+      failure (\code{PS\_relax.H}), so no counter saw it; the kernel's
+      reason is \code{PSR\_BAD\_EOS} by the code path, not by a count.
+\item \textbf{The size.}  The two serial runs first differ at step 31,
+      at once by $4.8\times10^{-2}$ of range on level 0 (velocity), with
+      $5.2\times10^{-3}$ in $\alpha_1$ and $8\times10^{-3}$ in $P$, and
+      by $1.0\times10^{-1}$ at step 40: a discrete change at the barrier
+      cells, not a round-off divergence.
+\end{enumerate}
+
+\paragraph{The finding.}  On the supercritical side of XC2D's
+cross-critical contact the trace liquid ($\alpha_1$ about one percent,
+$T$ above $T_c$) is kept by the corridor's own-branch probe, because a
+root exists on the liquid branch at any density below the pole, and the
+pressure relaxation then walks it toward the EOS's density barrier to
+meet the vapour's pressure, as far as $1427$\,kg/m$^3$ in the committed
+state and to the barrier itself inside the iteration.  The solve's
+acceptance of a density an ulp past the barrier is what let those
+iterations finish; with the strict test the kernel fails and leaves the
+cell unrelaxed, uncounted.  Neither answer is right: a trace liquid
+above $T_c$ at a density the EOS can barely represent is the presence
+machinery's to project, not the relaxation's to compress.  That is a
+new item (\code{FUTURE\_WORK} 7b), and it, not the solve's test, is
+what XC2D's change exposes.
+
+\paragraph{The choices, Marc's.}
+\begin{enumerate}[nosep]
+\item[(A)] The solve's test admits the barrier's round-off:
+      $\rho \le \rho_{\max}(1 + 4\varepsilon)$ with $\varepsilon$ the
+      double precision unit round-off, derived from the two divisions
+      that form the barrier density (rule 1 by derivation).  Everything
+      the solve accepted before at the barrier it accepts again, a point
+      value at $1901$ is still refused, and the reference set is
+      predicted bitwise.
+\item[(B)] The kernels' barriers pulled inside the domain by the same
+      round-off (\code{hem\_relax\_x3.H} and \code{hem\_relax\_x3f.H}),
+      the solve's test kept strict.  The barrier cells then relax at a
+      density a few ulps below the ceiling; XC2D changes at round-off
+      level and is not bitwise, which needs Marc's acceptance on the
+      record.
+\item[(C)] The strict test kept and the XC2D change accepted as the
+      better answer, which nothing here has shown.
+\end{enumerate}
+The working tree holds the strict test and a temporary print; neither is
+committed.
+
 \end{document}
