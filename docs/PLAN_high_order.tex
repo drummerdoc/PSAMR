@@ -2100,6 +2100,40 @@ zero supercritical count on XC2D, which would mean the kept trace
 liquid is not the corridor's but Independent, and the item moves to
 the promotion test.  The reference set bitwise (counting only).
 
+\subsection*{Follow-up 18: the band's branch test (planned 20 November 2026, Marc's word)}
+
+Marc's choice on follow-up 17's record, design point (i): the presence
+gate's hysteresis band asks the regime's own question of the phase it
+admits.  A liquid admitted through the band (Corridor by $\alpha$,
+$\alpha_1 \ge \alpha_{\mathrm{cond}}/2$, non-degenerate density
+quotient) must be a liquid: a root on the liquid branch at
+$(\rho_1, e_1)$ with its temperature below $T_c$, the EOS's own
+constant.  Without it the pair is not relaxable, the stage projection
+and the relaxation leave the cell, and the corridor's projection owns it
+where the sweep runs.  The vapour slot is the vapour/supercritical
+branch and is not tested; an Independent liquid above $T_c$ (a root,
+$\alpha_1 \ge \alpha_{\mathrm{cond}}$) is outside the band and outside
+this item, recorded.  The gate takes $e_1$ from the cell at both call
+sites (\code{ps\_relax\_entry\_gate}, \code{PS\_corridor.H}); the test
+costs one branch solve per band-admitted liquid; the refusals are
+counted (\code{pres\_f3\_sc\_refuse}, beside \code{f3\_hyst\_ev} on the
+\code{[PS-FOLD]} line).  No dial: this is the predicate's definition,
+not a setting, by Marc's word; the previous behaviour is the record.
+Predictions: XC2D's order-4 run is bitwise its record through step 29
+(the band-admitted supercritical liquids of steps 20 to 29 failed by
+EOS reason and were left unrelaxed, which is what the refusal leaves
+too) and differs from step 30, where those cells reached the barrier and
+relaxed; under the test the barrier clamps are zero and the
+projection's EOS failures are zero on both levels; the refusals equal
+follow-up 17's band passes at the supercritical cells, of the order of
+60 to 380 per step from step 20.  The tube and the battery are bitwise
+(no liquid above $T_c$; the refusal count zero), so the reference set
+is bitwise except the three order-4 XC2D runs, which change beyond
+round-off by Marc's decision and are then re-recorded as the set's
+references with his word.  Falsifier: a change before step 30 on XC2D,
+or any barrier clamp or EOS failure surviving, which would mean a
+supercritical liquid reaches the kernel by a path other than the band.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
