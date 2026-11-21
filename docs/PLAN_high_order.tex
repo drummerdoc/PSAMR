@@ -2134,6 +2134,44 @@ references with his word.  Falsifier: a change before step 30 on XC2D,
 or any barrier clamp or EOS failure surviving, which would mean a
 supercritical liquid reaches the kernel by a path other than the band.
 
+\subsection*{Follow-up 19: the promotion test's branch question (planned 21 November 2026, Marc's word)}
+
+Marc's choice on follow-up 18's record: the question the band asks,
+a liquid root below $T_c$, is asked of an Independent liquid too, in
+the checked promotion (\code{ps\_regime\_reach}, \code{PS\_promote.H}),
+which today demotes an Independent phase to Corridor only when its
+branch has no root.  A liquid whose root lies above $T_c$ is demoted to
+Corridor everywhere the presence machinery looks (the cell state's
+regimes, the reconstruction's regime rule, the relax gate, the corridor
+projection, the floors and folds); the vapour slot is not tested; the
+demotions are counted (\code{promote\_refuse\_sc} on the
+\code{[PS-PROMOTE]} line).  No dial, by Marc's word.
+
+A correction first.  Follow-up 18's record read the 128 ``Independent
+supercritical liquid'' cells of XC2D from the plotfile's mixture
+temperature.  They are the initial data's diagonal cells: the contact
+runs through them and they hold $\alpha_1 = 0.25$ of the left state's
+liquid ($\rho_1 = 1006$\,kg/m$^3$, its own temperature 270\,K) beside
+the right state's supercritical vapour (91\,kg/m$^3$, 350\,K), at a
+mixture temperature of 330\,K and a mixture pressure of 62.5\,bar.
+Their liquid is a liquid.  The promotion test will not demote them, and
+if the surviving EOS failures and barrier clamps are theirs, which their
+count suggests (128 cells, 62 failures per step), those survive this
+item: a cold liquid against a hot supercritical host whose pressures the
+alpha-walk cannot equalise on the liquid branch without compressing it
+toward the pole, which is the relaxation's own problem on a
+cross-critical pair, not a presence question.  Predictions, two-sided
+on the discriminator \code{promote\_refuse\_sc}: on XC2D it counts the
+Independent liquids whose own root is supercritical, if any (the band
+test found 383 such liquids in the band, so some may exist above it);
+where it is zero the run is bitwise follow-up 18's; where it is not,
+the run departs there and the EOS failures and clamps fall by those
+cells and no more.  The tube and the battery bitwise (no supercritical
+liquid root; the count zero), the reference set bitwise except the
+three order-4 XC2D runs if the count is nonzero.  Falsifier: a change
+on the tube or in the battery, or a nonzero count on a cell whose
+liquid is below $T_c$, which would be a defect in the test itself.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
