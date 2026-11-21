@@ -5373,4 +5373,59 @@ XC2D's relaxation operator (follow-up 17's design point (ii)), so the
 corridor projects the supercritical trace by its own rule, measured
 against the record.  Marc's word.
 
+
+\subsection{Follow-up 20: the band test reverted; XC2D under its relaxation operator (21 November 2026, Mac \code{llvm}; commits \code{282fce3b} and \code{7662ac05})}
+
+The band's branch question is a count again (\code{f3\_sc\_refuse} on
+the \code{[PS-FOLD]} line now counts the band liquids whose root lies
+above $T_c$, all admitted; host builds only pay the probe).  Nothing of
+follow-ups 17 to 19 acts on the solution any more; the three counts
+stay.
+\begin{enumerate}[nosep]
+\item \textbf{The reverted build:} the reference set is bitwise in all 22 runs (the three order-4 XC2D runs back on their records, \code{xc\_imex} at $0$ of range on both levels; the IMEX pair at its known $4.4\times10^{-11}$; the battery's fingerprint 21 identical); XC2D serial is bitwise its pre-18 record at every one of 40 plotfiles; the tube is bitwise.  \textbf{Held.}
+\item \textbf{XC2D under its relaxation operator} (serial, 40 steps,
+      order 4, \code{ps\_do\_relax=1} with the deck's other dials, a
+      diagnostic run): the relaxation operator runs (240 \code{[PS-CORRIDOR]} lines; the
+      corridor probes $2.63$ million Corridor phases over the run, keeps
+      $2.627$ million and projects $5\,549$ root-less ones, no host
+      failure; the projections begin at step 20 with 62 and grow, 124,
+      136, 220, 304 per step, the step and the count at which the
+      stage-projection run's failures began, so the operator's own walk
+      drives those traces root-less and the corridor then projects them), and \code{kept\_sc} is \textbf{zero} at every sweep, as
+      is the band's supercritical count.  So the premise of follow-ups
+      17 and 18, a supercritical trace liquid in XC2D's state, is
+      wrong: the initial data's trace on the supercritical side is the
+      left state's liquid at 270\,K, and the 383 band liquids with a
+      supercritical root that follow-up 18 refused appeared only in
+      steps 20 to 25 of the stage-projection run, made by the
+      projection's own alpha-walk compressing and heating the dense trace
+      before it failed or reached the barrier.  They are a product of the
+      kernel, not a feature of the flow.  Under the full operator the
+      barrier clamps (78) and the EOS failures (748) persist on the
+      diagonal cells, as predicted, and the solution departs from the
+      record at the first step ($4.7\times10^{-4}$ of range at step 1,
+      $1.5\times10^{-3}$ at 5, $4.7\times10^{-1}$ at 40): the deck's
+      model changes, as predicted.  The prediction of a nonzero
+      \code{kept\_sc} is \textbf{refuted}, and the refutation closes the
+      thread.
+\end{enumerate}
+
+\paragraph{State.}  The supercritical-trace thread (follow-ups 16d to
+20) ends here.  Nothing of it acts on the solution: the branch solve's
+domain test with its round-off tolerance (16e) and the conversions'
+boundary rule (16b, 16c) stand, the band test and the promotion test's
+demotion are counts, and the reference set is where follow-up 16e left
+it.  What the thread found and leaves open is the relaxation kernel's
+behaviour on a cross-critical pair: the initial data's diagonal cells of
+XC2D hold a cold dense liquid beside a hot supercritical vapour, the
+alpha-walk cannot bring them to one pressure on the liquid branch, and
+it fails (62 cells per step, left unrelaxed and now counted) or reaches
+the EOS's density barrier (now counted) and converges with the liquid at
+the ceiling, which the solution then carries ($1427$\,kg/m$^3$ by step
+40).  That is a kernel item for \code{FUTURE\_WORK} (the same cell the
+isochoric kernel's note describes, \code{hem\_relax\_x3.H}), and the
+XC2D deck's relaxation operator is a deck decision Marc now has the
+numbers for.  The three order-4 XC2D references stand unchanged and
+nothing is re-recorded.
+
 \end{document}
