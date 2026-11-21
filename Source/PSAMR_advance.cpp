@@ -384,6 +384,7 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Long pfi_ = pc.proj_fail_input, pfe_ = pc.proj_fail_eos, pfs_ = pc.proj_fail_slope, pfm_ = pc.proj_fail_maxiter;
             amrex::Long pbl_ = pc.pr_stats.barrier_lo, pbh_ = pc.pr_stats.barrier_hi;
             amrex::Long pel_ = pc.pr_stats.eos_fail_liq, pev_ = pc.pr_stats.eos_fail_vap;
+            amrex::Long psl_ = pc.pr_stats.entry_subtrip_liq, psv_ = pc.pr_stats.entry_subtrip_vap;
             amrex::ParallelDescriptor::ReduceLongSum(pp_);
             amrex::ParallelDescriptor::ReduceRealMax(ppr_);
             amrex::ParallelDescriptor::ReduceRealMax(ppd_);
@@ -407,7 +408,8 @@ PSAMR::PSAMR_advance (Real time,
                            << "  proj_pt_move = " << ppm_
                            << "  proj_fail(input,eos,slope,iter) = " << pfi_ << "," << pfe_ << "," << pfs_ << "," << pfm_
                            << "  barrier(lo,hi) = " << pbl_ << "," << pbh_
-                           << "  eos_fail(liq,vap) = " << pel_ << "," << pev_;
+                           << "  eos_fail(liq,vap) = " << pel_ << "," << pev_
+                           << "  entry_subtrip(liq,vap) = " << psl_ << "," << psv_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;
@@ -513,16 +515,20 @@ PSAMR::PSAMR_advance (Real time,
                     amrex::Long npr = pc.promote_refuse;
                     amrex::Long nfs = pc.floor_skip;
                     amrex::Long nsc = pc.promote_refuse_sc;
+                    amrex::Long nstl = pc.promote_subtrip_liq, nstv = pc.promote_subtrip_vap;
+                    amrex::ParallelDescriptor::ReduceLongSum(nstl);
+                    amrex::ParallelDescriptor::ReduceLongSum(nstv);
                     amrex::ParallelDescriptor::ReduceLongSum(npr);
                     amrex::ParallelDescriptor::ReduceLongSum(nfs);
                     amrex::ParallelDescriptor::ReduceLongSum(nsc);
-                    if (npr > 0 || nfs > 0 || nsc > 0) {
+                    if (npr > 0 || nfs > 0 || nsc > 0 || nstl > 0 || nstv > 0) {
                         amrex::Print() << "[PS-PROMOTE] L" << level
                                        << " step "
                                        << parent->levelSteps(level) << " "
                                        << label
                                        << ": promote_refuse = " << npr
                                        << "  promote_refuse_sc = " << nsc
+                                       << "  promote_subtrip(liq,vap) = " << nstl << "," << nstv
                                        << "  floor_skip = " << nfs << "\n";
                     }
                     pc.reset_promote();
@@ -570,6 +576,8 @@ PSAMR::PSAMR_advance (Real time,
                 long nf1 = pc.pres_f1_demote, nf3 = pc.pres_f3_hyst;
                 long nf3s = pc.pres_f3_sc_refuse;
                 amrex::ParallelDescriptor::ReduceLongSum(nf3s);
+                long nf3t = pc.pres_f3_subtrip;
+                amrex::ParallelDescriptor::ReduceLongSum(nf3t);
                 amrex::ParallelDescriptor::ReduceLongSum(nv);
                 amrex::ParallelDescriptor::ReduceLongSum(nt);
                 amrex::ParallelDescriptor::ReduceLongSum(nx);
@@ -582,7 +590,7 @@ PSAMR::PSAMR_advance (Real time,
                 amrex::ParallelDescriptor::ReduceRealSum(mx);
                 amrex::ParallelDescriptor::ReduceRealSum(mc);
                 amrex::ParallelDescriptor::ReduceRealSum(me);
-                if (nv + nt + nx + nc + ne + nf1 + nf3 + nf3s > 0) {
+                if (nv + nt + nx + nc + ne + nf1 + nf3 + nf3s + nf3t > 0) {
                     amrex::Print() << "[PS-FOLD] L" << level << " step "
                                    << parent->levelSteps(level) << " " << label
                                    << ": vanish n=" << nv << " m=" << mv
@@ -591,7 +599,7 @@ PSAMR::PSAMR_advance (Real time,
                                    << " | cdeg n=" << nc << " m=" << mc
                                    << " | edeg n=" << ne << " m=" << me
                                    << " | f1_demote_ev=" << nf1
-                                   << " | f3_hyst_ev=" << nf3 << " f3_sc_refuse=" << nf3s << "\n";
+                                   << " | f3_hyst_ev=" << nf3 << " f3_sc_refuse=" << nf3s << " f3_subtrip=" << nf3t << "\n";
                 }
                 pc.reset_presence();
                 fa.reset();

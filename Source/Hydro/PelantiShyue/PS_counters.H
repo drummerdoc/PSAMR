@@ -153,9 +153,11 @@ struct PsPrStats {
     long fb = 0, fb_samples = 0, fb_bisect = 0, fb_ok = 0, refused = 0;
     long barrier_lo = 0, barrier_hi = 0;   // Newton steps clamped to the density barrier (follow-up 17)
     long eos_fail_liq = 0, eos_fail_vap = 0;   // the phase whose state was invalid at an EOS failure (follow-up 21)
+    long entry_subtrip_liq = 0, entry_subtrip_vap = 0;   // kernel entry states valid with a temperature below the triple point (follow-up 22)
     void reset() { seen = trivial = nt_iters = nt_ok = 0;
                    fb = fb_samples = fb_bisect = fb_ok = refused = 0;
-                   barrier_lo = barrier_hi = 0; eos_fail_liq = eos_fail_vap = 0; }
+                   barrier_lo = barrier_hi = 0; eos_fail_liq = eos_fail_vap = 0;
+                   entry_subtrip_liq = entry_subtrip_vap = 0; }
 };
 
 //  [PS-X3]: the coupled operator's outcome, cause-split, including the
@@ -274,11 +276,13 @@ struct PsCounters {
     long   promote_refuse    = 0;
     long   floor_skip        = 0;
     long   promote_refuse_sc = 0;   // Independent liquids whose root lies above T_c, counted and kept Independent (follow-up 19; the demotion was refuted)
+    long   promote_subtrip_liq = 0, promote_subtrip_vap = 0;   // Independent phases whose root lies below the triple point (follow-up 22)
 
     // ---- presence (PS_presence.H, PS_relaxation.H), [PS-FOLD] --------
     long   pres_f1_demote    = 0;   // Independent refused for density degeneracy
     long   pres_f3_hyst      = 0;   // gate passes through the hysteresis band
     long   pres_f3_sc_refuse = 0;   // band liquids whose root lies above T_c, counted and admitted (follow-up 18 refused them; reverted, follow-up 20)
+    long   pres_f3_subtrip   = 0;   // band liquids whose root lies below the triple point (follow-up 22)
 
     // ---- relaxation sweep (PS_relaxation.H) --------------------------
     //  One counter for the presence-gate refusal at every relax entry
@@ -318,6 +322,7 @@ struct PsCounters {
         proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;
         proj_fail_input = proj_fail_eos = proj_fail_slope = proj_fail_maxiter = 0;
         pr_stats.barrier_lo = pr_stats.barrier_hi = 0; pr_stats.eos_fail_liq = pr_stats.eos_fail_vap = 0;
+        pr_stats.entry_subtrip_liq = pr_stats.entry_subtrip_vap = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;
@@ -335,8 +340,8 @@ struct PsCounters {
         fl_side[0] = 0; fl_side[1] = 0;
         relax_fb = 0;
     }
-    void reset_promote() { promote_refuse = 0; floor_skip = 0; promote_refuse_sc = 0; }
-    void reset_presence() { pres_f1_demote = 0; pres_f3_hyst = 0; pres_f3_sc_refuse = 0; }
+    void reset_promote() { promote_refuse = 0; floor_skip = 0; promote_refuse_sc = 0; promote_subtrip_liq = promote_subtrip_vap = 0; }
+    void reset_presence() { pres_f1_demote = 0; pres_f3_hyst = 0; pres_f3_sc_refuse = 0; pres_f3_subtrip = 0; }
     void reset_mt_cause() { for (int c = 0; c < PS_COUNTERS_MT_NCAUSE; ++c) mt_cause[c] = 0; }
     void reset_flash_refuse() { for (int c = 0; c < PS_COUNTERS_FLR_NCAUSE; ++c) flash_refuse[c] = 0; }
     //  Everything, the cumulative counters included.

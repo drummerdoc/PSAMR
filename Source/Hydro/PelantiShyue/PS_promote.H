@@ -63,6 +63,7 @@ PsRegime ps_regime_reach(PsRegime rg, amrex::Real rho, amrex::Real e,
         //  T_c is not the question.  The count stays as the instrument.
 #if !defined(AMREX_USE_GPU)
         if (want_liquid && !(Tq < EOS::T_crit())) ++ps_counters().promote_refuse_sc;
+        if (Tq < EOS::T_triple()) { if (want_liquid) ++ps_counters().promote_subtrip_liq; else ++ps_counters().promote_subtrip_vap; }   // follow-up 22
 #endif
         return PsRegime::Independent;
     }

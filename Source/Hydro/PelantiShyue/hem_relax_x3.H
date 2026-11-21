@@ -141,7 +141,21 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         eos.state_from_rho_e_phase(1, rho_1, e_1, ph1);
         eos.state_from_rho_e_phase(2, rho_2, e_2, ph2);
 #if !defined(AMREX_USE_GPU)
-        if (iter == 0) { tr_T1 = ph1.T; tr_T2 = ph2.T; tr_P1e = ph1.P; tr_P2e = ph2.P; }
+        if (iter == 0) {
+            tr_T1 = ph1.T; tr_T2 = ph2.T; tr_P1e = ph1.P; tr_P2e = ph2.P;
+            //  Entry states valid below the triple point (follow-up 22), and
+            //  the first trace_max of them printed with their cell.
+            const bool st1 = ph1.valid && ph1.T < double(EOS::T_triple());
+            const bool st2 = ph2.valid && ph2.T < double(EOS::T_triple());
+            if (st1) ++ps_pr_stats().entry_subtrip_liq;
+            if (st2) ++ps_pr_stats().entry_subtrip_vap;
+            static int n_sub_traced = 0;
+            if ((st1 || st2) && p.trace_max > 0 && n_sub_traced < p.trace_max) {
+                ++n_sub_traced;
+                std::printf("[RELAX-TRACE] subtrip entry cell %d %d %d: alpha1=%.6g | liquid rho=%.6g e=%.6g T=%.4g P=%.6g%s | vapour rho=%.6g e=%.6g T=%.4g P=%.6g%s\n",
+                            p.ci, p.cj, p.ck, alpha, rho_1, e_1, ph1.T, ph1.P, st1 ? " SUB-TRIPLE" : "", rho_2, e_2, ph2.T, ph2.P, st2 ? " SUB-TRIPLE" : "");
+            }
+        }
 #endif
         if (!ph1.valid || !ph2.valid) {
             PS_COUNT(if (!ph1.valid) ++ps_pr_stats().eos_fail_liq; if (!ph2.valid) ++ps_pr_stats().eos_fail_vap;);

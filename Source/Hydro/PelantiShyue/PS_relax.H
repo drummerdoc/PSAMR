@@ -131,10 +131,10 @@ bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
             if (!i1 && b1) {
                 amrex::Real Yq[NUM_SPECIES]; ps_pure_species(Yq);
                 amrex::Real Pq, Tq, Sq;
-                const bool sc = std::isfinite(e1)
-                    && EOS::REY2PTS_phase_try(m1 / a1, e1, Yq, hem::Phase3::Liquid, Pq, Tq, Sq)
-                    && !(Tq < EOS::T_crit());
-                if (sc) ++ps_counters().pres_f3_sc_refuse;
+                const bool root = std::isfinite(e1)
+                    && EOS::REY2PTS_phase_try(m1 / a1, e1, Yq, hem::Phase3::Liquid, Pq, Tq, Sq);
+                if (root && !(Tq < EOS::T_crit())) ++ps_counters().pres_f3_sc_refuse;
+                if (root && Tq < EOS::T_triple()) ++ps_counters().pres_f3_subtrip;   // follow-up 22
             }
 #else
             amrex::ignore_unused(e1);
