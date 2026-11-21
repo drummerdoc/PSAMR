@@ -2172,6 +2172,43 @@ three order-4 XC2D runs if the count is nonzero.  Falsifier: a change
 on the tube or in the battery, or a nonzero count on a cell whose
 liquid is below $T_c$, which would be a defect in the test itself.
 
+\subsection*{Follow-up 20: the band test reverted; XC2D under its relaxation operator (planned 21 November 2026, Marc's word)}
+
+Marc's word on follow-up 19's record: both.  First, the band's branch
+test of follow-up 18 is reverted to a count: a liquid admitted through
+the band is admitted as before, and the liquids among them whose root
+lies above $T_c$ are counted (\code{f3\_sc\_refuse} keeps its slot on
+the \code{[PS-FOLD]} line, now a count of what the band admits, not of
+refusals).  Predictions: the reference set bitwise in all 22 runs, the
+three order-4 XC2D runs back on their records; the serial XC2D run
+bitwise its pre-18 record at every plotfile; the tube bitwise.
+
+Second, a correction to the recommendation itself before it is
+measured.  The corridor's saturation projection replaces only a
+Corridor phase whose own branch has no root; a trace with a root keeps
+its state (\code{PS\_corridor.H}, measured on the tube: every probe kept
+its phase).  A dense trace at 989\,kg/m$^3$ in XC2D's supercritical
+host has a root on the liquid branch, so the corridor would keep it,
+not give it the host's density: the supercritical-host rule is reached
+only through a root-less probe.  Running XC2D's relaxation operator is
+therefore not the projection of the trace that the recommendation
+described; it is the deck's full relaxation (pressure, and whatever
+thermal and mass-transfer operators the dials leave on) acting on the
+same cells the stage projection reaches, and the deck turned it off to
+isolate the hydro's coarse--fine gap.  It is measured here as a
+diagnostic run, not a deck change: XC2D serial, 40 steps, order 4,
+\code{ps\_do\_relax=1} with the deck's other dials, under
+\code{ps\_diag\_mass=1 ps\_pres\_diag=1}.  Predictions:
+\code{[PS-CORRIDOR]} lines appear with \code{kept\_sc} nonzero (the
+supercritical traces are probed and kept, none projected); the barrier
+clamps and EOS failures persist on the diagonal cells (the relaxation
+reaches them by the same kernel); the solution departs from the record
+from the first step (the operator acts on every two-phase cell), by
+more than any change of this series.  Falsifier for the correction: a
+\code{projected} count that includes the supercritical traces, or
+\code{kept\_sc} zero.  The decision on the deck is Marc's after the
+numbers, and nothing in the deck is changed here.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
