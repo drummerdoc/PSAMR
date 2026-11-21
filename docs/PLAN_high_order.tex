@@ -5600,4 +5600,82 @@ the phase's branch can hold at the cell's energy rather than half a
 kilogram.  Neither is built here.  The three order-4 XC2D references
 stand; the trace dial is inert at 0 and the counts are counts.
 
+
+\subsection{Follow-up 22: liquid roots below the triple point, counted (21 November 2026, Mac \code{llvm}; commits \code{641f24d2} and \code{677394a9})}
+
+Three counts, host-only: the band liquids whose root lies below the
+triple point (\code{f3\_subtrip}, \code{[PS-FOLD]}), the Independent
+phases whose root does (\code{promote\_subtrip(liq,vap)},
+\code{[PS-PROMOTE]}), and the relaxation kernel's entry states valid
+below it (\code{entry\_subtrip(liq,vap)}, \code{[PS-GUARD]}).
+\begin{enumerate}[nosep]
+\item \textbf{XC2D} (serial, order 4, 40 steps; bitwise its record).
+      The band's sub-triple liquids: 584 over the run, none before step
+      30 and then 59, 34, 35, 32, 87, 33, 87, 62, 93, 62 per step on
+      level 0, the barrier clamps' steps exactly (26, 26, 0, 0, 0, 35,
+      60, 62, 62, 62); the kernel's entry count on the liquid side, 497,
+      follows the band's (62, 34, 33, 32, 57, 33, 60, 62, 62, 62), and
+      every barrier walk is among them.  The vapour counts are zero at
+      both doors.  \textbf{Held} on the band, the entry and the vapour.
+      The promotion count is not zero: 3\,835 evaluations of an
+      Independent liquid with a sub-triple root, from step 23, on both
+      levels; the plotfiles put them in a handful of cells on the trace
+      diagonals where the degraded trace has grown past
+      $\alpha_{\mathrm{cond}}$ (at step 25 three cells on level 1 with
+      $\rho_1$ 177 to 247\,kg/m$^3$ at $e_1$ down to $-306$\,kJ/kg; at
+      step 30 one cell on level 0 at 344\,kg/m$^3$), each evaluated many
+      times a step by the cell-state calls.  \textbf{Refuted} on the
+      promotion: the degraded trace does reach Independent.  No failing
+      walk is sub-triple at entry (the failing liquids have no root at
+      all), so the 740 failures and the 497 sub-triple entries are
+      disjoint sets of the same diagonal's cells.
+\item \textbf{The tube} (300 steps; bitwise).  The liquid side is zero
+      at every door, as predicted.  The vapour side is not: 6\,592
+      promotion evaluations and 160 kernel entries of an Independent
+      vapour with a root below the triple point, from step 8.  At step
+      300 every Independent vapour cell sits at 25\,bar median and above
+      the triple-point pressure (none below 5.18\,bar), so these are not
+      vapours at the sublimation line; the kernel's entry trace puts all of them in the vent cells
+      ($i = 255$, every row) from step 8, where the vapour stands at
+      $3.2$\,kg/m$^3$, $0.94$\,bar and 159\,K beside a liquid at
+      323\,kg/m$^3$, 282\,K and 3.9\,bar ($\alpha_1 = 0.84$): the vent
+      expanding to the 1\,bar ambient takes its vapour below the
+      triple-point pressure and temperature, which for a vapour is the
+      sublimation regime, a real state the model continues on the vapour
+      branch because it has no solid phase.  Not a degraded trace, and
+      not the liquid's question.  \textbf{Refuted} on
+      the tube's vapour, and the refutation is a finding about the
+      production run.
+\item \textbf{B2, B4, A1} at the order-4 overrides: every sub-triple
+      count is zero, B2's included.  The pressure-floor census's
+      sub-triple states at B2's dense inlet cells (the record of
+      \S7.2) do not reach the band, the promotion or the kernel's entry
+      at these settings.  \textbf{Refuted} on B2, in the direction that
+      removes the caveat: a liquid-side rule would not touch the
+      battery.
+\item \textbf{The reference set:} bitwise in all 22 runs (the IMEX pair at its known $4.4\times10^{-11}$), the battery's fingerprint 21 identical.  Counting only.  \textbf{Held.}
+\end{enumerate}
+
+\paragraph{What the counts say.}  A sub-triple root means two
+different things on the two sides of the slot.  On the liquid side it
+occurs only on XC2D, only in the degraded trace cells of follow-up 21
+(the kernel's entry trace: liquids at 438 to 498\,kg/m$^3$ and $-197$
+to $-221$\,kJ/kg with roots at 6 to 8\,K under the pressure floor,
+$\alpha_1$ from 0.016 to 0.020, straddling the corridor threshold), and
+nowhere in the tube or the battery: a rule ``a liquid root below the
+triple point is not a liquid'' would act on XC2D's degraded traces
+alone and leave every other run bitwise.  On the vapour side it occurs
+in the production tube at the vent, as the physical sublimation regime
+of a model without a solid, and must not be refused.  So the admissible
+rule is liquid-only, and what it would do on XC2D is bounded by the
+counts: the band would refuse the 584 and the kernel would see none of
+the 497 entries, so no barrier walk and no liquid at the ceiling; the
+promotion would make the few Independent degraded traces Corridor; the
+740 root-less failures are refused already.  It does not mend the
+trace, which stays degraded and unrelaxed on a deck whose corridor
+never runs; the mending is candidate (b), the transport of
+$\alpha_k$, $m_k$ and $E_k$ on one path or a density quotient the branch
+can hold, and that is the larger item.  Marc's word on the liquid-only
+rule; nothing is built here.
+
 \end{document}
