@@ -2250,6 +2250,46 @@ thermodynamics and the trace will say where.  Nothing in the kernel is
 changed here; the remedy, if one is derivable, is a later amendment.
 The reference set bitwise (dial 0, counting only).
 
+\subsection*{Follow-up 22: liquid roots below the triple point, counted (planned 21 November 2026, Marc's word)}
+
+Follow-up 21 found the stage projection's failing and barrier walks on
+XC2D to be band trace cells whose liquid has degraded to a state no
+liquid has: no root, or a root at 20 to 218\,K, below CO$_2$'s triple
+point ($T_{\mathrm{triple}} = 216.592$\,K, the EOS's own constant).  A
+root below the triple point is the temperature counterpart of the
+density domain of follow-up 16e, and before any rule asks it, Marc's
+word is to count it.  Three counts, host-only, inert:
+\begin{enumerate}[nosep]
+\item At the presence gate's band (\code{ps\_presence\_relax\_gate}):
+      the band liquids whose root lies below $T_{\mathrm{triple}}$
+      (\code{f3\_subtrip} beside \code{f3\_hyst\_ev} on the
+      \code{[PS-FOLD]} line; the probe is already made there).
+\item At the checked promotion (\code{ps\_regime\_reach}): the
+      Independent phases, liquid and vapour, whose root lies below the
+      triple point (\code{promote\_subtrip(liq,vap)} on the
+      \code{[PS-PROMOTE]} line).
+\item At the relaxation kernel's entry (\code{ps\_pressure\_relax\_cell},
+      the first evaluation): the phases, liquid and vapour, whose state
+      is valid with a temperature below the triple point
+      (\code{entry\_subtrip(liq,vap)} beside \code{barrier} on the
+      \code{[PS-GUARD]} line).
+\end{enumerate}
+Predictions.  XC2D, serial, order 4, 40 steps: the band count is
+nonzero from about step 20 on the trace diagonal, at least the 160
+barrier walks and more (the walks that converge without reaching the
+barrier are not traced), and the kernel's entry count on the liquid
+side matches it, since the band is the kernel's door there; the
+promotion count is zero (the Independent liquids of XC2D are the mixed
+cells' liquid at 270\,K); the vapour counts are zero.  The tube: all
+three zero (the rarefaction cools to 290\,K).  B2, the evaporation wave,
+whose dense inlet cells the pressure-floor census records with floors
+in use: nonzero counts, at the promotion and at the kernel's entry,
+which is the caveat on any refusal rule.  B4, cross-critical: zero.
+The battery's fingerprint 21 identical and the reference set bitwise
+(counting only).  Falsifiers: a nonzero count on the tube, or a zero
+count on XC2D's band, which would mean the sub-triple roots of
+follow-up 21 reached the kernel by another door.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
