@@ -5270,4 +5270,70 @@ Marc's decision, with the alternative of leaving the band test as the
 decided partial measure.  The three order-4 XC2D references of the
 cycle are not re-recorded until the item's shape is settled.
 
+
+\subsection{Follow-up 19: the promotion test's branch question (21 November 2026, Mac \code{llvm}; commits \code{72b4f87a} and \code{8aba5de0})}
+
+\code{ps\_regime\_reach} demotes an Independent liquid to Corridor when
+its root on the liquid branch lies at or above $T_c$, counted as
+\code{promote\_refuse\_sc} on the \code{[PS-PROMOTE]} line; the vapour
+slot is not asked.  No dial, by Marc's word.
+\begin{enumerate}[nosep]
+\item \textbf{XC2D, serial, 40 steps:} \code{promote\_refuse\_sc} is
+      zero at every step and level, and the run is bitwise follow-up
+      18's at every plotfile.  No Independent liquid on XC2D has a
+      supercritical root: the 128 Independent cells of follow-up 18's
+      record are the initial data's diagonal cells with a cold liquid
+      (its own root at 270\,K) beside the hot supercritical vapour, as
+      the amendment's correction read them, and the surviving EOS
+      failures (716 over the run) and barrier clamps (105) are theirs.
+      The band's refusals stand at 383.  \textbf{Held} on the
+      correction's side of the two-sided prediction.
+\item \textbf{The tube: the falsifier fired.}  \code{promote\_refuse\_sc}
+      counts $4\,376\,064$ over 300 steps, about one per cell per step:
+      the production tube is supercritical CO$_2$ at 100\,bar and
+      320\,K by design (its README: 16\,K above $T_c$, the rarefaction
+      cooling it to 290\,K), and its dense slot's root lies above $T_c$
+      in every cell.  The test demoted the tube's working fluid to
+      Corridor everywhere.  The conserved solution is bitwise follow-up
+      18's at 300 steps; only the plotfile's temperature differs, by
+      $3.7\times10^{-7}$\,K ($9.9\times10^{-9}$ of range), because the
+      diagnostic takes the mixture inversion for a (Corridor, Corridor)
+      pair where it took the dense slot's branch before.  That the
+      solution stood is this deck's luck: its vapour is a Corridor trace
+      already, so no gate, projection or floor saw a different pair.  A
+      supercritical two-phase cell with both phases above the thresholds
+      would have lost its relaxation.
+\item \textbf{The reference set, with the demotion:} the four tube
+      runs change in their diagnostic temperature only (the bare run at
+      $4\times10^{-13}$ of range, at step 0 already), the three order-4
+      XC2D runs stand where follow-up 18 left them, and the battery's
+      fingerprint changes in one case: B12, the two-phase wall
+      reflection, by $9.5\times10^{-3}$ in $\alpha_1$ and
+      $1.1\times10^{-3}$ in $P$, a solution change, where the reflection
+      compresses a dense phase to a root above $T_c$ and the demotion
+      switches its relaxation off.  The falsifier fired a second time.
+\end{enumerate}
+
+\paragraph{Refuted, and what it says.}  The dense slot is the dense
+phase, liquid or supercritical; the model's slot 1 was never ``the
+liquid'' in the sense of $T < T_c$, and the production tube says so in
+its first line.  So ``a liquid root below $T_c$'' is not the regime's
+question, in the promotion test or in the band: the band test of
+follow-up 18 rests on the same premise and refused, on XC2D, dense
+traces at $989$\,kg/m$^3$ beside a 50\,bar supercritical host.  Those
+are not equilibrium states (a dense fluid at that density and
+temperature has a pressure far above the host's), but neither are they
+``not liquids'': they are a Corridor trace in a hot host, which is what
+the corridor's saturation projection was written for, and it already
+answers the supercritical case (\code{PS\_corridor.H}: above $T_c$ the
+two branches are one fluid and the trace takes the host's density).  On
+XC2D that projection never runs because the deck turns the relaxation
+operator off.  The demotion is reverted to a count (the instrument
+stays, kept Independent); with the count alone the tube is bitwise follow-up 18's at 300 steps (the count still $4\,376\,064$), the battery's fingerprint is 21 identical, and the reference set stands exactly where follow-up 18 left it (the three order-4 XC2D runs changed by the band test, the IMEX pair at its known $4.4\times10^{-11}$).  The band test stands as
+Marc left it, with its premise now on the record as the same one, and
+the recommendation that follows: revert the band test too and run
+XC2D's relaxation operator (follow-up 17's design point (ii)), so the
+corridor projects the supercritical trace by its own rule, measured
+against the record.  Marc's word.
+
 \end{document}
