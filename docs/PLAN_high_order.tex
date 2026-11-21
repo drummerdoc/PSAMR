@@ -2290,6 +2290,41 @@ The battery's fingerprint 21 identical and the reference set bitwise
 count on XC2D's band, which would mean the sub-triple roots of
 follow-up 21 reached the kernel by another door.
 
+\subsection*{Follow-up 23: the liquid-only triple-point rule (planned 21 November 2026, Marc's word)}
+
+Marc's word on follow-up 22's counts: a liquid-branch root below the
+triple point ($T_{\mathrm{triple}} = 216.592$\,K, the EOS's own
+constant) is not a liquid.  The rule is asked at the three doors where
+the liquid's branch is already probed, on every build, and only of the
+liquid (the vapour's sub-triple roots at the tube's vent are the
+sublimation regime and stand):
+\begin{enumerate}[nosep]
+\item the checked promotion (\code{ps\_regime\_reach}): an Independent
+      liquid whose root lies below the triple point is Corridor
+      (\code{promote\_subtrip} now counts demotions);
+\item the presence gate's band (\code{ps\_presence\_relax\_gate}): a band
+      liquid whose root lies below the triple point is not relaxable and
+      the pair is refused (\code{f3\_subtrip} now counts refusals);
+\item the corridor's own-branch probe (\code{PS\_corridor.H}): a
+      Corridor liquid whose root lies below the triple point does not
+      keep its state and is projected like a root-less one.
+\end{enumerate}
+No dial, by Marc's word, as for follow-ups 18 and 19; the previous
+behaviour is the record.  Predictions, bounded by follow-up 22's
+counts: the tube bitwise (liquid counts zero at every door, the
+vapour untouched); the battery's fingerprint 21 identical and the
+reference set bitwise in nineteen runs; XC2D's three order-4 runs
+change, the serial run departing from its record at step 23 or 24
+(the promotion's first demotion is at step 23) and in any case before
+step 30, with no barrier walk and no liquid at the ceiling afterwards
+(\code{barrier(lo,hi)} zero, \code{entry\_subtrip} zero), the band's
+refusals near 584 and the EOS failures near their 740 (the root-less
+traces are refused at entry as before).  The change is confined to the
+trace diagonals.  Falsifiers: any change on the tube or in the
+battery; a barrier walk surviving on XC2D, which would mean a liquid
+reaches the kernel by a fourth door.  The three XC2D references are
+re-recorded only with Marc's word after the numbers.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
