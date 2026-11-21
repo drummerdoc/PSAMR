@@ -5713,4 +5713,79 @@ $\alpha_k$, $m_k$ and $E_k$ on one path or a density quotient the branch
 can hold, and that is the larger item.  Marc's word on the liquid-only
 rule; nothing is built here.
 
+
+\subsection{Follow-up 23: the liquid-only triple-point rule, built and refuted (21 November 2026, Mac \code{llvm}; commits \code{942668a5} and \code{b73c4f49})}
+
+A liquid-branch root below the triple point is not a liquid, at the
+three liquid doors: the checked promotion demotes the phase to Corridor
+(\code{promote\_subtrip} counts demotions), the presence gate's band
+refuses the pair (\code{f3\_subtrip} counts refusals), the corridor's
+own-branch probe does not keep the phase.  The vapour's sub-triple
+roots stand.  No dial, by Marc's word.
+\begin{enumerate}[nosep]
+\item \textbf{The tube:} bitwise follow-up 22's run at 300 steps; the vapour's 6\,592 sub-triple promotions and 160 kernel entries at the vent stand, counted and untouched.  \textbf{Held.}
+\item \textbf{XC2D} (serial, order 4, 40 steps).  The run departs from
+      its record at step 17, not 23: the first demotion is on level 1
+      at fine step 34, under coarse step 17, where the fine grid's trace
+      degrades first.  \textbf{Refuted} on the step.  The barrier walks
+      fall from 333 to one (on level 1 at fine step 78) and the liquid
+      at the ceiling is gone: the liquid's largest density at step 40 is
+      $1024$\,kg/m$^3$ against the record's $1427$, the hottest cell
+      362\,K against 394.  \textbf{Held} in substance on the barrier, not
+      to the letter.  The kernel's sub-triple entries fall from 497 to
+      58 and the band's refusals are 19, not 584: the promotion makes the
+      degraded traces Corridor before the band sees them, and the
+      58 that still enter do so through a fourth door the amendment did
+      not name, the gate's own Independent test, which asks
+      \code{ps\_regime} ($\alpha$ and $m$ alone) and not
+      \code{ps\_regime\_reach}: an Independent-by-$\alpha$ liquid with a
+      sub-triple root passes the gate as Independent and is relaxed.
+      \textbf{The falsifier fired} there, and names the door.  The EOS
+      failures double, 740 to 1\,494, with the trace cells left
+      unrelaxed on both levels (62 per coarse step as before, and the
+      fine level's share).  The solution's change is confined to the
+      contact and its two neighbouring diagonals ($i + j$ from 126 to
+      128) and is large there: at step 40 the velocity differs by up to
+      $8$ and $11.5$\,m/s ($0.72$ and $0.98$ of range), $\alpha_1$ by
+      $0.11$, $P$ by $6.1$\,bar, $T$ by 43\,K; the pressure and density
+      ranges of the whole field are identical to the record's and the
+      run is sound.  The contact's own dynamics on this deck depends on
+      whether its degraded trace relaxes at all.
+\item \textbf{The reference set, with the rule: the falsifier fired.}
+      All four XC2D runs change, the bare second-order production run
+      among them, by $1.68$ of range on level 0 (the order-4 runs by
+      $0.98$ and $0.99$); and the battery's fingerprint changes in B12,
+      the two-phase wall reflection, by $5.9\times10^{-3}$ in $\alpha_1$
+      and $9.5\times10^{-4}$ in $P$, the same case follow-up 19's
+      demotion moved.  Follow-up 22's counts covered B2, B4 and A1 at
+      the order-4 overrides and the order-4 XC2D run; they did not cover
+      B12 or the second-order path, and the claim ``bitwise everywhere
+      but XC2D's order-4 runs'' was wider than the measurement.  The counts, taken afterwards on the counting-only build at
+      production defaults, say where the rule bit: the bare XC2D run
+      carries 99 band liquids with a sub-triple root from step 20 and
+      5\,663 promotion evaluations from fine step 46 (no kernel entry: no
+      stage projection and no relaxation operator on that deck), so the
+      demotion changed its regimes and with them the reconstruction and
+      the folds; B12 carries 4 band liquids with a sub-triple root at
+      step 65 and nothing at the other doors, so the band's refusal
+      changed it; B2 carries none anywhere.
+\end{enumerate}
+
+\paragraph{Refuted, and reverted.}  The rule is reverted to the
+counts of follow-up 22 at all three doors, and the counting-only build is bitwise on all 22 runs of the reference set (the IMEX pair at its known $4.4\times10^{-11}$) with the battery's fingerprint 21 identical.  What the rule
+did on XC2D stands as a measurement: with the degraded trace made
+Corridor the barrier liquids vanish (the liquid's largest density 1024
+against 1427) and the contact's velocity moves by up to 11\,m/s, so the
+contact's dynamics on that deck turns on whether its degraded trace
+relaxes.  What it did on B12 and on the bare XC2D run says the
+question ``is this liquid root below the triple point'' is asked of
+states the production path owns, not only of degraded traces, and a
+rule on it is a physics change for Marc to weigh with those numbers,
+not a repair of a defect.  The open item is unchanged and sharper:
+the trace's three transport paths make states no fluid has, and the
+rule that refuses them must be the transport's own, not the EOS's
+temperature.  Two instruments stay (the trace dial and the sub-triple
+counts), nothing acts, and the reference set is as follow-up 16e left
+it.
+
 \end{document}
