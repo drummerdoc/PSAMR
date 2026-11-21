@@ -2209,6 +2209,47 @@ more than any change of this series.  Falsifier for the correction: a
 \code{kept\_sc} zero.  The decision on the deck is Marc's after the
 numbers, and nothing in the deck is changed here.
 
+\subsection*{Follow-up 21: the alpha-walk on a cross-critical pair, traced (planned 21 November 2026, Marc's word)}
+
+The thread of follow-ups 16d to 20 left one item: on XC2D's initial-data
+diagonal cells (a dense liquid at 270\,K and 1006\,kg/m$^3$ beside a
+supercritical vapour at 350\,K and 91\,kg/m$^3$, $\alpha_1 = 0.25$,
+mixture pressure 62.5\,bar) the pressure relaxation's alpha-walk
+(\code{hem\_relax\_x3.H}, \code{ps\_pressure\_relax\_cell}) fails by
+EOS reason, 62 cells per step from step 20 to 34 under the stage
+projection, or reaches the EOS's density barrier on the liquid side
+from step 30 and converges with the liquid at the ceiling.  Rule 7:
+the walk is traced before anything about it is changed.  Instruments,
+host only, inert at their defaults:
+\begin{enumerate}[nosep]
+\item A dial \code{ps\_relax\_trace} ($N$, default 0): the first $N$
+      cells per run whose walk fails or reaches the barrier print their
+      entry state ($\alpha_1$, $\rho_k$, $e_k$, $P_k$, $T_k$ for both
+      phases) and the walk itself, one line per iteration ($\alpha$,
+      $\rho_1$, $\rho_2$, $P_1$, $P_2$, the slope's form, the step, the
+      clamp), with the cell index and the kernel's reason; the cell
+      index reaches the kernel through its parameter struct.
+\item Two counts beside the barrier clamps on the \code{[PS-GUARD]}
+      line: which phase's state was invalid at an EOS failure, the
+      liquid or the vapour (\code{eos\_fail(liq,vap)}).
+\end{enumerate}
+Predictions, from the states on the record: the traced cells are the
+diagonal cells ($i + j = 127$ on level 0); at entry $P_1 < P_2$ (the
+liquid's pressure has fallen below the vapour's after the first twenty
+steps' expansion, the mixture at 51 to 52\,bar), so the walk moves
+$\alpha_1$ down and compresses the liquid; the failures are the vapour
+leaving its branch's energy bracket as it expands and cools
+(\code{eos\_fail} on the vapour side), the barrier the liquid's
+compression reaching $\rho_{\max}$ when the vapour survives; and the
+walk reaches the barrier in few iterations, because the liquid's
+stiffness makes the slope small in $\alpha$ and the capped step
+($0.3\,\min(\alpha, 1-\alpha)$) is taken whole.  Falsifiers: $P_1 > P_2$
+at entry, or the liquid as the invalid phase, or the traced cells off
+the diagonal; any of these puts the cause elsewhere than the pair's
+thermodynamics and the trace will say where.  Nothing in the kernel is
+changed here; the remedy, if one is derivable, is a later amendment.
+The reference set bitwise (dial 0, counting only).
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
