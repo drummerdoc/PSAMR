@@ -100,13 +100,15 @@ ps_make_psamr_eos_api()
 //  relaxation itself moves.  Gate passes granted through the band are
 //  counted per evaluation in PsCounters::pres_f3_hyst.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-//  The band's branch test (follow-up 18, Marc's word): a liquid admitted
-//  through the band must be a liquid, a root on the liquid branch at
-//  (rho_1, e_1) with its temperature below T_c, the EOS's own constant;
-//  a supercritical "liquid" is a formal root and nothing more, and the
-//  relaxation would compress it toward the density barrier.  The vapour
-//  slot is the vapour/supercritical branch and is not tested.  e1 is the
-//  liquid's specific internal energy from the cell.
+//  The band's branch question (follow-ups 18 to 20): a liquid admitted
+//  through the band whose root on the liquid branch at (rho_1, e_1) lies
+//  above T_c is COUNTED (pres_f3_sc_refuse, the slot's historical name)
+//  and admitted.  Refusing it was built (follow-up 18) and reverted by
+//  Marc's word (follow-up 20) after the same question, asked in the
+//  promotion test, took every cell of the production tube: the dense
+//  slot is the dense phase, liquid or supercritical, and T_c is not the
+//  regime's question.  e1 is the liquid's specific internal energy from
+//  the cell; host builds only pay the probe.
 bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
                             amrex::Real e1, const PsPres& pr) noexcept
 {
@@ -125,14 +127,18 @@ bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
         const bool q1 = i1 || b1;
         const bool q2 = i2 || b2;
         if (q1 && q2 && (b1 || b2)) {
+#if !defined(AMREX_USE_GPU)
             if (!i1 && b1) {
                 amrex::Real Yq[NUM_SPECIES]; ps_pure_species(Yq);
                 amrex::Real Pq, Tq, Sq;
-                const bool liquid = std::isfinite(e1)
+                const bool sc = std::isfinite(e1)
                     && EOS::REY2PTS_phase_try(m1 / a1, e1, Yq, hem::Phase3::Liquid, Pq, Tq, Sq)
-                    && Tq < EOS::T_crit();
-                if (!liquid) { PS_COUNT(++ps_counters().pres_f3_sc_refuse); return false; }
+                    && !(Tq < EOS::T_crit());
+                if (sc) ++ps_counters().pres_f3_sc_refuse;
             }
+#else
+            amrex::ignore_unused(e1);
+#endif
             PS_COUNT(++ps_counters().pres_f3_hyst);
             return true;
         }

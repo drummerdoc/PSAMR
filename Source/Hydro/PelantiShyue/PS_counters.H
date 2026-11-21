@@ -277,7 +277,7 @@ struct PsCounters {
     // ---- presence (PS_presence.H, PS_relaxation.H), [PS-FOLD] --------
     long   pres_f1_demote    = 0;   // Independent refused for density degeneracy
     long   pres_f3_hyst      = 0;   // gate passes through the hysteresis band
-    long   pres_f3_sc_refuse = 0;   // band liquids refused by the branch test (no liquid root below T_c; follow-up 18)
+    long   pres_f3_sc_refuse = 0;   // band liquids whose root lies above T_c, counted and admitted (follow-up 18 refused them; reverted, follow-up 20)
 
     // ---- relaxation sweep (PS_relaxation.H) --------------------------
     //  One counter for the presence-gate refusal at every relax entry
