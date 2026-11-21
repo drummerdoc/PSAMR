@@ -223,6 +223,12 @@ ps_mechanical_relax_admitted(int i, int j, int k,
     int reason = hem::PSR_OK;
     hem::PsPressureRelaxParams prp{};
     prp.tol_P_rel = tol_P_rel;
+#if !defined(AMREX_USE_GPU)
+    //  PSAMR.ps_relax_trace (0): the first N failing or barrier-reaching
+    //  walks of the run, printed with their cell (follow-up 21).
+    static const int trace_max = ps_dial_int("ps_relax_trace", 0);
+    prp.trace_max = trace_max; prp.ci = i; prp.cj = j; prp.ck = k;
+#endif
     const bool ok = hem::ps_pressure_relax_cell(Uv, eos, prp, &reason);
     if (!ok) {
 #if !defined(AMREX_USE_GPU)

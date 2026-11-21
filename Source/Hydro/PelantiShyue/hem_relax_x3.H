@@ -32,6 +32,12 @@ struct PsPressureRelaxParams {
     double step_cap_frac = 0.3;  // Newton step capped to this fraction of
                                  //   min(alpha, 1-alpha) to avoid overshoot
     // The single-phase skip threshold is eos.dials.single_phase_threshold.
+    //  The trace (follow-up 21; host builds, PSAMR.ps_relax_trace): the
+    //  first trace_max failing or barrier-reaching walks of a run print
+    //  their entry state and every iteration, tagged with the cell index
+    //  the caller sets here (-1 when unknown).
+    int    trace_max = 0;
+    int    ci = -1, cj = -1, ck = -1;
 };
 
 // Instantaneous mechanical relaxation (Saurel-Petitpas-Berry): Newton on
@@ -107,6 +113,26 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
     double e_1      = e1;
     double e_2      = e2;
 
+#if !defined(AMREX_USE_GPU)
+    //  The trace (follow-up 21): the walk is buffered and printed at the end
+    //  when it failed or reached the barrier, for the first trace_max such
+    //  walks of the run.
+    static int n_traced = 0;
+    const bool tracing = (p.trace_max > 0) && (n_traced < p.trace_max);
+    constexpr int TR_MAX = 64;
+    double tr[TR_MAX][7]; char trs[TR_MAX]; int ntr = 0; bool tr_clamped = false;
+    double tr_T1 = 0.0, tr_T2 = 0.0, tr_P1e = 0.0, tr_P2e = 0.0;
+    auto tr_print = [&] (const char* why) {
+        if (!tracing) return;
+        ++n_traced;
+        std::printf("[RELAX-TRACE] cell %d %d %d: %s after %d iterations; entry alpha1=%.6g rho1=%.6g rho2=%.6g e1=%.6g e2=%.6g P1=%.6g P2=%.6g T1=%.4g T2=%.4g a_bar=[%.6g,%.6g]\n",
+                    p.ci, p.cj, p.ck, why, ntr, alpha1, m1 / alpha1, m2 / (1.0 - alpha1), e1, e2, tr_P1e, tr_P2e, tr_T1, tr_T2, a_bar_lo, a_bar_hi);
+        for (int q = 0; q < ntr; ++q)
+            std::printf("[RELAX-TRACE]   it %2d alpha=%.8g rho1=%.6g rho2=%.6g P1=%.6g P2=%.6g slope=%c step=%.4g%s\n",
+                        q, tr[q][0], tr[q][1], tr[q][2], tr[q][3], tr[q][4], trs[q], tr[q][5], (tr[q][6] != 0.0) ? " CLAMPED" : "");
+    };
+#endif
+
     for (int iter = 0; iter < p.max_iter; ++iter) {
         PS_COUNT(++ps_mt_stats().pr_iters);   // PSAMR.ps_mt_diag: the nesting multiplier
         // Query per-phase P at current state.
@@ -114,7 +140,17 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         ph1.alpha = alpha; ph2.alpha = 1.0 - alpha;
         eos.state_from_rho_e_phase(1, rho_1, e_1, ph1);
         eos.state_from_rho_e_phase(2, rho_2, e_2, ph2);
-        if (!ph1.valid || !ph2.valid) { if (out_reason) *out_reason = PSR_BAD_EOS; return false; }
+#if !defined(AMREX_USE_GPU)
+        if (iter == 0) { tr_T1 = ph1.T; tr_T2 = ph2.T; tr_P1e = ph1.P; tr_P2e = ph2.P; }
+#endif
+        if (!ph1.valid || !ph2.valid) {
+            PS_COUNT(if (!ph1.valid) ++ps_pr_stats().eos_fail_liq; if (!ph2.valid) ++ps_pr_stats().eos_fail_vap;);
+#if !defined(AMREX_USE_GPU)
+            if (tracing && ntr < TR_MAX) { tr[ntr][0] = alpha; tr[ntr][1] = rho_1; tr[ntr][2] = rho_2; tr[ntr][3] = ph1.valid ? ph1.P : -1.0; tr[ntr][4] = ph2.valid ? ph2.P : -1.0; tr[ntr][5] = 0.0; tr[ntr][6] = 0.0; trs[ntr] = ph1.valid ? 'V' : 'L'; ++ntr; }
+            tr_print(ph1.valid ? "EOS failure (vapour invalid)" : (ph2.valid ? "EOS failure (liquid invalid)" : "EOS failure (both invalid)"));
+#endif
+            if (out_reason) *out_reason = PSR_BAD_EOS; return false;
+        }
         const double P1 = ph1.P;
         const double P2 = ph2.P;
         if (!std::isfinite(P1) || !std::isfinite(P2)) { if (out_reason) *out_reason = PSR_BAD_EOS; return false; }
@@ -123,6 +159,9 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         if (P_max < 1.0) { if (out_reason) *out_reason = PSR_BAD_EOS; return false; }
         const double P_diff = P1 - P2;
         if (std::abs(P_diff) < p.tol_P_rel * P_max) {
+#if !defined(AMREX_USE_GPU)
+            if (tr_clamped) tr_print("converged at the barrier");
+#endif
             // Converged.  Write back to U.
             U[0] = alpha;
             // alpha*rho_k unchanged (mass conservation).
@@ -155,6 +194,7 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         };
         double slope = 0.0;
         bool have_slope = false;
+        char slope_form = 'N';   // C central, F forward, B backward (the trace, follow-up 21)
         double da = 1.0e-4 * std::min(alpha, 1.0 - alpha);
         for (int trial = 0; trial < 4 && !have_slope; ++trial, da *= 0.25) {
             if (da < 1.0e-14) break;
@@ -170,17 +210,25 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
             const bool okm = std::isfinite(dPd_m);
             if (okp && okm) {
                 slope = (dPd_p - dPd_m) / (alpha_p - alpha_m);   // central
+                slope_form = 'C';
             } else if (okp) {
                 slope = (dPd_p - P_diff) / (alpha_p - alpha);    // forward
+                slope_form = 'F';
             } else if (okm) {
                 slope = (P_diff - dPd_m) / (alpha - alpha_m);    // backward
+                slope_form = 'B';
             } else {
                 continue;   // both probes bad → shrink da and retry
             }
             if (std::isfinite(slope) && std::abs(slope) > 1.0e-30)
                 have_slope = true;
         }
-        if (!have_slope) { if (out_reason) *out_reason = PSR_SLOPE; return false; }
+        if (!have_slope) {
+#if !defined(AMREX_USE_GPU)
+            tr_print("no slope");
+#endif
+            if (out_reason) *out_reason = PSR_SLOPE; return false;
+        }
 
         // Damped Newton step.
         double step = -P_diff / slope;
@@ -190,6 +238,16 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         double alpha_new = alpha + step;
         if (alpha_new < a_bar_lo) { PS_COUNT(++ps_pr_stats().barrier_lo); }   // the barrier reached (follow-up 17)
         if (alpha_new > a_bar_hi) { PS_COUNT(++ps_pr_stats().barrier_hi); }
+#if !defined(AMREX_USE_GPU)
+        {
+            const bool cl = (alpha_new < a_bar_lo) || (alpha_new > a_bar_hi);
+            if (cl) tr_clamped = true;
+            if (tracing && ntr < TR_MAX) {
+                tr[ntr][0] = alpha; tr[ntr][1] = rho_1; tr[ntr][2] = rho_2; tr[ntr][3] = P1; tr[ntr][4] = P2; tr[ntr][5] = step; tr[ntr][6] = cl ? 1.0 : 0.0;
+                trs[ntr] = slope_form; ++ntr;
+            }
+        }
+#endif
         alpha_new = std::max(a_bar_lo, std::min(a_bar_hi, alpha_new));  // domain barrier
 
         // Energies via mechanical work; densities via mass.
@@ -205,6 +263,9 @@ inline bool ps_pressure_relax_cell(V6& U, const PsPhaseAPI& eos,
         }
     }
     // Failed to converge within max_iter; leave U unchanged.
+#if !defined(AMREX_USE_GPU)
+    tr_print("not converged");
+#endif
     if (out_reason) *out_reason = PSR_MAXITER;
     return false;
 }

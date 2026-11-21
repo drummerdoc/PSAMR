@@ -152,9 +152,10 @@ struct PsPrStats {
     long seen = 0, trivial = 0, nt_iters = 0, nt_ok = 0;
     long fb = 0, fb_samples = 0, fb_bisect = 0, fb_ok = 0, refused = 0;
     long barrier_lo = 0, barrier_hi = 0;   // Newton steps clamped to the density barrier (follow-up 17)
+    long eos_fail_liq = 0, eos_fail_vap = 0;   // the phase whose state was invalid at an EOS failure (follow-up 21)
     void reset() { seen = trivial = nt_iters = nt_ok = 0;
                    fb = fb_samples = fb_bisect = fb_ok = refused = 0;
-                   barrier_lo = barrier_hi = 0; }
+                   barrier_lo = barrier_hi = 0; eos_fail_liq = eos_fail_vap = 0; }
 };
 
 //  [PS-X3]: the coupled operator's outcome, cause-split, including the
@@ -316,7 +317,7 @@ struct PsCounters {
         recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = recon_mc_bdry = 0;
         proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;
         proj_fail_input = proj_fail_eos = proj_fail_slope = proj_fail_maxiter = 0;
-        pr_stats.barrier_lo = pr_stats.barrier_hi = 0;
+        pr_stats.barrier_lo = pr_stats.barrier_hi = 0; pr_stats.eos_fail_liq = pr_stats.eos_fail_vap = 0;
         nscbc_zg_c = nscbc_zg_sup = nscbc_zg_slots = nscbc_zg_pack = 0;
         nscbc_flash = nscbc_pmix_fail = 0;
         nscbc_fan_cells = nscbc_fan_steps = nscbc_locked = 0;

@@ -383,6 +383,7 @@ PSAMR::PSAMR_advance (Real time,
             amrex::Real ppm_ = pc.proj_pt_move;
             amrex::Long pfi_ = pc.proj_fail_input, pfe_ = pc.proj_fail_eos, pfs_ = pc.proj_fail_slope, pfm_ = pc.proj_fail_maxiter;
             amrex::Long pbl_ = pc.pr_stats.barrier_lo, pbh_ = pc.pr_stats.barrier_hi;
+            amrex::Long pel_ = pc.pr_stats.eos_fail_liq, pev_ = pc.pr_stats.eos_fail_vap;
             amrex::ParallelDescriptor::ReduceLongSum(pp_);
             amrex::ParallelDescriptor::ReduceRealMax(ppr_);
             amrex::ParallelDescriptor::ReduceRealMax(ppd_);
@@ -405,7 +406,8 @@ PSAMR::PSAMR_advance (Real time,
                            << "  proj_pt_dev = " << ppd_
                            << "  proj_pt_move = " << ppm_
                            << "  proj_fail(input,eos,slope,iter) = " << pfi_ << "," << pfe_ << "," << pfs_ << "," << pfm_
-                           << "  barrier(lo,hi) = " << pbl_ << "," << pbh_;
+                           << "  barrier(lo,hi) = " << pbl_ << "," << pbh_
+                           << "  eos_fail(liq,vap) = " << pel_ << "," << pev_;
             //  NSCBC ghost-fill zero-gradient fallbacks by cause
             //  (PS_guards.H); all zero unless NSCBC is enabled on a face.
             amrex::Long nc_ = pc.nscbc_zg_c;
