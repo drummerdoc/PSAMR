@@ -5469,4 +5469,95 @@ XC2D deck's relaxation operator is a deck decision Marc now has the
 numbers for.  The three order-4 XC2D references stand unchanged and
 nothing is re-recorded.
 
+
+\subsection{Follow-up 21: the alpha-walk on a cross-critical pair, traced (21 November 2026, Mac \code{llvm}; commits \code{b855dc67} and \code{0548dc90})}
+
+The trace dial \code{ps\_relax\_trace} ($N$ walks per run, default 0)
+and the per-phase count of EOS failures (\code{eos\_fail(liq,vap)} on
+the \code{[PS-GUARD]} line) are in; host-only, and the traced XC2D run
+is bitwise its record (the trace is inert).  XC2D serial, order 4, 40
+steps, the first sixteen failing or barrier-reaching walks printed.
+\begin{enumerate}[nosep]
+\item \textbf{The cells.}  Every traced walk, 740 failures and 160
+      barrier walks in a run traced to 900, sits on the diagonal one
+      cell above the initial data's contact ($i + j = 128$ on level 0,
+      256 and 257 on level 1), on the supercritical side.  The initial
+      data's own mixed cells ($i + j = 127$, $\alpha_1 = 0.25$) never
+      fail and never reach the barrier: their liquid stays at
+      $989$\,kg/m$^3$ and $-131$\,kJ/kg through step 30.  The
+      prediction named the wrong diagonal, by one cell: \textbf{refuted}
+      on the cell, and the correction matters, because the cells that
+      fail are trace cells, not the mixed cells.
+\item \textbf{The entry state.}  The trace liquid on that diagonal
+      starts as the left state's liquid ($1006$\,kg/m$^3$,
+      $-131$\,kJ/kg, 270\,K) at $\alpha_1 = 10^{-6}$ and grows by
+      transport to $\alpha_1 \approx 10^{-3}$ by step 20 with its density
+      intact ($988$ median).  From step 20 some of those cells enter the
+      kernel with a liquid that is no liquid: the 740 failing walks hold
+      $\rho_1$ from $96$ to $461$\,kg/m$^3$ (median $196$) at
+      $e_1$ from $-394$ to $-181$\,kJ/kg (median $-319$), an energy far
+      below the liquid's at any temperature the branch reaches for that
+      density; the 160 barrier walks hold $\rho_1$ from $567$ to
+      $1297$ (median $1161$) at $e_1$ from $-270$ to $-208$\,kJ/kg,
+      whose liquid-branch roots lie at $T_1$ from 20 to 218\,K (median
+      191), below the triple point ($216.6$\,K), with the pressure floor
+      in use ($P_1$ reported at the floor against $P_2$ of 53 to
+      55\,bar).  The vapour beside them is sound at every entry
+      ($91$ to $98$\,kg/m$^3$, 357 to 379\,K, 52 to 58\,bar).  All of
+      them are band cells ($\alpha_1$ between $0.010$ and $0.046$,
+      median $0.014$ and $0.011$).  So the direction prediction held
+      trivially and for the wrong reason: $P_1 < P_2$ because $P_1$ is a
+      floored pressure of a state outside the fluid's domain, not the
+      liquid's pressure fallen below the vapour's.
+\item \textbf{The failures.}  All 740 are the liquid, invalid at
+      entry, at the kernel's first evaluation (one iteration):
+      \code{eos\_fail(liq,vap)} $= 740, 0$.  The prediction of the vapour
+      leaving its branch is \textbf{refuted}; the kernel never takes a
+      step on these cells.  And a correction to follow-ups 18 to 20: the
+      383 band liquids that follow-up 18's test refused and the records
+      called supercritical were these root-less traces (the test
+      refused on a failed solve as well as on $T \ge T_c$); the count of
+      band liquids with a root above $T_c$ on the same run is zero.
+      Nothing supercritical was ever in the liquid slot on XC2D.
+\item \textbf{The barrier.}  A representative walk (cell (120, 8),
+      entry $\alpha_1 = 0.0131$, $\rho_1 = 567$, $T_1 = 19.8$\,K, $P_1$
+      floored, $P_2 = 52.7$\,bar): three capped steps down in $\alpha_1$
+      ($-0.0039$, $-0.0028$, $-0.0019$, each $0.3\,\alpha$), the liquid
+      to 810, 1157 and then clamped at $1617$\,kg/m$^3$ where
+      $P_1 = 41\,000$\,bar; from there eight central-difference steps back
+      up, $P_1$ falling 1.9, 0.82, 0.33, 0.11, 0.028 $\times 10^{9}$ to
+      $53.5$\,bar, converging in 12 iterations with the liquid at
+      $1354.6$\,kg/m$^3$ and $P_1 = P_2 = 53.50$\,bar.  The 160 walks take
+      10 to 12 iterations, 10 median.  The kernel does what it is asked:
+      it finds the density at which the liquid branch, at an energy that
+      belongs to no liquid, gives the vapour's pressure, and that density
+      is far above any liquid's.  The ``few capped steps'' prediction
+      held for the descent, and the barrier is a way station, not the
+      end: the walk converges above it.
+\end{enumerate}
+
+\paragraph{The finding.}  The kernel is innocent.  The dense trace on
+the hot side of XC2D's contact degrades, by transport, to a phase state
+that is no state of CO$_2$: its volume fraction, mass and energy travel
+on three discrete paths, and by step 20 some trace cells hold a
+``liquid'' whose density has collapsed to a tenth or half of a liquid's
+while its energy has fallen below the liquid's at the triple point.  The
+presence machinery does not see it: the density-quotient test asks
+$m_k > 0.5\,\alpha_k$, a floor of half a kilogram per cubic metre, and a
+liquid at 135\,kg/m$^3$ passes; the band then admits the cell to the
+relaxation.  The branch solve catches the worst of them (no root: the
+kernel refuses at entry and the cell is left as it is) and passes the
+rest with a root below the triple point, which the kernel then
+compresses to a density the vapour's pressure demands.  Rule 2 says the
+state should have been refused at creation; the question is whose test.
+Two candidates, each the EOS's own constant and each a measurement
+before a rule: a root below the triple-point temperature is not a state
+of the fluid (the temperature counterpart of follow-up 16e's density
+domain, with the caveat that the pressure floor's census says sub-triple
+roots occur in the battery's B2 at dense inlet cells, so the count must
+come first); and the regime's density quotient could ask for a density
+the phase's branch can hold at the cell's energy rather than half a
+kilogram.  Neither is built here.  The three order-4 XC2D references
+stand; the trace dial is inert at 0 and the counts are counts.
+
 \end{document}
