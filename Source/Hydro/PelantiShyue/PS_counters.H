@@ -276,13 +276,13 @@ struct PsCounters {
     long   promote_refuse    = 0;
     long   floor_skip        = 0;
     long   promote_refuse_sc = 0;   // Independent liquids whose root lies above T_c, counted and kept Independent (follow-up 19; the demotion was refuted)
-    long   promote_subtrip_liq = 0, promote_subtrip_vap = 0;   // Independent phases whose root lies below the triple point (follow-up 22)
+    long   promote_subtrip_liq = 0, promote_subtrip_vap = 0;   // phases whose root lies below the triple point, counted (follow-up 22; the liquid demotion of 23 reverted)
 
     // ---- presence (PS_presence.H, PS_relaxation.H), [PS-FOLD] --------
     long   pres_f1_demote    = 0;   // Independent refused for density degeneracy
     long   pres_f3_hyst      = 0;   // gate passes through the hysteresis band
     long   pres_f3_sc_refuse = 0;   // band liquids whose root lies above T_c, counted and admitted (follow-up 18 refused them; reverted, follow-up 20)
-    long   pres_f3_subtrip   = 0;   // band liquids whose root lies below the triple point (follow-up 22)
+    long   pres_f3_subtrip   = 0;   // band liquids whose root lies below the triple point, counted (follow-up 22; the refusal of 23 reverted)
 
     // ---- relaxation sweep (PS_relaxation.H) --------------------------
     //  One counter for the presence-gate refusal at every relax entry

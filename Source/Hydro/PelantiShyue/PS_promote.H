@@ -63,7 +63,17 @@ PsRegime ps_regime_reach(PsRegime rg, amrex::Real rho, amrex::Real e,
         //  T_c is not the question.  The count stays as the instrument.
 #if !defined(AMREX_USE_GPU)
         if (want_liquid && !(Tq < EOS::T_crit())) ++ps_counters().promote_refuse_sc;
-        if (Tq < EOS::T_triple()) { if (want_liquid) ++ps_counters().promote_subtrip_liq; else ++ps_counters().promote_subtrip_vap; }   // follow-up 22
+        if (!want_liquid && Tq < EOS::T_triple()) ++ps_counters().promote_subtrip_vap;   // counted, the sublimation regime (follow-up 22)
+#endif
+        //  A liquid-branch root below the triple point, counted (follow-up
+        //  22).  Demoting it to Corridor was built as the liquid-only
+        //  triple-point rule (follow-up 23) and refuted the same day: it
+        //  changed the battery's B12 and the second-order XC2D run, which
+        //  the counts of follow-up 22 had not covered.  Counted, kept
+        //  Independent; the vapour's sub-triple roots are the sublimation
+        //  regime of a model with no solid.
+#if !defined(AMREX_USE_GPU)
+        if (want_liquid && Tq < EOS::T_triple()) ++ps_counters().promote_subtrip_liq;
 #endif
         return PsRegime::Independent;
     }

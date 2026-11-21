@@ -127,18 +127,19 @@ bool ps_presence_relax_gate(amrex::Real a1, amrex::Real m1, amrex::Real m2,
         const bool q1 = i1 || b1;
         const bool q2 = i2 || b2;
         if (q1 && q2 && (b1 || b2)) {
-#if !defined(AMREX_USE_GPU)
             if (!i1 && b1) {
                 amrex::Real Yq[NUM_SPECIES]; ps_pure_species(Yq);
                 amrex::Real Pq, Tq, Sq;
                 const bool root = std::isfinite(e1)
                     && EOS::REY2PTS_phase_try(m1 / a1, e1, Yq, hem::Phase3::Liquid, Pq, Tq, Sq);
+#if !defined(AMREX_USE_GPU)
                 if (root && !(Tq < EOS::T_crit())) ++ps_counters().pres_f3_sc_refuse;
-                if (root && Tq < EOS::T_triple()) ++ps_counters().pres_f3_subtrip;   // follow-up 22
-            }
-#else
-            amrex::ignore_unused(e1);
 #endif
+                //  A band liquid whose root lies below the triple point,
+                //  counted (follow-up 22); refusing it (follow-up 23) was
+                //  refuted with the promotion's demotion and reverted.
+                if (root && Tq < EOS::T_triple()) { PS_COUNT(++ps_counters().pres_f3_subtrip); }
+            }
             PS_COUNT(++ps_counters().pres_f3_hyst);
             return true;
         }
