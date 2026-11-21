@@ -54,8 +54,18 @@ PsRegime ps_regime_reach(PsRegime rg, amrex::Real rho, amrex::Real e,
     amrex::Real Pq, Tq, Sq;
     const hem::Phase3 br = want_liquid ? hem::Phase3::Liquid
                                        : hem::Phase3::Vapor;
-    if (EOS::REY2PTS_phase_try(rho, e, Yq, br, Pq, Tq, Sq))
+    if (EOS::REY2PTS_phase_try(rho, e, Yq, br, Pq, Tq, Sq)) {
+        //  Counted, not acted on (follow-up 19): an Independent liquid whose
+        //  root lies above T_c.  Demoting it was built and refuted the same
+        //  day: the production tube is supercritical CO2 at 320 K in the
+        //  dense slot by design, and the demotion took every one of its
+        //  cells; the slot is the dense phase, liquid or supercritical, and
+        //  T_c is not the question.  The count stays as the instrument.
+#if !defined(AMREX_USE_GPU)
+        if (want_liquid && !(Tq < EOS::T_crit())) ++ps_counters().promote_refuse_sc;
+#endif
         return PsRegime::Independent;
+    }
 #if !defined(AMREX_USE_GPU)
     ++ps_counters().promote_refuse;
 #endif

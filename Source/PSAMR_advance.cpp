@@ -510,14 +510,17 @@ PSAMR::PSAMR_advance (Real time,
                 {
                     amrex::Long npr = pc.promote_refuse;
                     amrex::Long nfs = pc.floor_skip;
+                    amrex::Long nsc = pc.promote_refuse_sc;
                     amrex::ParallelDescriptor::ReduceLongSum(npr);
                     amrex::ParallelDescriptor::ReduceLongSum(nfs);
-                    if (npr > 0 || nfs > 0) {
+                    amrex::ParallelDescriptor::ReduceLongSum(nsc);
+                    if (npr > 0 || nfs > 0 || nsc > 0) {
                         amrex::Print() << "[PS-PROMOTE] L" << level
                                        << " step "
                                        << parent->levelSteps(level) << " "
                                        << label
                                        << ": promote_refuse = " << npr
+                                       << "  promote_refuse_sc = " << nsc
                                        << "  floor_skip = " << nfs << "\n";
                     }
                     pc.reset_promote();

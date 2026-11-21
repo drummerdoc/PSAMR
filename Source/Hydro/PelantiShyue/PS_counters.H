@@ -272,6 +272,7 @@ struct PsCounters {
     // ---- checked promotion / floor legs (PS_promote.H), [PS-PROMOTE] --
     long   promote_refuse    = 0;
     long   floor_skip        = 0;
+    long   promote_refuse_sc = 0;   // Independent liquids whose root lies above T_c, counted and kept Independent (follow-up 19; the demotion was refuted)
 
     // ---- presence (PS_presence.H, PS_relaxation.H), [PS-FOLD] --------
     long   pres_f1_demote    = 0;   // Independent refused for density degeneracy
@@ -333,7 +334,7 @@ struct PsCounters {
         fl_side[0] = 0; fl_side[1] = 0;
         relax_fb = 0;
     }
-    void reset_promote() { promote_refuse = 0; floor_skip = 0; }
+    void reset_promote() { promote_refuse = 0; floor_skip = 0; promote_refuse_sc = 0; }
     void reset_presence() { pres_f1_demote = 0; pres_f3_hyst = 0; pres_f3_sc_refuse = 0; }
     void reset_mt_cause() { for (int c = 0; c < PS_COUNTERS_MT_NCAUSE; ++c) mt_cause[c] = 0; }
     void reset_flash_refuse() { for (int c = 0; c < PS_COUNTERS_FLR_NCAUSE; ++c) flash_refuse[c] = 0; }
