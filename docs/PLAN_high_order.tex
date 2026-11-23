@@ -2370,6 +2370,76 @@ $e_1$ moving in a post-stage operator or at a label rather than in the
 stage rates, or the energy's relative increment staying below the
 mass's.
 
+\subsection*{Follow-up 25: the phase energies at the reflux, the energy co-move (planned 23 November 2026, Marc's word)}
+
+Follow-up 24 found the trace's degradation at the coarse--fine reflux:
+the phase masses are conserved slots and the register corrects them,
+the phase energies are non-conserved slots whose register flux is zero
+(\code{PS\_umeth.cpp}, \code{flx(UE1) = flx(UE2) = 0}) and the register
+leaves them, so at a coarse cell along the fine grid's edge a reflux
+that moves a trace's mass by a large fraction of itself leaves the
+trace's energy where it was and $e_1 = E_1/m_1$ is wrong by that
+fraction; five synchronisations took the trace from $-131$ to
+$-412$\,kJ/kg, below any root of the liquid branch, and the regrid
+pass's corridor projection then gave it the host's density.  The
+volume fraction has the same standing (no flux, not refluxed) and is
+already co-moved with the refluxed masses in capacity form
+(\code{PSAMR::reflux}, \code{ps\_bl\_reflux}): each phase keeps its
+pre-reflux density, $\rho_k^{\mathrm{new}} = \rho_k^{\mathrm{pre}}
+(V_1+V_2)$.  The energy analogue, Marc's word: each phase keeps its
+pre-reflux specific internal energy,
+\[
+  E_k^{\mathrm{new}} \;=\; m_k^{\mathrm{new}}
+  \bigl(e_k^{\mathrm{pre}} + \tfrac12 |u^{\mathrm{new}}|^2\bigr),
+  \qquad
+  e_k^{\mathrm{pre}} = \frac{E_k^{\mathrm{pre}}}{m_k^{\mathrm{pre}}}
+                       - \tfrac12 |u^{\mathrm{pre}}|^2 ,
+\]
+with $u$ the mixture velocity from the momentum and $m_1 + m_2$ before
+and after the register's correction: the mass the reflux gives or
+takes arrives at the phase state the cell already has, which is what
+the correction is to first order (the fine fluxes carry the same
+state), and the two phases' total is left to the existing
+$E_1 + E_2 \to$ \code{UEDEN} resync of the average-down that follows
+(\code{ps\_resync\_phase\_energy}: the defect is added in proportion to
+the masses).  No constant enters (rule 1); the present/absent tests are
+the $\alpha$ co-move's own: a phase with $m_k^{\mathrm{pre}} > 0$ and
+$m_k^{\mathrm{new}} > 0$ is co-moved, a phase absent before the reflux
+is left (its sliver goes back to the present phase in the fold, as
+now), and a present phase whose refluxed mass is not positive is left
+to the fold (\code{reflux\_absent}, as now).  A dial
+\code{ps\_bl\_reflux\_e} (0 = the phase energies left at the reflux,
+the present behaviour and the default until Marc's word on the record;
+1 = the co-move), on the host and the device, with two instruments on
+the \code{[PS-GUARD]} line: \code{reflux\_emove}, phases co-moved, and
+\code{reflux\_emove\_max}, the largest relative correction
+$|e_k^{\mathrm{slot}} - e_k^{\mathrm{pre}}| / |e_k^{\mathrm{pre}}|$, where
+$e_k^{\mathrm{slot}}$ is the specific energy the untouched slot would
+have given.
+
+Predictions.  (1) The dial at 0: bitwise on the 22-run reference set
+and the battery.  (2) The dial at 1, the record XC2D run with the
+trace on cell $(120, 8)$: at step 15 ``CF after reflux'' holds $e_1$
+within 1\,kJ/kg of ``CF before reflux'' ($-130.7$; without the co-move
+$-213.9$), $e_1$ stays within a few kJ/kg of $-131$ and $\rho_1$ near
+989 through step 20, and ``REGRID exit'' at step 20 leaves $\rho_1$ near
+989: the projection finds the liquid's root and there is no collapse to
+the host's 94.  (3) The dial at 1, 40 steps of the record run: the
+barrier walks, the kernel's EOS failures, the sub-triple roots at the
+band, the promotion and the kernel's entry, and the corridor's
+\code{proj\_fail\_eos} are all zero, as in follow-up 24's two controls
+(single level; \code{do\_reflux = 0}).  Falsifier: any of them left
+standing means a second source.  (4) The change is confined to the
+two-level decks: XC2D's four reference runs and ADV2D's three move,
+the 1-D suite, the battery and the tube are bitwise.  On ADV2D, a
+smooth flow, the correction is the size of the reflux's own
+correction and the runs move by less than $10^{-4}$ of range;
+\code{reflux\_emove\_max} there stays below $10^{-3}$, while on XC2D it
+reaches order one at the trace cells.  (5) The total energy's sum is
+unchanged (the slot is not touched; the resync is exact on the sum).
+Falsifiers: a 1-D, battery or tube plotfile moving; an ADV2D run moving
+by more than $10^{-4}$ of range; a non-zero count under (3).
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
