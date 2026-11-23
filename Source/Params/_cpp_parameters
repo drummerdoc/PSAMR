@@ -89,9 +89,10 @@ ps_det_reflux                int          1
 # fraction (follow-up 24).  1 = each present phase keeps its pre-reflux
 # specific internal energy, E_k = m_k (e_k_pre + ke), the energy
 # analogue of the alpha co-move (ps_bl_reflux); 0 = the phase energies
-# left at the reflux, the behaviour before 23 Nov 2026.  Counted
-# reflux_emove / reflux_emove_max on the [PS-GUARD] line.
-ps_bl_reflux_e               int          0
+# left at the reflux, the behaviour before 23 Nov 2026, for A/B.  Counted
+# reflux_emove / reflux_emove_max on the [PS-GUARD] line.  Default 1
+# (Marc, 23 Nov 2026, on the follow-up 25 record).
+ps_bl_reflux_e               int          1
 
 # The McCorquodale-Colella conversions between cell averages and point
 # values on the order-4 path (docs/PLAN_high_order.pdf follow-up 12):
