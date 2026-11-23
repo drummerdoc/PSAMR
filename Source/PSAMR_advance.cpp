@@ -1,9 +1,12 @@
 #include "PSAMR.H"
 #include "IndexDefines.H"
+#include <iomanip>
+#include <string>
 #ifdef USE_PS_HYDRO
 #include "PS_relaxation.H"
 #include "PS_sources.H"
 #include "PS_validate.H"   // gated invariant tripwire (PSAMR.ps_validate)
+#include "PS_cell_trace.H"  // ps_cell_trace (PSAMR.ps_trace_cell; follow-up 24)
 #endif
 
 #include <cmath>
@@ -259,7 +262,36 @@ PSAMR::PSAMR_advance (Real time,
 #else
 #define PS_CELL_PROBE(S,L) ((void)0)
 #endif  // PSAMR_PS_DIAG
+    // PSAMR.ps_trace_cell (i j k; off when absent), ps_trace_level (0): one
+    // cell's PS state printed at every stage, every post-stage operator and
+    // every label of the step, with each stage's rate scaled by its step
+    // (follow-up 24; PS_cell_trace.H, shared with the coarse-fine sequence
+    // in PSAMR.cpp).  Host builds only; reads only.
+    const bool tracing_cell = ps_trace_cell_on(level);
+    const amrex::IntVect trace_iv = ps_trace_cell_iv();
+    auto cell_trace = [&](const amrex::MultiFab& S, const char* label) {
+        ps_cell_trace(S, level, parent->levelSteps(level), label);
+    };
+    auto rate_trace = [&](const amrex::MultiFab& K, const amrex::MultiFab& S, amrex::Real fac, const char* label) {
+#if defined(USE_PS_HYDRO) && !defined(AMREX_USE_GPU)
+        if (!tracing_cell) return;
+        for (amrex::MFIter mfi(K); mfi.isValid(); ++mfi) {
+            if (!mfi.validbox().contains(trace_iv)) continue;
+            auto const& ka = K.const_array(mfi); auto const& sa = S.const_array(mfi);
+            const amrex::Real a1 = sa(trace_iv, UALPHA1), m1 = sa(trace_iv, UM1RHO1), E1 = sa(trace_iv, UE1), m2 = sa(trace_iv, UM2RHO2);
+            const amrex::Real da = fac * ka(trace_iv, UALPHA1), dm1 = fac * ka(trace_iv, UM1RHO1), dE1 = fac * ka(trace_iv, UE1), dm2 = fac * ka(trace_iv, UM2RHO2);
+            amrex::AllPrint() << std::setprecision(6) << "[CELL-TRACE] step " << parent->levelSteps(level) << " " << label
+                              << ": d_alpha1=" << da << " (" << (a1 != 0.0 ? da / a1 : 0.0) << " of a1)"
+                              << " d_m1=" << dm1 << " (" << (m1 != 0.0 ? dm1 / m1 : 0.0) << " of m1)"
+                              << " d_E1=" << dE1 << " (" << (E1 != 0.0 ? dE1 / E1 : 0.0) << " of E1)"
+                              << " d_m2=" << dm2 << " (" << (m2 != 0.0 ? dm2 / m2 : 0.0) << " of m2)\n";
+        }
+#else
+        amrex::ignore_unused(K, S, fac, label);
+#endif
+    };
     auto diag_mass = [&](amrex::MultiFab& S, const char* label, bool pre_repair = false) {
+        cell_trace(S, label);
         // Invariant tripwire (PSAMR.ps_validate, 0 = off), independent of
         // the ps_diag_mass gate.  pre_repair marks the stages before the
         // floor/fold/clean repair (H, A, A2), where a round-off alpha_1
@@ -808,8 +840,10 @@ PSAMR::PSAMR_advance (Real time,
             if (ps_hydro == 0) return;
             if (imex) { imex_stage(s + 3); return; }
             ps_apply_vanish_fold(S_new, 0);
+            cell_trace(S_new, "post fold");
             if (ps_rk_project_cached != 0) {
                 ps_resync_mixture_mass(S_new, 0);
+                cell_trace(S_new, "post resync");
                 if (ps_rk_project_pt_cached != 0) {
                     //  The point form reads the stage state with its ghosts:
                     //  the fill the next stage would make, made here as well.
@@ -819,6 +853,7 @@ PSAMR::PSAMR_advance (Real time,
                 } else {
                     ps_apply_mechanical_projection(S_new, 0, ps_rk_project_tol_cached);
                 }
+                cell_trace(S_new, "post projection");
             }
 #else
             amrex::ignore_unused(s);
@@ -844,9 +879,12 @@ PSAMR::PSAMR_advance (Real time,
             if (s > 0 || imex) { MultiFab::Copy(Sborder, S_new, 0, 0, NVAR, 0); }
             if (s > 0 || imex || level > 0) { rk_fill(Sborder, ts, s + 1, amr_iteration, amr_ncycle); }
             rhs(s, Sborder, ts);
+            { std::string lb = "stage " + std::to_string(s + 1) + " in"; cell_trace(Sborder, lb.c_str());
+              lb = "stage " + std::to_string(s + 1) + " rate x c dt"; rate_trace(*rkk[s], Sborder, tab[s].c * dt, lb.c_str()); }
             MultiFab::Saxpy(S_new, tab[s].c * dt, *rkk[s], 0, 0, NVAR, 0);
             if (tab[s].b != amrex::Real(1.0)) { S_new.mult(tab[s].b, 0, NVAR, 0); }
             if (tab[s].a != amrex::Real(0.0)) { MultiFab::Saxpy(S_new, tab[s].a, S_old, 0, 0, NVAR, 0); }
+            { std::string lb = "stage " + std::to_string(s + 1) + " combined"; cell_trace(S_new, lb.c_str()); }
             if (s < ns - 1) { post(s); }
         }
         // The next finer level's stage ghosts come from these.
