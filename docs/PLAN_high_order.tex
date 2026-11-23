@@ -2325,6 +2325,51 @@ battery; a barrier walk surviving on XC2D, which would mean a liquid
 reaches the kernel by a fourth door.  The three XC2D references are
 re-recorded only with Marc's word after the numbers.
 
+\subsection*{Follow-up 24: the trace's transport, traced in one cell (planned 23 November 2026, Marc's word)}
+
+Follow-ups 21 to 23 left the item: on XC2D's supercritical side the
+dense trace one diagonal above the contact degrades, by step 20, to a
+phase state no liquid has ($\rho_1$ from 989 to 96--461\,kg/m$^3$,
+$e_1$ from $-131$ to $-181$ to $-394$\,kJ/kg), and the presence
+machinery, the band and the kernel then act on a state that is no
+state.  The volume fraction, the phase mass and the phase energy travel
+on three discrete paths: $m_1$ and $E_1$ by conservative fluxes, $\alpha_1$
+and the phase energies' non-conserved part by the wave-propagation
+deposit (Pass 3 of \code{PS\_umeth.cpp}: the fluctuations at the faces,
+the in-cell term with Kapila's $K$ and the interfacial work $\Sigma_k$),
+and all three through the stage combination, the fold, the resync and
+the projection.  Rule 7: which path, at which stage, before any rule.
+Instrument, host only, inert at its default: a dial
+\code{ps\_trace\_cell} (\code{i j k}, default off) that prints, for that
+cell on level 0, at every stage of every step: the stage state entering
+the hydro ($\alpha_1$, $m_1$, $\rho_1$, $e_1$, $m_2$, $\rho_2$, $u$),
+the stage's rate for $\alpha_1$, $m_1$, $E_1$ and $m_2$ scaled by the
+step (the increments the stage would deposit), the state after the
+stage combination, and the state after each post-stage operator (the
+fold, the resync, the projection) and at the step's labels (the
+coarse-fine and reaction sequence).  Cell $(120, 8)$ on level 0, the
+first barrier walk's cell, and its upstream neighbour $(119, 8)$,
+steps 0 to 25.
+
+Predictions.  The degradation is the hydro's: the stage rates make
+$\alpha_1$ grow faster than $m_1$ (the deposit's $\alpha$ increment
+against the conservative mass flux), so $\rho_1 = m_1/\alpha_1$ falls
+during the stages, and the post-stage operators do not move $\rho_1$
+or $e_1$ in that cell (the fold does not fire, the resync changes
+$\rho_{\mathrm{mix}}$ only, the projection refuses the cell as
+Corridor or fails on it).  The energy's fall is the deposit's
+$\Sigma_1$ term, the interfacial work at the mixture pressure, which
+on a cell whose $\alpha_1$ changes by a large fraction of itself per
+stage moves $E_1$ by a large fraction of $m_1 e_1$: the energy
+increment per stage, relative to $E_1$, exceeds the mass increment
+relative to $m_1$ from the first stage in which $\alpha_1$ grows.  The
+first stage in which $\rho_1$ leaves $989 \pm 1$ is before step 20 (the
+plotfile says 988 at step 20 and 117 at step 25 in the worst cell, but
+the per-stage states are the measurement).  Falsifiers: $\rho_1$ or
+$e_1$ moving in a post-stage operator or at a label rather than in the
+stage rates, or the energy's relative increment staying below the
+mass's.
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
