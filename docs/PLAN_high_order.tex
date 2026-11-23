@@ -6025,4 +6025,92 @@ with the total energy's own reflux left to the resync of $E_1 + E_2$
 onto it that already runs (label A3); no constant enters.  Marc's
 word.  The three XC2D references stand; the trace dial is inert.
 
+
+\subsection{Follow-up 25: the phase energies at the reflux, the energy co-move (23 November 2026, Mac \code{llvm}; commits \code{09080488} and \code{8c64d810})}
+
+The dial \code{ps\_bl\_reflux\_e} in \code{PSAMR::reflux}: after the
+register's correction, each phase present before the reflux and with
+a positive refluxed mass keeps its pre-reflux specific internal energy,
+$E_k^{\mathrm{new}} = m_k^{\mathrm{new}} (e_k^{\mathrm{pre}} + \tfrac12
+|u^{\mathrm{new}}|^2)$, the snapshot before the register's call
+extended to the phase energies and the momentum; the two phases'
+total is left to the average-down's resync.  Counted
+\code{reflux\_emove} and \code{reflux\_emove\_max} on the
+\code{[PS-GUARD]} line; host and device.  Default 0 at this record,
+the behaviour before the dial.
+\begin{enumerate}[nosep]
+\item \textbf{Prediction 1 (the dial at 0: bitwise) holds.}  The
+      record XC2D run with the dial at 0 is bitwise its 40-step record
+      (\code{fu16d/xc\_off}); the 22-run reference set and the
+      battery are bitwise (21 plotfiles identical, the fingerprint ``21
+      identical, 0 changed''; the two IMEX pairs at their known
+      $4.4\times10^{-11}$).
+\item \textbf{Prediction 2 (the trace cell) holds.}  Cell $(120, 8)$
+      on level 0, the trace along the fine grid's edge.  With the dial
+      at 1, ``CF after reflux'' at step 15 reads $e_1 = -130.7$\,kJ/kg,
+      the value before the reflux to four digits (without the co-move
+      $-213.9$), and the same at every synchronisation through step 26
+      ($-130.7$ to $-130.8$); $\rho_1$ stays at 989--990 throughout, and
+      ``REGRID exit'' at step 20 leaves $\alpha_1 = 1.355\times10^{-3}$,
+      $\rho_1 = 990.1$: the regrid pass's corridor projection finds the
+      liquid's root and there is no collapse to the host's 94.  The
+      trace's $\alpha_1$ grows by transport as before ($2.4\times10^{-3}$
+      at step 26).
+\item \textbf{Prediction 3 (the pathologies) holds.}  Over the 40 steps
+      of the record run with the dial at 1: barrier walks 0 (333 with
+      the dial at 0), the kernel's EOS failures 0 (740), sub-triple
+      roots at the kernel's entry 0 (497), at the promotion 0 (3835), at
+      the band 0 (0), the corridor's \code{proj\_fail\_eos} 0 (0), as in
+      follow-up 24's two controls.  The co-move acted on 31\,010 phase
+      slots in the 40 steps (both phases of every corrected coarse cell
+      at every synchronisation); its largest relative correction was
+      0.637 (the reflux had moved a trace's mass by 64\,\% of itself),
+      and at the first synchronisations $10^{-16}$ to $10^{-10}$ (the
+      register's corrections at round-off before the contact reaches
+      the coarse--fine edge).  Rule 7's ledger: every count that
+      follow-ups 16d to 23 chased is zero with the energy carried.
+\item \textbf{What the co-move changes in XC2D's answer.}  The two
+      40-step runs (dial 0 against 1, level 0, 16\,384 cells) differ
+      most on the diagonal $i + j = 128$ and 129, the band one above the
+      initial contact where the coarse cells along the fine grid's edge
+      hold the traces: the worst cell by $0.46$ of range in $v$, $0.31$
+      in $T$ (40\,K), $0.088$ in $P$, $5.5\times10^{-3}$ in $\alpha_1$;
+      644 cells move by more than $10^{-2}$ of range in $v$, 1610 by
+      more than $10^{-3}$, 2822 by more than $10^{-6}$.  On level 1 the
+      worst is $7.5\times10^{-3}$ of range.  The run with the dial at 0
+      is the one whose traces had the wrong energy, so the difference is
+      the error the reflux was putting into the band, not a cost of the
+      remedy.
+\item \textbf{Prediction 4 (where the change lives) holds.}  The
+      two-level decks of the reference set run with the dial at 1
+      against their dial-0 references: XC2D's order-4 run on four ranks
+      moves as the serial run above ($0.459$ of range on level 0,
+      $7.5\times10^{-3}$ on level 1; 31\,026 slots co-moved, largest
+      correction 0.637), XC2D's bare second-order run by $0.20$ of range
+      on level 0 and $1.8\times10^{-2}$ on level 1 (21\,188 slots,
+      largest 0.39: the second-order path has the same trace band and
+      the same reflux), and ADV2D's smooth order-4 runs (\code{fb\_o4},
+      \code{fb\_q}) by $2.5\times10^{-5}$ of range on level 0 (in $T$;
+      the slots by $3\times10^{-6}$ to $9\times10^{-6}$) and
+      $8.9\times10^{-6}$ on level 1, with 2496 slots co-moved and a
+      largest relative correction of $5.1\times10^{-6}$: below the
+      predicted $10^{-4}$ and $10^{-3}$.  The 1-D suite, the battery
+      and the tube cannot move (single level) and did not.  Where the
+      reflux's correction is small the co-move is small; where it is of
+      order one, at a trace, so is the correction it undoes.
+\end{enumerate}
+
+\paragraph{State.}  The energy co-move is built, counted and inert
+at its default.  With it, the trace that follow-ups 16d to 23 chased
+across the barrier, the EOS and the triple point never forms: the
+reflux carried the mass and left the energy, and now carries both, as
+it carries $\alpha$.  The default is Marc's decision: 1 changes the
+two-level references (XC2D's four runs, and ADV2D's three by $2.5\times10^{-5}$ of range)
+and the reference set is re-recorded on the day he gives the word; 0
+keeps the present answers.  Marc's decision also closes
+the thread of follow-ups 16d to 23: the supercritical and sub-triple
+``liquids'' were the reflux's energy, not the EOS's and not the
+kernel's, and the counts those follow-ups left in place are the
+instruments that will say so on any deck.
+
 \end{document}
