@@ -82,6 +82,17 @@ ps_bl_reflux                 int          1
 # the host.  docs/PLAN_high_order.pdf follow-up 10.
 ps_det_reflux                int          1
 
+# The phase energies at the reflux (docs/PLAN_high_order.pdf follow-up
+# 25).  The register corrects the phase masses and not the phase
+# energies, whose register flux is zero; a reflux that moves a trace's
+# mass by a fraction of itself then leaves e_k = E_k/m_k wrong by that
+# fraction (follow-up 24).  1 = each present phase keeps its pre-reflux
+# specific internal energy, E_k = m_k (e_k_pre + ke), the energy
+# analogue of the alpha co-move (ps_bl_reflux); 0 = the phase energies
+# left at the reflux, the behaviour before 23 Nov 2026.  Counted
+# reflux_emove / reflux_emove_max on the [PS-GUARD] line.
+ps_bl_reflux_e               int          0
+
 # The McCorquodale-Colella conversions between cell averages and point
 # values on the order-4 path (docs/PLAN_high_order.pdf follow-up 12):
 # 0 = none (as now); 1 = the primitive set from the cell's point value and

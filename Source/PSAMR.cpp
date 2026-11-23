@@ -1021,12 +1021,17 @@ PSAMR::reflux()
   // before flux_reg refluxes them, so α₁ can be co-moved with the refluxed
   // masses at the pre-reflux phase densities below.  flux_reg does not
   // touch UALPHA1 (its α flux is 0), so the current UALPHA1 is the
-  // pre-reflux value the densities are keyed on.
+  // pre-reflux value the densities are keyed on.  The energy co-move
+  // (ps_bl_reflux_e) needs the pre-reflux phase energies and momentum as
+  // well: slots 0 m₁, 1 m₂, 2 E₁, 3 E₂, 4.. the momentum components.
   amrex::MultiFab m_pre;
-  if (ps_bl_reflux != 0) {
-    m_pre.define(S_crse.boxArray(), S_crse.DistributionMap(), 2, 0);
+  if (ps_bl_reflux != 0 || ps_bl_reflux_e != 0) {
+    m_pre.define(S_crse.boxArray(), S_crse.DistributionMap(), 4 + AMREX_SPACEDIM, 0);
     amrex::MultiFab::Copy(m_pre, S_crse, UM1RHO1, 0, 1, 0);
     amrex::MultiFab::Copy(m_pre, S_crse, UM2RHO2, 1, 1, 0);
+    amrex::MultiFab::Copy(m_pre, S_crse, UE1,     2, 1, 0);
+    amrex::MultiFab::Copy(m_pre, S_crse, UE2,     3, 1, 0);
+    amrex::MultiFab::Copy(m_pre, S_crse, UMX,     4, AMREX_SPACEDIM, 0);
   }
 #endif
 
@@ -1112,6 +1117,65 @@ PSAMR::reflux()
                   ps_guard::count_reflux_absent();
               }
               s(i,j,k,UALPHA1) = a1_new;
+          });
+      }
+  }
+
+  // The phase energies (docs/PLAN_high_order.pdf follow-ups 24 and 25).
+  // UE1 and UE2 are non-conserved slots with a zero register flux
+  // (PS_umeth.cpp), so the register corrects the phase masses and leaves
+  // the phase energies: at a coarse cell along the fine grid's edge a
+  // reflux that moves a trace's mass by a fraction of itself leaves
+  // e_k = E_k/m_k wrong by that fraction, and five synchronisations took
+  // XC2D's trace below any root of its branch (follow-up 24).  The energy
+  // analogue of the capacity-form co-move above: each present phase keeps
+  // its pre-reflux specific internal energy,
+  //     E_k_new = m_k_new (e_k_pre + ke_new),   e_k_pre = E_k_pre/m_k_pre - ke_pre,
+  // with ke = ½|p|²/(m₁+m₂)² before and after the correction (the model's
+  // one velocity).  The mass the reflux gives or takes arrives at the phase
+  // state the cell already has; the two phases' total is left to the
+  // E₁+E₂ -> UEDEN resync of the average-down that follows.  No constant.
+  // Cases, the α co-move's own: a phase absent before the reflux
+  // (m_k_pre = 0) is left (its sliver goes back in the fold); a present
+  // phase whose refluxed mass is not positive is left to the fold
+  // (reflux_absent above); a non-positive mixture mass before or after is
+  // an inadmissible input, left to the validator.  Counted reflux_emove,
+  // with the largest relative correction reflux_emove_max.
+  if (ps_bl_reflux_e != 0) {
+      for (amrex::MFIter mfi(S_crse); mfi.isValid(); ++mfi) {
+          const amrex::Box& bx = mfi.validbox();
+          auto s   = S_crse.array(mfi);
+          auto pre = m_pre.const_array(mfi);
+          amrex::ParallelFor(bx,
+          [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+              using amrex::Real;
+              const Real m1_pre = pre(i,j,k,0);
+              const Real m2_pre = pre(i,j,k,1);
+              const Real m1     = s(i,j,k,UM1RHO1);
+              const Real m2     = s(i,j,k,UM2RHO2);
+              Real p2_pre = Real(0.0), p2 = Real(0.0);
+              bool same = (m1 == m1_pre && m2 == m2_pre);
+              for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                  const Real a = pre(i,j,k,4+d), b = s(i,j,k,UMX+d);
+                  p2_pre += a*a; p2 += b*b; same = same && (a == b);
+              }
+              if (same) { return; }                                   // no correction here
+              const Real rho_pre = m1_pre + m2_pre, rho = m1 + m2;
+              if (!(rho_pre > Real(0.0)) || !(rho > Real(0.0))) { return; }
+              const Real ke_pre = Real(0.5) * p2_pre / (rho_pre*rho_pre);
+              const Real ke     = Real(0.5) * p2     / (rho*rho);
+              if (m1_pre > Real(0.0) && m1 > Real(0.0)) {
+                  const Real e1_pre  = pre(i,j,k,2) / m1_pre - ke_pre;
+                  const Real e1_slot = s(i,j,k,UE1) / m1 - ke;
+                  s(i,j,k,UE1) = m1 * (e1_pre + ke);
+                  ps_guard::count_reflux_emove(e1_pre != Real(0.0) ? std::abs(e1_slot - e1_pre) / std::abs(e1_pre) : Real(0.0));
+              }
+              if (m2_pre > Real(0.0) && m2 > Real(0.0)) {
+                  const Real e2_pre  = pre(i,j,k,3) / m2_pre - ke_pre;
+                  const Real e2_slot = s(i,j,k,UE2) / m2 - ke;
+                  s(i,j,k,UE2) = m2 * (e2_pre + ke);
+                  ps_guard::count_reflux_emove(e2_pre != Real(0.0) ? std::abs(e2_slot - e2_pre) / std::abs(e2_pre) : Real(0.0));
+              }
           });
       }
   }

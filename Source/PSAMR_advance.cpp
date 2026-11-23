@@ -391,6 +391,14 @@ PSAMR::PSAMR_advance (Real time,
                            << "  reflux_absent = " << ra_
                            << "  reflux_sliver = " << rs_
                            << "  reflux_badrho = " << rb_;
+            //  The reflux energy co-move's count and largest relative
+            //  correction (ps_bl_reflux_e, follow-up 25).
+            amrex::Long rem_ = pc.reflux_emove;
+            amrex::Real remx_ = pc.reflux_emove_max;
+            amrex::ParallelDescriptor::ReduceLongSum(rem_);
+            amrex::ParallelDescriptor::ReduceRealMax(remx_);
+            amrex::Print() << "  reflux_emove = " << rem_
+                           << "  reflux_emove_max = " << remx_;
             //  The second-order limiter's three counts (PS_guards.H, O-31).
             amrex::Long ld_ = pc.lim_slot_denorm;
             amrex::Long lw_ = pc.lim_wave_drop;

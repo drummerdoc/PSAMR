@@ -235,6 +235,8 @@ struct PsCounters {
     long   reflux_absent     = 0;   // reflux co-move: a present phase whose refluxed mass is <= 0 (handed to the fold)
     long   reflux_sliver     = 0;   //   mass given to an absent phase (folded back)
     long   reflux_badrho     = 0;   //   inadmissible input (non-positive pre-reflux density or total volume), skipped
+    long   reflux_emove      = 0;   // reflux energy co-move (ps_bl_reflux_e): phases whose E_k was carried with the refluxed mass (follow-up 25)
+    double reflux_emove_max  = 0.0; //   the largest relative correction |e_k_slot - e_k_pre| / |e_k_pre| it made since the last report
     long   nscbc_zg_c        = 0;   // NSCBC zero-gradient refusals by cause
     long   nscbc_zg_sup      = 0;
     long   nscbc_zg_slots    = 0;
@@ -317,6 +319,7 @@ struct PsCounters {
         guard_seen = guard_reject_low = rho_clamp_lo = 0;
         ctop_seen = ctop_sub = ctop_host_floor = 0;
         flux_sanit = reflux_absent = reflux_sliver = reflux_badrho = 0;
+        reflux_emove = 0; reflux_emove_max = 0.0;
         lim_slot_denorm = lim_wave_drop = lim_face_drop = lim_slot_floor = lim_wave_noise = 0;
         recon_fallback = recon_thinc = recon_mc_raw = recon_mc_face = recon_mc_bdry = 0;
         proj_pt_raw = 0; proj_pt_resid = 0.0; proj_pt_dev = 0.0; proj_pt_move = 0.0;

@@ -150,6 +150,12 @@ amrex::Real clamp_phase_density(amrex::Real rho,
 //                   mass is left at alpha_k = 0 for the fold to return.
 //    reflux_badrho: a pre-reflux phase density or the total volume was not
 //                   positive (an inadmissible input state); skipped.
+//    reflux_emove:  the reflux energy co-move (PSAMR.ps_bl_reflux_e) carried
+//                   a present phase's specific internal energy with its
+//                   refluxed mass; reflux_emove_max is the largest relative
+//                   correction it made, |e_k_slot - e_k_pre| / |e_k_pre|,
+//                   e_k_slot being what the untouched slot would have given
+//                   (follow-up 25; order one at a trace on XC2D).
 //  The reflux counters accumulate in post_timestep and appear on the
 //  following step's [PS-GUARD] line.
 // ---------------------------------------------------------------------
@@ -168,6 +174,10 @@ inline void  count_recon_mc_bdry()   { ++ps_counters().recon_mc_bdry; }
 inline void  count_reflux_absent() { ++ps_counters().reflux_absent; }
 inline void  count_reflux_sliver() { ++ps_counters().reflux_sliver; }
 inline void  count_reflux_badrho() { ++ps_counters().reflux_badrho; }
+inline void  count_reflux_emove(double rel) {
+    auto& c = ps_counters(); ++c.reflux_emove;
+    if (rel > c.reflux_emove_max) c.reflux_emove_max = rel;
+}
 #else
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_flux_sanit()   noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_lim_slot_denorm() noexcept {}
@@ -183,6 +193,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_recon_mc_bdry()   noexcept {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_absent() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_sliver() noexcept {}
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_badrho() noexcept {}
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void count_reflux_emove(double) noexcept {}
 #endif
 
 // ---------------------------------------------------------------------
