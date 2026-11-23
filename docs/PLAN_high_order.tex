@@ -5833,4 +5833,126 @@ temperature.  Two instruments stay (the trace dial and the sub-triple
 counts), nothing acts, and the reference set is as follow-up 16e left
 it.
 
+
+\subsection{Follow-up 24: the trace's transport, traced in one cell (23 November 2026, Mac \code{llvm}; commits \code{144818fb} and \code{6cdbfce7})}
+
+The dial \code{ps\_trace\_cell} (\code{i j k}) prints one level-0
+cell's state at every stage entry, each stage's rate scaled by its
+step, the combined stage state, the state after the fold, the resync
+and the projection, and the state at every label of the step; host
+only, inert when absent (XC2D bitwise its record with the trace on).
+Cells $(120, 8)$ and $(119, 8)$ on level 0, 26 steps.
+\begin{enumerate}[nosep]
+\item \textbf{Where $\rho_1$ and $e_1$ first move: at the coarse--fine
+      synchronisation, not in the hydro.}  Cell $(120, 8)$ on level 0 is
+      a trace cell ($\alpha_1 = 10^{-6}$ at the start) one diagonal above
+      the contact, just outside the fine grid (the fine cells over it
+      are not in the fine level; the fine cells over its neighbour
+      $(119, 9)$ are).  Through fourteen steps its liquid stays the left
+      state's: $\rho_1$ from 1006 to 988 (the stage combination mixes
+      states of slightly different $\rho_1$; the relaxation never
+      touches the cell), $e_1 = -130.7$\,kJ/kg to within 0.1, while
+      $\alpha_1$ grows by transport to $1.2\times10^{-3}$.  The stage
+      rates move $\alpha_1$, $m_1$ and $E_1$ by the same relative amount
+      at every stage (119, 79, 29, 12, \ldots, 0.9 of themselves in
+      steps 0 to 14, the three equal to three digits), so the hydro's
+      deposit keeps the trace consistent: \textbf{the predictions of
+      follow-up 24 are refuted}, the deposit is innocent and so is the
+      interfacial work.  Then, between the last label of step 14's own
+      operators (``D post sources'', $\alpha_1 = 1.171\times10^{-3}$,
+      $m_1 = 1.158$, $e_1 = -130.7$) and the first label of the
+      coarse--fine sequence that follows the fine level's subcycles
+      (``A enter (post-hydro/C-F)''), with no stage and no operator of the
+      cell's own level between them, $m_1$ falls to 0.707 and $\alpha_1$
+      to $0.715\times10^{-3}$ (both by the factor 0.61, so $\rho_1$ holds
+      at 989) while $E_1$ stays ($-151.3$ to $-150.7$\,kJ/m$^3$), and
+      $e_1 = E_1/m_1$ jumps to $-213$\,kJ/kg.  The same happens at the
+      next four synchronisations: $e_1$ to $-275$, $-324$, $-362$,
+      $-391$\,kJ/kg, the liquid's density untouched.  Then at the
+      synchronisation into step 20 $\alpha_1$ jumps from $1.8\times10^{-3}$
+      to $1.40\times10^{-2}$ while $m_1$ falls from 1.82 to 1.32, and
+      $\rho_1$ collapses from 989 to 94\,kg/m$^3$; from there the cell
+      is the degraded trace of follow-up 21.
+\item \textbf{The paths.}  The coarse--fine reflux corrects the
+      conserved slots from the flux register, and the phase masses are
+      conserved slots: the fine--coarse flux mismatch of $m_1$ is added
+      to the coarse cell at the fine grid's edge.  The phase energies
+      $E_1$, $E_2$ and the volume fraction are non-conserved slots: the
+      hydro deposits them per cell and hands the register a zero flux
+      (\code{PS\_umeth.cpp}'s contract), so the reflux leaves $E_1$ as
+      it was while it moves $m_1$, and for a trace whose mass mismatch
+      is a large fraction of its mass the specific energy $E_1/m_1$ is
+      wrong by that fraction.  The volume fraction is co-moved with the
+      refluxed masses in the capacity form (\code{PSAMR::reflux}), which
+      holds both phase densities, so $\rho_1$ survives the reflux and
+      $e_1$ does not: that is the energy's path, five synchronisations
+      long, $-131$ to $-391$\,kJ/kg.  The density's collapse at step 20
+      is a different operator of the same sequence: the fine grid moves
+      with the contact every two steps (\code{regrid\_int = 2}), and a
+      coarse cell newly covered or newly uncovered takes the fine level's
+      average or the coarse interpolation; neither: with the
+      trace split across the sequence (``CF before reflux'', ``CF after
+      reflux'', ``CF after avgDown'', ``REGRID entry'', ``REGRID exit'')
+      the reflux at step 15 is caught in the act ($m_1$ 1.158 to 0.707,
+      $\alpha_1$ co-moved, $e_1$ $-130.7$ to $-213.9$\,kJ/kg, the
+      average-down then only resyncing the phase energies onto the
+      refluxed total, $-213.1$), the refluxes at steps 16 to 20 the same
+      ($e_1$ to $-275$, $-392$, $-412$\,kJ/kg, $\rho_1$ at 989 after
+      each), and the collapse sits between ``REGRID entry'' and
+      ``REGRID exit'' of step 20, with $m_1$ unchanged and $\alpha_1$
+      from $1.335\times10^{-3}$ to $1.400\times10^{-2}$: the regrid pass's
+      corridor projection (\code{post\_regrid}, \code{PS\_corridor.H}).
+      The trace is a Corridor liquid whose energy the five refluxes have
+      taken below any root of the liquid branch; the projection finds no
+      root, and above $T_c$ its rule gives the trace the host's density:
+      $\rho_1$ after the pass is $94.3478$, the vapour's $\rho_2$ before
+      it to seven digits.  The degraded trace of follow-up 21, a
+      ``liquid'' at 94 to 461\,kg/m$^3$, is the corridor's own
+      projection of a trace whose energy the reflux had corrupted.
+\item \textbf{The upstream and the fine cells.}  The contact cell
+      $(119, 8)$ ($\alpha_1 = 0.25$) is sound throughout: its $\rho_1$
+      moves once, from 1006 to 988.5 at the first stage projection,
+      which relaxes the mixed cell, and its $e_1$ never leaves
+      $-130.7$.  The fine cells traced over the region ((241, 16),
+      (240, 16), (241, 17) on level 1) keep $e_1 = -130.7$ and
+      $\rho_1$ within 1000 to 1006 for the 26 coarse steps: the fine
+      level does not degrade its trace; the coarse cells at its edge
+      do.  Two controls settle it.  XC2D on a single level (no fine grid, no
+      synchronisation) runs 40 steps with no barrier walk, no EOS
+      failure, no sub-triple root at any door, and the traced cell's
+      $e_1$ never leaves $-130.7$.  XC2D on two levels with the reflux
+      off (\code{do\_reflux=0}; the fine grid, its subcycles, the
+      average-down and the regrids all kept) likewise: none of the
+      four counts, and $e_1$ untouched, through 40 steps.  Every
+      degraded trace of follow-ups 16d to 23, and every barrier walk,
+      EOS failure and sub-triple liquid root they counted on XC2D, is
+      the coarse--fine reflux's product.
+\end{enumerate}
+
+\paragraph{The finding.}  The series of follow-ups 16d to 23 chased a
+state that the hydro never makes.  The dense trace one diagonal above
+XC2D's contact degrades at the coarse cells along the fine grid's edge,
+in the coarse--fine synchronisation: the phase mass is a conserved slot
+and is refluxed, the phase energy is a non-conserved slot deposited per
+cell with a zero flux in the register and is not, so a reflux that moves
+a trace's mass by a large fraction of itself leaves its energy behind
+and the specific energy $e_1 = E_1/m_1$ is wrong by that fraction; five
+synchronisations take it from $-131$ to $-391$\,kJ/kg, the liquid's
+density held by the capacity-form co-move of $\alpha_1$.  The density's
+collapse at step 20 is the regrid pass's corridor projection, which
+finds no root for a liquid at that energy and, above $T_c$, gives the
+trace the host's density, 94\,kg/m$^3$; so the degraded trace is the
+corridor's correct answer to a wrong energy.  Without the reflux, or on a
+single level, nothing degrades in 40 steps.  For the dominant phases
+the known gap of the phase-energy reflux (``gaps $\sim 10^{-4}$,
+resolution-dominated'', the coarse--fine note of \code{PS\_umeth.cpp})
+is small; for a trace it is of order one.  The remedy that the tree's
+own pattern suggests, and that nothing here builds, is the energy
+analogue of the capacity-form co-move: a reflux that moves a phase's
+mass carries the phase's specific energy with it,
+$E_k^{\mathrm{new}} = m_k^{\mathrm{new}} (e_k^{\mathrm{pre}} + \tfrac12 |u|^2)$,
+with the total energy's own reflux left to the resync of $E_1 + E_2$
+onto it that already runs (label A3); no constant enters.  Marc's
+word.  The three XC2D references stand; the trace dial is inert.
+
 \end{document}
