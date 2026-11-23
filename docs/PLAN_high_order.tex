@@ -513,6 +513,7 @@ Key & Default & Meaning \\
 \code{PSAMR.ps\_rk\_project\_pt} & 0 & Under \code{ps\_rk\_project=1}: 1 = the stage projection on the cell's point value, the kernel's change converted back and added to the average (follow-ups 13 and 14): with the conversions, fourth order on a smooth two-phase field with the projection on. \\
 \code{PSAMR.ps\_wp\_mc} & 0 & Under \code{ps\_wp\_order=4}: the McCorquodale--Colella conversions, 1 = the cell's primitive set from its point value and back (one more ghost cell), 2 = also the face point values and the fluctuations back to face averages (two more); a point value or converted average that is not a state is refused (follow-up 12). Confined by the presence regimes (follow-up 15) and to stencils inside the domain (follow-up 16b); 1 safe on the battery, XC2D, the smooth fields and the tube; 2 an instrument, unlimited at a sharp transverse interface. \\
 \code{PSAMR.ps\_wp\_mc\_bdry} & 1 & Under \code{ps\_wp\_mc}: 1 = the conversions refuse a cell whose stencil leaves the domain across a non-periodic face (the limiter extended to the domain boundary; a characteristic ghost is not a smooth continuation), counted as \code{recon\_mc\_bdry}; 0 = the conversions run into the boundary ghosts, which doubled the first NSCBC ghost's liquid mass on the tube (follow-ups 16b and 16c, Marc's default). \\
+\code{PSAMR.ps\_bl\_reflux\_e} & 1 & The phase energies co-moved with their refluxed masses at the coarse--fine reflux, $E_k = m_k (e_k^{\mathrm{pre}} + \tfrac12|u|^2)$ for a phase present before with a positive refluxed mass, the energy analogue of \code{ps\_bl\_reflux} (follow-ups 24 and 25; Marc's default, 23 November 2026); 0 = the phase energies left at the reflux, for A/B. \\
 \code{PSAMR.ps\_imex} & 0 & 0 = the rate terms outside the stages (Strang or Lie per \code{ps\_strang}); 3 = IMEX-SSP3(4,3,3) in Shu--Osher form: the kernel's backward-Euler solves inside the stages, the stage transfers combined in the reaction step with the per-cell fallback, the flash once after; needs \code{rk\_order=3}, \code{rk\_stages=3}, \code{ps\_rk\_project=1}, mode 6 or 0 (follow-up 4, step B). \\
 \bottomrule
 \end{tabular}
@@ -6112,5 +6113,20 @@ the thread of follow-ups 16d to 23: the supercritical and sub-triple
 ``liquids'' were the reflux's energy, not the EOS's and not the
 kernel's, and the counts those follow-ups left in place are the
 instruments that will say so on any deck.
+
+\paragraph{Decision (Marc, 23 November 2026): default 1, the references
+re-recorded.}  Commit \code{c930b922}.  The 22-run set on the new
+default against the previous references: the 1-D suite, the battery
+(``21 identical, 0 changed'') and the tube bitwise, the two IMEX pairs
+at their known $4.4\times10^{-11}$; the seven two-level runs moved, and
+only they: XC2D's order-4, IMEX and four-stage runs by $0.46$, $0.48$
+and $0.44$ of range on level 0 and $7.5\times10^{-3}$ on level 1, its
+bare second-order run by $0.20$ and $1.8\times10^{-2}$, ADV2D's three
+runs by $2.5\times10^{-5}$ and $9\times10^{-6}$.  The XC2D order-4 run
+of the set is bitwise the dial-1 run of item 4.  This set is the
+reference from here (the previous one kept beside it as
+\code{ref\_pre\_fu25} with its fingerprint); the serial 40-step XC2D
+record is the dial-1 run of item 2.  \code{ps\_bl\_reflux\_e = 0}
+stays for A/B.
 
 \end{document}
