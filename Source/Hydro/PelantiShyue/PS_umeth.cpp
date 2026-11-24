@@ -322,6 +322,19 @@ ps_wp_face_core(int idir, int i, int j, int k,
     }
 }
 
+//  The conversions' boundary rule (ps_wp_mc_bdry): true where the cell
+//  index lies inside [lo, hi] in every direction, the cells whose
+//  conversion stencil stays inside the domain.  A file-scope function:
+//  nvcc refuses a function-local lambda captured by a device lambda.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+bool
+ps_mc_inside(int i, int j, int k, const amrex::GpuArray<int, 3>& lo, const amrex::GpuArray<int, 3>& hi) noexcept
+{
+    const int idx[3] = {i, j, k};
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) { if (idx[d] < lo[d] || idx[d] > hi[d]) return false; }
+    return true;
+}
+
 //  ps_wp_face: the face between the cells (iL,jL,kL) and (i,j,k) from the
 //  side states read at src(.., cL0 + n) on the left and src(.., cR0 + n)
 //  on the right: the raw cell averages (ps_wp_order 1, 2: src = uin,
@@ -945,11 +958,6 @@ PS_umeth(const Box& bx,
             if (bclo[d] != Interior) { mc_lo1[d] = domlo[d] + 1; mc_lo2[d] = domlo[d] + 2; }
             if (bchi[d] != Interior) { mc_hi1[d] = domhi[d] - 1; mc_hi2[d] = domhi[d] - 2; }
         }
-        auto mc_inside = [] (int i, int j, int k, const amrex::GpuArray<int, 3>& lo, const amrex::GpuArray<int, 3>& hi) noexcept -> bool {
-            const int idx[3] = {i, j, k};
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) { if (idx[d] < lo[d] || idx[d] > hi[d]) return false; }
-            return true;
-        };
 
         // Per-face store of the non-conserved fluctuations A⁻/A⁺ (comps
         // 0/1 UALPHA1, 2/3 UE1, 4/5 UE2).  The wave store is grown by one
@@ -1058,7 +1066,7 @@ PS_umeth(const Box& bx,
                     }
                 }
                 if (raw) ps_guard::count_recon_mc_raw();
-                if (mcb_l != 0 && wc_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !mc_inside(i, j, k, mc_lo1, mc_hi1)) {
+                if (mcb_l != 0 && wc_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !ps_mc_inside(i, j, k, mc_lo1, mc_hi1)) {
                     Real U[NVAR];
                     for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
                     const PS_RECON::PsPrim Pa = PS_RECON::prim_from_cons(U, l_pres);
@@ -1093,7 +1101,7 @@ PS_umeth(const Box& bx,
                         ps_guard::count_recon_mc_raw();
                     }
                 }
-                if (mcb_l != 0 && wq_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !mc_inside(i, j, k, mc_lo2, mc_hi2)) {
+                if (mcb_l != 0 && wq_arr(i, j, k, PS_RECON::WC_PT) != Real(0.0) && !ps_mc_inside(i, j, k, mc_lo2, mc_hi2)) {
                     Real U[NVAR];
                     for (int n = 0; n < NVAR; ++n) U[n] = uin_arr(i, j, k, n);
                     const PS_RECON::PsPrim Pa = PS_RECON::prim_from_cons(U, l_pres);
