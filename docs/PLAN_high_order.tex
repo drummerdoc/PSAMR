@@ -6129,4 +6129,28 @@ reference from here (the previous one kept beside it as
 record is the dial-1 run of item 2.  \code{ps\_bl\_reflux\_e = 0}
 stays for A/B.
 
+\paragraph{GPU (peart, CUDA, at \code{3d5b270b}, 24 November 2026).}
+The queue stopped first at the build: no CUDA build of the tree had
+succeeded since \code{b7412319} (19 November), because follow-up 16b's
+boundary rule was a function-local lambda captured by the two
+conversion passes' device lambdas, which nvcc refuses.  It is now a
+file-scope host-device function (\code{ps\_mc\_inside}, commit
+\code{3d5b270b}), the same test at the same call sites: bitwise on the
+22-run set and the battery, and where the rule runs, on the tube under
+the first conversion against follow-up 16e's run (the same 562\,700
+refusals).  Then XC2D 40 steps under the order-4 default, the co-move
+on and the ordered register: two runs bitwise (\code{Header} and both
+levels' cell data); against the four-rank Mac reference
+$5.6\times10^{-11}$ of range on level 0 and $1.1\times10^{-8}$ on
+level 1 ($5.5\times10^{-11}$ and $1.0\times10^{-8}$ against the
+one-rank run), the XC2D lines' level; the dial at 0 against the
+previous Mac reference $2.6\times10^{-10}$ and $1.3\times10^{-8}$, the
+earlier lines; the GPU's dial 1 against its dial 0 by $0.459$ of range
+on level 0 and $7.54\times10^{-3}$ on level 1, the Mac pair's figures
+to three digits, so the co-move does on the device what it does on
+the host; 43.1, 43.0 and 43.1\,s, no cost.  ADV2D's fine-box deck at
+the default against the Mac reference: $5\times10^{-14}$ of range on level 0 and
+$6\times10^{-14}$ on level 1; 9.9\,s.  The counters are the host's (device
+no-ops).  \textbf{Held}; the GPU side of follow-up 25 is closed.
+
 \end{document}
