@@ -2459,7 +2459,13 @@ by more than $10^{-4}$ of range; a non-zero count under (3).
 \item Interface sharpening (THINC-type) for the contact, if the WENO5
       contact is measurably more smeared than the present tapered scheme on
       the pipe-break.
-\item Embedded boundaries at any order above two.
+\item Embedded boundaries at any order above two.  Assessed 24 November
+      2026 and left parked (FUTURE\_WORK \S14): fourth order at a cut cell is
+      demonstrated nowhere for shocked flow with AMR, the six-equation hydro
+      never meets a cut cell in this tree, and the non-conserved slots make
+      the co-move inside any redistribution the first design question; the
+      condition to unpark is an application geometry that an axis-aligned
+      domain cannot hold.
 \end{itemize}
 
 % =====================================================================
