@@ -6217,4 +6217,92 @@ the default against the Mac reference: $5\times10^{-14}$ of range on level 0 and
 $6\times10^{-14}$ on level 1; 9.9\,s.  The counters are the host's (device
 no-ops).  \textbf{Held}; the GPU side of follow-up 25 is closed.
 
+
+\subsection{Follow-up 26: the GPU coverage of the option paths (24--25 November 2026, peart CUDA and Mac \code{llvm} at \code{ee2f762c}, code of \code{3d5b270b}; no code change)}
+\label{sec:fu26}
+
+One peart queue at the branch tip, the Mac partners rerun at the same
+commit on one rank (XC2D also on four).  Against the predictions:
+\begin{enumerate}[nosep]
+\item Every run completed on the device, finite, no abort: the tube
+      300 steps at the default, under the first conversion and under
+      the point projection; XC2D 40 steps under the first conversion
+      and under the sharpening; the ADV2D series: \textbf{held}.  (The
+      32-cell one-dimensional runs failed on both machines at the
+      deck's own check, a $32\times4$ domain not divisible by the
+      blocking factor 8; rerun with the factor 4, one grid either way.)
+\item Device against Mac.  The tube: $4.6\times10^{-10}$ of range at the default
+      and $4.2\times10^{-9}$ under the point projection, the family of lines; under
+      the first conversion (the Mac run bitwise follow-up 16e's) the
+      phase slots at $4.2\times10^{-9}$ but the transverse velocity at
+      $1.0\times10^{-7}$ of its range, which is $1.1\times10^{-8}$\,m/s
+      on a slot whose whole range is 0.11\,m/s: \textbf{refuted as
+      written on that slot}, held on every other (see the finding
+      below);
+      XC2D under the first conversion $5.6\times10^{-11}$ on level 0
+      and $1.1\times10^{-8}$ on level 1 against the four-rank Mac run
+      ($5.5\times10^{-11}$, $1.0\times10^{-8}$ against the one-rank),
+      under the sharpening $3.7\times10^{-11}$ and $1.0\times10^{-8}$,
+      the XC2D lines; the smooth ADV2D runs at round-off in every field
+      that varies: $\alpha_1$ to $9\times10^{-12}$ of its range and
+      $4\times10^{-14}$ absolute at 128 cells, the phase masses to
+      $10^{-11}$, the pressure to $1.1\times10^{-6}$\,Pa on 80\,bar, the
+      velocity to $10^{-11}$\,m/s on 100 (the two-dimensional pair
+      $10^{-9}$ and $5\times10^{-8}$ of range in the velocities, whose
+      range there is $1.5\times10^{-5}$\,m/s): \textbf{held}.  A note on
+      the measure: on the one-dimensional case the velocity's range is
+      $10^{-6}$\,m/s and the pressure's 190\,Pa, so ``of range'' reads
+      $10^{-5}$ there for a difference of $10^{-13}$ of the field; the
+      absolute figures are the ones that mean anything on a uniform
+      field.
+\item The rates.  The device's $L_1$ errors equal the Mac's to six or
+      seven significant digits on every run (the phase mass at 128
+      cells $5.042121\times10^{-7}$ on both; the two-dimensional pair
+      $2.768\times10^{-5}$ at 64 on both), so the rates are the same
+      numbers: one-dimensional with the conversions and the projection
+      off 4.11 and 4.03 (phase mass), 4.25 and 4.08 ($\alpha_1$), 4.20
+      and 4.07 ($P$); with the point projection 4.76 and 4.54 (phase
+      mass), 3.94 and 3.83 ($\alpha_1$), 3.98 and 3.72 ($P$);
+      two-dimensional 4.19, 4.02 and 3.94: \textbf{held}.  The Mac at
+      the tip reproduces the follow-up 14 record to the digit (the
+      phase mass $5.04\times10^{-7}$ at 128, 4.76 and 4.54; the pressure
+      30.7, 1.95, 0.148), so none of the limiter, the boundary rule,
+      the domain test or the energy co-move touched this case:
+      \textbf{held}.
+\item Cost on the device: the tube 209.5\,s at the default, 210.5\,s
+      under the first conversion, 219.8\,s under the point projection
+      (the Mac 63.5, 68.9 and 78.0\,s: the first conversion $+8.5\,\%$,
+      the point form $+23\,\%$ there); XC2D 43.5 and 43.4\,s against 43.1
+      at the default; the one-dimensional ADV2D runs 43\,s at 64 cells
+      and 138 to 141 at 128 on the device against 17 to 21 and 183 to
+      232 on the Mac, the point form's extra fill costing the device
+      2\,\% where it costs the Mac 25 to 27\,\%.  \textbf{Held}: the device pays 0.5 and 4.9\,\% where the Mac pays 8.5 and 23.
+\item The gap stands as recorded: the device counts nothing, so the
+      point-value guard's refusals and the point projection's fallbacks
+      are known from the Mac only (zero on every ADV2D run here, by
+      construction of a smooth field far from any branch edge).
+\end{enumerate}
+
+\paragraph{Finding: the transverse slot under the conversion.}  The
+tube is uniform in $y$ up to the start-up noise Stage 2c located, and
+its transverse velocity's range at step 300 is 0.11\,m/s against 50
+along the tube.  At the default and under the point projection the two
+machines' transverse velocities agree to below $2\times10^{-10}$ and
+$1.3\times10^{-9}$ of that range; under the first conversion to
+$1.0\times10^{-7}$, fifty times more, while every other slot stays at
+the family's level.  The conversion reads a second difference across
+the transverse neighbours, so on a slot that is noise it reads the two
+machines' rounding of that noise and carries it into the point value;
+the limited correction of Stage 2c was the same kind of reader.  An
+absolute difference of $10^{-8}$\,m/s is not a device defect, and the
+conserved and phase slots say the conversion itself agrees; it is the
+measure of the known transverse sensitivity under one more stencil
+that reads it.  Recorded; nothing to build.
+
+\paragraph{State.}  Every option path of the branch has now run on the
+device at the tip: the conversions with their limiter and boundary
+rule, the point projection with the pair on the kernel's change, the
+sharpening, the deterministic register and the energy co-move.  The
+GPU side of the branch is closed again.  Nothing to decide.
+
 \end{document}
