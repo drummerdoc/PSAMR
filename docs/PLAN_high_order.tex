@@ -2441,6 +2441,64 @@ unchanged (the slot is not touched; the resync is exact on the sum).
 Falsifiers: a 1-D, battery or tube plotfile moving; an ADV2D run moving
 by more than $10^{-4}$ of range; a non-zero count under (3).
 
+\subsection*{Follow-up 26: the GPU coverage of the option paths (planned 24 November 2026, Marc's word)}
+\label{sec:fu26-plan}
+
+Every GPU line of this branch since 19 November ran the order-4 default
+path.  The option paths built since then have never run on the device:
+the conversions with their limiter and boundary rule (follow-ups 15,
+16b, 16c, 16e; \code{ps\_wp\_mc} 1 and 2, \code{ps\_wp\_mc\_bdry}), the
+point projection with the pair on the kernel's change (follow-ups 13
+and 14; \code{ps\_rk\_project\_pt}), and the sharpening since the audit's
+kernel changes (follow-up 11; \code{ps\_wp\_sharpen}).  The trace dials
+(\code{ps\_relax\_trace}, \code{ps\_trace\_cell}) and every counter are
+host-only by construction and have nothing to run.  No code; one peart
+queue at the branch tip and the Mac partners rerun at the same commit
+(the follow-up 13 and 14 plotfiles lost their text files with the
+scratchpad on 23 November).
+
+\paragraph{The runs.}  The tube 300 steps under the order-4 default
+with \code{ps\_wp\_mc=1} (the follow-up 16e case) and with
+\code{ps\_rk\_project\_pt=1} (the follow-up 14 case); XC2D 40 steps on two
+levels with \code{ps\_wp\_mc=1} and with \code{ps\_wp\_sharpen=1}; the
+ADV2D varying-temperature case with averaged data at 32, 64 and 128
+cells, one-dimensional with \code{ps\_wp\_mc=1} and the projection off
+(the follow-up 12 instrument) and with \code{ps\_wp\_mc=1}
+\code{ps\_rk\_project\_pt=1} (the follow-up 14 form), and
+two-dimensional at 32 and 64 with \code{ps\_wp\_mc=2}
+\code{ps\_rk\_project\_pt=1}; the time step by the deck's rule
+(\code{cfl} $0.3\,(32/N)^{2/3}$, the travel an integer number of cells),
+the error by \code{adv2d\_err.py}.
+
+\paragraph{Predictions and falsifiers.}
+\begin{enumerate}[nosep]
+\item Every run completes on the device with finite fields and no
+      abort.  Falsifier: any abort or non-finite state.
+\item The device agrees with the Mac at the known levels: the tube to
+      $10^{-8}$ of range at the worst slot (the family of lines is
+      $2$ to $5\times10^{-9}$; the point form adds a Newton per stage),
+      XC2D to $10^{-9}$ on level 0 and $3\times10^{-8}$ on level 1 (the
+      lines are $2.5\times10^{-10}$ and $1.5\times10^{-8}$), the smooth
+      ADV2D runs to $10^{-11}$ (the conversions' line of follow-up 12
+      was round-off).  Falsifier: beyond those on any run.
+\item The convergence rates on the device equal the Mac's at the same
+      commit to 0.05: one-dimensional with the conversions and the
+      projection off about 4.1, with the point projection about 4.8
+      and 4.5, two-dimensional about 4.2 (follow-ups 12 and 14).
+      Falsifier: a rate apart by more than 0.05, or a Mac rate apart
+      from its record by more than 0.1 (the tree has changed since
+      19 November: the limiter, the boundary rule, the domain test,
+      the energy co-move; the smooth single-level cases should not
+      have moved).
+\item Cost: the point projection's extra stage fill costs the device a
+      smaller fraction than the Mac's 22\,\% on the tube; the first
+      conversion within 15\,\%.  Falsifier: either above.
+\item Gap, not a prediction: the device counts nothing (the counters
+      are host no-ops), so the refusals of the point-value guard and the
+      point projection's fallbacks cannot be compared with the Mac's;
+      the plotfiles are the comparison.
+\end{enumerate}
+
 % =====================================================================
 \section{Parked}
 \label{sec:parked}
