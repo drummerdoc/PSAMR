@@ -180,11 +180,11 @@ ps_apply_floor(amrex::MultiFab& S_new, int nghost = 0)
     constexpr Real alpha_floor = ps_const::ALPHA_ROUNDOFF;
     // Presence params for the per-phase Independent gate, read once.
     const PsPres l_floor_pr = ps_presence_params();
-    // PSAMR.ps_floor_pretest (0): 1 = a phase whose (rho_k, e_k) provably
+    // PSAMR.ps_floor_pretest (1): 1 = a phase whose (rho_k, e_k) provably
     // puts it above both floors is skipped without the evaluations
     // (PS_floor_table.H: the derivation and the table), counted
     // floor_pre_skip; the evaluated phases counted floor_eval.
-    static const int l_pre = ps_dial_int("ps_floor_pretest", 0);
+    static const int l_pre = ps_dial_int("ps_floor_pretest", 1);   // default 1, Marc 27 Nov 2026
     const ps_floor_table::View l_view = (l_pre != 0 && tfloor > Real(0.0)) ? ps_floor_table::view(tfloor) : ps_floor_table::View{};
 
     for (amrex::MFIter mfi(S_new); mfi.isValid(); ++mfi) {

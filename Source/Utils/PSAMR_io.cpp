@@ -20,9 +20,9 @@
 #include "IndexDefines.H"
 #ifdef USE_PS_HYDRO
 #include "PS_dials.H"
-//  PSAMR.ps_temp_refresh (0): 1 = the UTEMP diagnostic slot is refreshed here,
+//  PSAMR.ps_temp_refresh (1): 1 = the UTEMP diagnostic slot is refreshed here,
 //  where it is read, and not at the end of every step (docs/PLAN_hygiene.md item 1b).
-static bool ps_temp_refresh_on_demand() { static const bool v = ps_dial_int("ps_temp_refresh", 0) != 0; return v; }
+static bool ps_temp_refresh_on_demand() { static const bool v = ps_dial_int("ps_temp_refresh", 1) != 0; return v; }   // default 1, Marc 27 Nov 2026
 #endif
 
 void

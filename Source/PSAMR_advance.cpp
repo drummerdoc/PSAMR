@@ -213,15 +213,15 @@ PSAMR::PSAMR_advance (Real time,
         }
         return v; }();
     static const int ps_strang_cached = ps_dial_int("ps_strang", (ps_imex_cached != 0) ? 0 : ps_order4_default);
-    // PSAMR.ps_temp_refresh (0): 0 = the UTEMP diagnostic slot refreshed at the
+    // PSAMR.ps_temp_refresh (1): 0 = the UTEMP diagnostic slot refreshed at the
     // end of every step, as before; 1 = refreshed where it is read, before a
     // plotfile, a small plotfile or a checkpoint is written (PSAMR_io.cpp), so
     // the end-of-step clean_state is intermediate (docs/PLAN_hygiene.md item 1b).
-    static const int ps_temp_refresh_cached = ps_dial_int("ps_temp_refresh", 0);
-    // PSAMR.ps_corridor_cache (0): 1 = the corridor projection's own-branch
+    static const int ps_temp_refresh_cached = ps_dial_int("ps_temp_refresh", 1);   // default 1, Marc 27 Nov 2026
+    // PSAMR.ps_corridor_cache (1): 1 = the corridor projection's own-branch
     // probe is skipped where the cell's (rho_k, e_k, k) is bitwise the
     // triple of its last kept probe (docs/PLAN_hygiene.md item 3).
-    static const int ps_corridor_cache_cached = ps_dial_int("ps_corridor_cache", 0);
+    static const int ps_corridor_cache_cached = ps_dial_int("ps_corridor_cache", 1);   // default 1, Marc 27 Nov 2026
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
