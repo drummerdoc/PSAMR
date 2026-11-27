@@ -277,6 +277,8 @@ struct PsCounters {
     // ---- checked promotion / floor legs (PS_promote.H), [PS-PROMOTE] --
     long   promote_refuse    = 0;
     long   floor_skip        = 0;
+    long   floor_pre_skip    = 0;   // phases the pre-test table skipped (PLAN_hygiene item 2)
+    long   floor_eval        = 0;   // phases the floor evaluated
     long   promote_refuse_sc = 0;   // Independent liquids whose root lies above T_c, counted and kept Independent (follow-up 19; the demotion was refuted)
     long   promote_subtrip_liq = 0, promote_subtrip_vap = 0;   // phases whose root lies below the triple point, counted (follow-up 22; the liquid demotion of 23 reverted)
 
@@ -343,7 +345,7 @@ struct PsCounters {
         fl_side[0] = 0; fl_side[1] = 0;
         relax_fb = 0;
     }
-    void reset_promote() { promote_refuse = 0; floor_skip = 0; promote_refuse_sc = 0; promote_subtrip_liq = promote_subtrip_vap = 0; }
+    void reset_promote() { promote_refuse = 0; floor_skip = 0; floor_pre_skip = 0; floor_eval = 0; promote_refuse_sc = 0; promote_subtrip_liq = promote_subtrip_vap = 0; }
     void reset_presence() { pres_f1_demote = 0; pres_f3_hyst = 0; pres_f3_sc_refuse = 0; pres_f3_subtrip = 0; }
     void reset_mt_cause() { for (int c = 0; c < PS_COUNTERS_MT_NCAUSE; ++c) mt_cause[c] = 0; }
     void reset_flash_refuse() { for (int c = 0; c < PS_COUNTERS_FLR_NCAUSE; ++c) flash_refuse[c] = 0; }

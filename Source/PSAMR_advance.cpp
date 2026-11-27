@@ -559,14 +559,17 @@ PSAMR::PSAMR_advance (Real time,
                 {
                     amrex::Long npr = pc.promote_refuse;
                     amrex::Long nfs = pc.floor_skip;
+                    amrex::Long nfp = pc.floor_pre_skip, nfe = pc.floor_eval;
                     amrex::Long nsc = pc.promote_refuse_sc;
                     amrex::Long nstl = pc.promote_subtrip_liq, nstv = pc.promote_subtrip_vap;
                     amrex::ParallelDescriptor::ReduceLongSum(nstl);
                     amrex::ParallelDescriptor::ReduceLongSum(nstv);
                     amrex::ParallelDescriptor::ReduceLongSum(npr);
                     amrex::ParallelDescriptor::ReduceLongSum(nfs);
+                    amrex::ParallelDescriptor::ReduceLongSum(nfp);
+                    amrex::ParallelDescriptor::ReduceLongSum(nfe);
                     amrex::ParallelDescriptor::ReduceLongSum(nsc);
-                    if (npr > 0 || nfs > 0 || nsc > 0 || nstl > 0 || nstv > 0) {
+                    if (npr > 0 || nfs > 0 || nsc > 0 || nstl > 0 || nstv > 0 || nfp > 0 || nfe > 0) {
                         amrex::Print() << "[PS-PROMOTE] L" << level
                                        << " step "
                                        << parent->levelSteps(level) << " "
@@ -574,7 +577,8 @@ PSAMR::PSAMR_advance (Real time,
                                        << ": promote_refuse = " << npr
                                        << "  promote_refuse_sc = " << nsc
                                        << "  promote_subtrip(liq,vap) = " << nstl << "," << nstv
-                                       << "  floor_skip = " << nfs << "\n";
+                                       << "  floor_skip = " << nfs
+                                       << "  floor_eval = " << nfe << "  floor_pre_skip = " << nfp << "\n";
                     }
                     pc.reset_promote();
                 }

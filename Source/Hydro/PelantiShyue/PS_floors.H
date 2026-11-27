@@ -22,6 +22,7 @@
 #include "PS_util.H"       // ps_kinetic_energy, ps_pack_v6 / ps_unpack_v6
 #include "PS_counters.H"   // PsCounters (fold audit, floor and sweep counters)
 #include "PS_dials.H"      // ps_dial_int / ps_dial_real (PSAMR.* reads)
+#include "PS_floor_table.H" // the pre-test table (PLAN_hygiene item 2)
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Print.H>
@@ -179,6 +180,12 @@ ps_apply_floor(amrex::MultiFab& S_new, int nghost = 0)
     constexpr Real alpha_floor = ps_const::ALPHA_ROUNDOFF;
     // Presence params for the per-phase Independent gate, read once.
     const PsPres l_floor_pr = ps_presence_params();
+    // PSAMR.ps_floor_pretest (0): 1 = a phase whose (rho_k, e_k) provably
+    // puts it above both floors is skipped without the evaluations
+    // (PS_floor_table.H: the derivation and the table), counted
+    // floor_pre_skip; the evaluated phases counted floor_eval.
+    static const int l_pre = ps_dial_int("ps_floor_pretest", 0);
+    const ps_floor_table::View l_view = (l_pre != 0 && tfloor > Real(0.0)) ? ps_floor_table::view(tfloor) : ps_floor_table::View{};
 
     for (amrex::MFIter mfi(S_new); mfi.isValid(); ++mfi) {
         const amrex::Box bx = mfi.growntilebox(nghost);
@@ -227,6 +234,15 @@ ps_apply_floor(amrex::MultiFab& S_new, int nghost = 0)
                 }
                 const Real rhok = mk / alk;
                 const Real ek   = U(i,j,k, ue) / mk - kesp;   // phase internal e
+                if (l_view.cannot_bind(rhok, ek, pfloor)) {
+#if !defined(AMREX_USE_GPU)
+                    ++ps_counters().floor_pre_skip;
+#endif
+                    continue;
+                }
+#if !defined(AMREX_USE_GPU)
+                ++ps_counters().floor_eval;
+#endif
 
                 // Continuous, symmetry-preserving floor: a pure clamp
                 //     e_new = max(ek, e_pf, e_tf)
