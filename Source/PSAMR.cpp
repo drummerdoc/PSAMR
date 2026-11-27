@@ -877,7 +877,11 @@ PSAMR::post_timestep(int /*iteration*/)
       }
     }
 #endif
-    clean_state(S_new_crse, 0);
+    //  The UTEMP refresh here follows a reflux and average-down, which only a
+    //  level with a finer one has had; on the finest level the state is the
+    //  one the advance's end-of-step call just refreshed, so the call is
+    //  intermediate there (docs/PLAN_hygiene.md item 1a).
+    clean_state(S_new_crse, 0, level < finest_level);
 
 #ifdef AMREX_USE_EB
     // If we redistribute then the ML redistribution algorithm may change
