@@ -1585,10 +1585,10 @@ PSAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
 }
 
 void
-PSAMR::computeTemp(amrex::MultiFab& S, int ng)
+PSAMR::computeTemp(amrex::MultiFab& S, int ng, bool reset_e)
 {
   BL_PROFILE("PSAMR::computeTemp()");
-  reset_internal_energy(S, ng);
+  if (reset_e) reset_internal_energy(S, ng);
   const int l_ps_hydro = ps_hydro;              // per-phase T for PS state
 #ifdef USE_PS_HYDRO
   const amrex::Real l_T_trip = EOS::T_triple(); // only the PS EOS contract provides it

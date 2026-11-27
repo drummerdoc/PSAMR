@@ -18,6 +18,12 @@
 #include "PSAMR.H"
 #include "PSAMR_io.H"
 #include "IndexDefines.H"
+#ifdef USE_PS_HYDRO
+#include "PS_dials.H"
+//  PSAMR.ps_temp_refresh (0): 1 = the UTEMP diagnostic slot is refreshed here,
+//  where it is read, and not at the end of every step (docs/PLAN_hygiene.md item 1b).
+static bool ps_temp_refresh_on_demand() { static const bool v = ps_dial_int("ps_temp_refresh", 0) != 0; return v; }
+#endif
 
 void
 PSAMR::restart(amrex::Amr& papa, std::istream& is, bool bReadSpecial)
@@ -48,6 +54,12 @@ PSAMR::checkPoint(
   amrex::VisMF::How how,
   bool /*dump_old_default*/)
 {
+#ifdef USE_PS_HYDRO
+  if (ps_temp_refresh_on_demand()) {
+    computeTemp(get_new_data(State_Type), 0, false);
+    if (dump_old && state[State_Type].hasOldData()) computeTemp(get_old_data(State_Type), 0, false);
+  }
+#endif
   amrex::AmrLevel::checkPoint(dir, os, how, dump_old);
 
   if (level == 0 && amrex::ParallelDescriptor::IOProcessor()) {
@@ -458,6 +470,9 @@ void
 PSAMR::writePlotFile(
   const std::string& dir, std::ostream& os, amrex::VisMF::How how)
 {
+#ifdef USE_PS_HYDRO
+  if (ps_temp_refresh_on_demand()) computeTemp(get_new_data(State_Type), 0, false);
+#endif
   // The list of indices of State to write to plotfile.
   // first component of pair is state_type,
   // second component of pair is component # within the state_type
@@ -604,6 +619,9 @@ void
 PSAMR::writeSmallPlotFile(
   const std::string& dir, std::ostream& os, amrex::VisMF::How how)
 {
+#ifdef USE_PS_HYDRO
+  if (ps_temp_refresh_on_demand()) computeTemp(get_new_data(State_Type), 0, false);
+#endif
   // The list of indices of State to write to plotfile.
   // first component of pair is state_type,
   // second component of pair is component # within the state_type

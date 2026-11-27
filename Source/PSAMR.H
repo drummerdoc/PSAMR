@@ -295,7 +295,10 @@ public:
 
   static void reset_internal_energy(amrex::MultiFab& S_new, int ng);
 
-  static void computeTemp(amrex::MultiFab& State, int ng);
+  //  reset_e false: the UTEMP slot alone, the UEINT reset left out (the
+  //  writers' on-demand refresh, PLAN_hygiene item 1b: a write must not
+  //  move the state, not even by the reset's round-off).
+  static void computeTemp(amrex::MultiFab& State, int ng, bool reset_e = true);
 
   static void enforce_consistent_e(amrex::MultiFab& S);
 

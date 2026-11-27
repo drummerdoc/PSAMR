@@ -212,6 +212,11 @@ PSAMR::PSAMR_advance (Real time,
         }
         return v; }();
     static const int ps_strang_cached = ps_dial_int("ps_strang", (ps_imex_cached != 0) ? 0 : ps_order4_default);
+    // PSAMR.ps_temp_refresh (0): 0 = the UTEMP diagnostic slot refreshed at the
+    // end of every step, as before; 1 = refreshed where it is read, before a
+    // plotfile, a small plotfile or a checkpoint is written (PSAMR_io.cpp), so
+    // the end-of-step clean_state is intermediate (docs/PLAN_hygiene.md item 1b).
+    static const int ps_temp_refresh_cached = ps_dial_int("ps_temp_refresh", 0);
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
@@ -999,8 +1004,10 @@ PSAMR::PSAMR_advance (Real time,
     // Final UTEMP refresh for the completed new-time state.  The intermediate
     // clean_state calls pass refresh_temp=false (the UTEMP sweep is a
     // per-cell EOS inversion the conserved evolution never reads), so one
-    // sweep per advance here keeps the plotfile/derive/tagging path current.
-    clean_state(S_new, 0);
+    // sweep per advance here keeps the plotfile/derive/tagging path current;
+    // under PSAMR.ps_temp_refresh=1 that sweep moves to the writers
+    // (docs/PLAN_hygiene.md item 1b) and this call is intermediate too.
+    clean_state(S_new, 0, ps_temp_refresh_cached == 0);
 
     return dt_new;
 }
