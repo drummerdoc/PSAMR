@@ -954,7 +954,7 @@ PSAMR::PSAMR_advance (Real time,
         for (int n = 0; n < src_list.size(); ++n) {
             construct_new_source(src_list[n], time, dt);
             MultiFab::Saxpy(S_new, dt, *new_sources[src_list[n]], 0, 0, NVAR, 0);
-            clean_state(S_new, 0);
+            clean_state(S_new, 0, false);   // intermediate: the end-of-step call refreshes UTEMP (PLAN_hygiene item 1a)
         }
     }
 
