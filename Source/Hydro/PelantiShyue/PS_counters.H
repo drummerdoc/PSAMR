@@ -300,6 +300,7 @@ struct PsCounters {
     //  that no compaction of the relaxation kernel removes.
     long        corridor_projected = 0, corridor_host_fail = 0, corridor_noroot = 0;
     long        corridor_probed = 0;
+    long        corridor_cached = 0;   // kept verdicts taken from the cache without the inversion (PLAN_hygiene item 3)
     long        corridor_kept = 0, corridor_kept_sc = 0;   // own-branch probes that kept their phase; of those, liquids above T_c (follow-up 17)
     PsPresDiag  pres;
     PsFoldAudit fold;

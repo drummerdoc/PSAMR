@@ -410,6 +410,10 @@ protected:
   // reads ~0 for near-instant transfer).  Served to plotfiles through the
   // PSAMR::derive("flash_rate") override.
   amrex::MultiFab flash_src;
+  //  The corridor probe's per-cell cache (rho_k, e_k, k of the last kept
+  //  probe; PLAN_hygiene item 3, PSAMR.ps_corridor_cache), redefined when
+  //  the grids change.
+  amrex::MultiFab corridor_cache;
 #endif
 
   // Source terms to the hydrodynamics solve.

@@ -1,4 +1,5 @@
 #include "PSAMR.H"
+#include <limits>
 #include "IndexDefines.H"
 #include <iomanip>
 #include <string>
@@ -217,6 +218,10 @@ PSAMR::PSAMR_advance (Real time,
     // plotfile, a small plotfile or a checkpoint is written (PSAMR_io.cpp), so
     // the end-of-step clean_state is intermediate (docs/PLAN_hygiene.md item 1b).
     static const int ps_temp_refresh_cached = ps_dial_int("ps_temp_refresh", 0);
+    // PSAMR.ps_corridor_cache (0): 1 = the corridor projection's own-branch
+    // probe is skipped where the cell's (rho_k, e_k, k) is bitwise the
+    // triple of its last kept probe (docs/PLAN_hygiene.md item 3).
+    static const int ps_corridor_cache_cached = ps_dial_int("ps_corridor_cache", 0);
     // PSAMR.ps_diag_alpha (accessor in PS_diag.H): report the alpha_1
     // range at labelled points so a drive toward a pure phase can be
     // attributed to mass transfer (jump across the relax bracket) or to
@@ -693,7 +698,16 @@ PSAMR::PSAMR_advance (Real time,
                 //  the relaxation sweep; the flash follows as under Lie.
                 ps_apply_imex_sweep(S, imex_D, imex_st, 5, imex_bw, amrex::Real(0.0), dt_r, ps_rk_project_tol_cached);
             } else {
-                ps_apply_relaxation(S, dt_r, ng, do_print);   // dt_r for the finite-rate legs
+                amrex::MultiFab* ccache = nullptr;
+                if (ps_corridor_cache_cached != 0) {
+                    if (!corridor_cache.ok() || corridor_cache.boxArray() != S.boxArray()
+                        || corridor_cache.DistributionMap() != S.DistributionMap() || corridor_cache.nGrow() < ng) {
+                        corridor_cache.define(S.boxArray(), S.DistributionMap(), 3, ng);
+                        corridor_cache.setVal(std::numeric_limits<amrex::Real>::quiet_NaN());   // no verdict yet
+                    }
+                    ccache = &corridor_cache;
+                }
+                ps_apply_relaxation(S, dt_r, ng, do_print, ccache);   // dt_r for the finite-rate legs
             }
             clean_state(S, ng, false); // intermediate: skip the UTEMP diagnostic sweep
         }

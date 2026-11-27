@@ -31,6 +31,7 @@
 #include <AMReX_Array4.H>
 #include <AMReX_GpuQualifiers.H>
 #include <cmath>
+#include <limits>
 #include "IndexDefines.H"
 #include "EOS.H"
 #include "PS_presence.H"
@@ -38,10 +39,19 @@
 #include "PS_counters.H"
 #include "PS_constants.H"
 
+//  The cached form (docs/PLAN_hygiene.md item 3, PSAMR.ps_corridor_cache):
+//  C holds, per cell, the (rho_k, e_k, k) of the last own-branch probe
+//  that kept its phase (NaN where none did).  The probe is a pure
+//  function of that triple, so a cell whose triple is bitwise the cached
+//  one takes the kept verdict without the inversion; any change, and a
+//  projected cell, run the probe as before.  use_cache false = the
+//  behaviour before, C unread.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ps_corridor_project(int i, int j, int k,
                          amrex::Array4<amrex::Real> const& U,
-                         const PsPres& pr) noexcept
+                         const PsPres& pr,
+                         amrex::Array4<amrex::Real> const& C,
+                         bool use_cache) noexcept
 {
     using amrex::Real;
     const Real a1 = U(i,j,k, UALPHA1);
@@ -74,6 +84,12 @@ void ps_corridor_project(int i, int j, int k,
         const Real rk = mk0 / ak, ek = U(i,j,k, (kc == 1) ? UE1 : UE2) / mk0 - ke;
         Real Pk, Tk, Sk;
         const hem::Phase3 own_br = (kc == 1) ? hem::Phase3::Liquid : hem::Phase3::Vapor;
+        if (use_cache && C(i,j,k,0) == rk && C(i,j,k,1) == ek && C(i,j,k,2) == Real(kc)) {
+#if !defined(AMREX_USE_GPU)
+            ++ps_counters().corridor_cached;   // the kept verdict of an identical triple
+#endif
+            return;
+        }
 #if !defined(AMREX_USE_GPU)
         ++ps_counters().corridor_probed;   // one own-branch inversion per (Corridor, Independent) cell
 #endif
@@ -84,8 +100,10 @@ void ps_corridor_project(int i, int j, int k,
             ++ps_counters().corridor_kept;
             if (kc == 1 && Tk > EOS::T_crit()) ++ps_counters().corridor_kept_sc;
 #endif
+            if (use_cache) { C(i,j,k,0) = rk; C(i,j,k,1) = ek; C(i,j,k,2) = Real(kc); }
             return;
         }
+        if (use_cache) { C(i,j,k,0) = std::numeric_limits<Real>::quiet_NaN(); }   // not kept: never a skip
     }
     const Real ah = (kc == 1) ? a2 : a1, mh = (kc == 1) ? m2 : m1;
     const Real Eh = U(i,j,k, (kc == 1) ? UE2 : UE1);
@@ -129,6 +147,14 @@ void ps_corridor_project(int i, int j, int k,
 #if !defined(AMREX_USE_GPU)
     ++ps_counters().corridor_projected;
 #endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ps_corridor_project(int i, int j, int k,
+                         amrex::Array4<amrex::Real> const& U,
+                         const PsPres& pr) noexcept
+{
+    ps_corridor_project(i, j, k, U, pr, amrex::Array4<amrex::Real>{}, false);
 }
 
 //  Sweep over a MultiFab (post-regrid: cells filled by coarse-fine

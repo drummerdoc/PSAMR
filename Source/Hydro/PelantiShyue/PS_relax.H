@@ -634,6 +634,7 @@ ps_relax_reset_sweep_counters()
     ps_counters().n_gate_presence = 0;
     ps_counters().corridor_projected = ps_counters().corridor_host_fail = ps_counters().corridor_noroot = 0;
     ps_counters().corridor_probed = 0;
+    ps_counters().corridor_cached = 0;
     ps_counters().corridor_kept = ps_counters().corridor_kept_sc = 0;
     ps_pres_diag_data().reset();
 }
@@ -680,10 +681,11 @@ ps_relax_report(amrex::Long n_relax, amrex::Long n_cells, int form)
         //  [PS-CORRIDOR]: the saturation projection's census, with the count
         //  of own-branch probes (one EOS inversion per (Corridor, Independent)
         //  cell per sweep, the whole-grid EOS cost of this stage).
-        if (ps_counters().corridor_probed + ps_counters().corridor_projected
+        if (ps_counters().corridor_probed + ps_counters().corridor_projected + ps_counters().corridor_cached
             + ps_counters().corridor_host_fail + ps_counters().corridor_noroot > 0) {
             amrex::AllPrint()
                 << "[PS-CORRIDOR] probed=" << ps_counters().corridor_probed
+                << " cached=" << ps_counters().corridor_cached
                 << " projected=" << ps_counters().corridor_projected
                 << " host_fail=" << ps_counters().corridor_host_fail
                 << " noroot=" << ps_counters().corridor_noroot
@@ -1186,7 +1188,8 @@ ps_apply_mechanical_projection_pt(amrex::MultiFab& S_new, const amrex::MultiFab&
 // -----------------------------------------------------------------
 inline void
 ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
-                    int nghost = 0, bool do_print = true)
+                    int nghost = 0, bool do_print = true,
+                    amrex::MultiFab* corridor_cache = nullptr)   // PLAN_hygiene item 3; null = no cache
 {
     // EOS-heavy (branch-locked solves per phase per cell): the dominant
     // physics cost of PSAMR_advance.
@@ -1214,13 +1217,15 @@ ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
     amrex::Long n_relax = -1;
     amrex::Long n_cells = 0;
 
+    const bool use_ccache = (corridor_cache != nullptr);
     if (form == 0) {
         for (amrex::MFIter mfi(S_new); mfi.isValid(); ++mfi) {
             const amrex::Box bx = mfi.growntilebox(nghost);
             amrex::Array4<amrex::Real> const& U = S_new.array(mfi);
+            const amrex::Array4<amrex::Real> C = use_ccache ? corridor_cache->array(mfi) : amrex::Array4<amrex::Real>{};
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                ps_corridor_project(i, j, k, U, l_pres);
+                ps_corridor_project(i, j, k, U, l_pres, C, use_ccache);
                 if (relax_mode == 5) {
                     ps_x3_grid_relax_cell(i, j, k, U, eos, l_pres, xp, pres_diag, dt);
                 } else if (relax_mode == 6) {
@@ -1253,9 +1258,10 @@ ps_apply_relaxation(amrex::MultiFab& S_new, amrex::Real dt = amrex::Real(0),
             //  is the part of this sweep that compaction cannot remove.
             {
                 BL_PROFILE("PS::ps_relax_classify()");
+                const amrex::Array4<amrex::Real> C = use_ccache ? corridor_cache->array(mfi) : amrex::Array4<amrex::Real>{};
                 ps_classify_box(bx, cls, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> unsigned char
                 {
-                    ps_corridor_project(i, j, k, U, l_pres);
+                    ps_corridor_project(i, j, k, U, l_pres, C, use_ccache);
                     amrex::Real a1, m1, m2;
                     return ps_relax_entry_gate(i, j, k, U, l_pres, a1, m1, m2)
                            ? ps_class::RELAX : ps_class::NONE;
