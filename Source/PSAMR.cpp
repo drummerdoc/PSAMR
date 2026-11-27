@@ -1519,6 +1519,7 @@ PSAMR::derive(
 void
 PSAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
 {
+  BL_PROFILE("PSAMR::reset_internal_energy()");
   // Ensure (rho e) isn't too small or negative
 #ifdef _OPENMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
@@ -1582,6 +1583,7 @@ PSAMR::reset_internal_energy(amrex::MultiFab& S_new, int ng)
 void
 PSAMR::computeTemp(amrex::MultiFab& S, int ng)
 {
+  BL_PROFILE("PSAMR::computeTemp()");
   reset_internal_energy(S, ng);
   const int l_ps_hydro = ps_hydro;              // per-phase T for PS state
 #ifdef USE_PS_HYDRO
@@ -1804,9 +1806,9 @@ PSAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
   AMREX_ALWAYS_ASSERT(S.nGrow() >= ng);
 
   // Enforce a minimum density.
-  enforce_min_density(S);
+  { BL_PROFILE("PSAMR::clean_state(min_density)"); enforce_min_density(S); }
 
-  normalize_species(S);
+  { BL_PROFILE("PSAMR::clean_state(species)"); normalize_species(S); }
 
 #ifdef USE_PS_HYDRO
   // Six-equation state hygiene.  α₁ is held only to its definitional
@@ -1815,7 +1817,7 @@ PSAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
   // absent rather than inventing one; the mass repairs are counted.
   // Nothing is floored to a non-zero value: a non-zero floor would stamp a
   // fictitious trace phase into every cell and undo the vanish fold.
-  amrex::ignore_unused(0);
+  BL_PROFILE_VAR("PSAMR::clean_state(sanitise)", cs_san);
   for (amrex::MFIter mfi(S, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
       const amrex::Box& bx = mfi.growntilebox(ng);
       auto const& Sa = S.array(mfi);
@@ -1873,6 +1875,7 @@ PSAMR::clean_state(amrex::MultiFab& S, int ng, bool refresh_temp)
           if (!std::isfinite(Sa(i,j,k, UE2))) Sa(i,j,k, UE2) = amrex::Real(0.0);
       });
   }
+  BL_PROFILE_VAR_STOP(cs_san);
 #endif
 
   // Only ghost cells the caller has actually filled are touched: the state
