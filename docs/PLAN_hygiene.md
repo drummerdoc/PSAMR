@@ -1,0 +1,45 @@
+# The state hygiene pass: the EOS calls made per cell per step outside the two kernels
+
+FUTURE_WORK §11, taken up 27 November 2026 (Marc's word, after follow-up 26). The predictions of §4 are written before any code. Ground rules 1, 2, 7, 13, 15 and 16 bind: no new constant, every skip exact and proven bitwise on the reference set and the bench's step-200 plotfile, one item per commit behind a dial that defaults to the behaviour before it.
+
+## 1. The measurement at the tip (27 November 2026, Mac `llvm`, 4 ranks, the pipe-break deck at level 0 on 1024 x 512 cells, 200 steps, mode 6, PR with the branch-edge table; `scratchpad imex/hyg/base`)
+
+Exclusive TinyProfiler times, 109.3 s in all:
+
+| region | calls | s | share | what it does per cell |
+|---|---|---|---|---|
+| `PSAMR::clean_state()` | 8 per step | 42.6 | 39.9 % | sanitising, `reset_internal_energy`, and on one call per step `computeTemp` |
+| `PS::ps_apply_floor()` | 1 per step | 28.8 | 26.5 % | per Independent phase one forward evaluation at the temperature floor (`RTY2PE_auto`), the pressure-floor inversion where $P(T_{\rm floor}, \rho_k) < P_{\rm floor}$ |
+| `PS::ps_relax_classify()` | 1 sweep per step | 14.6 | 13.4 % | the corridor projection's own-branch probe (one `REY2PTS_phase_try` per (Corridor, Independent) cell) and the entry gate |
+| the hydro (`wp_face_riemann`, `PS_umeth`, `umdrv`, `ctoprim`) | | 15.1 | 13.8 % | the step itself |
+| `estTimeStep` | | 2.0 | 1.8 % | |
+
+So 86 of the 109 seconds, 79 %, are hygiene, against 52 % in the §11 measurement of 27 October (mode 2, before the branch-edge table made the kernels cheap). The counts (20 steps under `ps_diag_mass`): the probe asks 131 072 cells per rank per sweep, every cell, and keeps every one (`projected = 0`); the relaxation kernel itself (`ps_relax_launch`) is 0.05 s.
+
+The breakdown of `clean_state` (regions added 27 November, 50 steps, `hyg/brk`): `computeTemp` 10.56 s of the 27.5 s run (38.7 %), 151 calls in 50 steps, three per step: two inside the new-source loop of the Godunov path (`PSAMR_advance.cpp`, one per source, `ext_src` and `grav_src`, each `clean_state` there refreshing UTEMP) and one at the end of the step; `clean_state(species)` 0.10 s, `clean_state(sanitise)` 0.07 s, `reset_internal_energy` below the table's floor (under the PS settings it is the one-line UEINT reset). So `clean_state`'s 42.6 s are `computeTemp`'s, and two thirds of them are refreshes of a slot that the next call overwrites before anything reads it.
+
+Per two-phase cell per step the hygiene makes: in `computeTemp` two reachability inversions (`ps_regime_reach`, one `REY2PTS_phase_try` each) and two branch inversions for the per-phase temperatures (`REY2PTS_phase`), in the floor two forward evaluations, in the probe one inversion: seven EOS solves against the hydro's own two in `ctoprim`.
+
+## 2. The items, in order of return
+
+### Item 1: the temperature refresh asked only when it is read
+`computeTemp` fills the diagnostic slot UTEMP, which the conserved evolution never reads; it is read by the plotfile, the checkpoint, the derives and whatever tagging asks for temperature. The lazy form already skips it on the seven intermediate `clean_state` calls; the eighth, at the end of every step, still pays four inversions per two-phase cell. Who reads UTEMP: the derives (the plotfile), the NSCBC probe, the NSCBC ghost copy (zero-gradient, diagnostic) and `reset_internal_energy` on a branch the PS settings never take; no source term, no hydro kernel, no tagging. The remedy, two parts. (1a) The two `clean_state` calls inside the new-source loop become intermediate (`refresh_temp = false`): the end-of-step refresh recomputes UTEMP from the same final state, so every plotfile is bitwise; no dial, the proof is the bitwise one. (1b) A dial `PSAMR.ps_temp_refresh` (0 = every step, the behaviour now; 1 = on the steps that write a plotfile, a small plotfile or a checkpoint, on regrid steps, and at the end of the run), with the refresh done once at those points from `Amr::writePlotNow` / `checkInt` / `regridInt` and `levelSteps`. Where UTEMP is stale and a reader asks for it, the reader refreshes first (the derive and the tagging path call `computeTemp` on their own copy); the plotfile is written from a refreshed state. No constant. Bitwise: the conserved slots untouched by construction; UTEMP in every written plotfile identical because it is refreshed before the write. Bound: about 42 s of the 109 (28 for part 1a, 14 for part 1b less the refreshes the readers ask for).
+
+### Item 2: the floor evaluated only where it can bind
+The floor raises $e_k$ to $\max(e_k, e(T_{\rm floor}, \rho_k), e(P_{\rm floor}, \rho_k))$ and pays the two evaluations in every cell every step, where it binds in a handful (the vent crater). The exact pre-test, derived from the EOS: at fixed $T$ the PR energy decreases with density on each pure branch, $(\partial e/\partial v)_T = (a - T a')/(v^2 + 2bv - b^2) > 0$ since $a > 0 > a'$, so on a density interval $[\rho_i, \rho_{i+1}]$ lying on one branch at $T_{\rm floor}$, $e(T_{\rm floor}, \rho) \le e(T_{\rm floor}, \rho_i)$; and $P(T_{\rm floor}, \rho)$ increases with density there, so $P(T_{\rm floor}, \rho) \ge P(T_{\rm floor}, \rho_i)$. A table of $e(T_{\rm floor}, \rho_i)$ and $P(T_{\rm floor}, \rho_i)$ on a grid in $\ln \rho$ over the EOS domain, filled once at startup by the same `RTY2PE_auto` the floor calls (one source of truth), with the intervals that touch the van der Waals loop at $T_{\rm floor}$ (between the two branch edges read from `pr_edge`) marked as not covered. For a cell whose $\rho_k$ falls in a covered interval with $e_k > e(T_{\rm floor}, \rho_i)$ the temperature floor cannot bind ($T_k > T_{\rm floor}$), and if also $P(T_{\rm floor}, \rho_i) \ge P_{\rm floor}$ the pressure floor cannot bind either ($P_k > P(T_{\rm floor}, \rho_k) \ge P_{\rm floor}$, $P$ increasing in $T$ at fixed $\rho$ on a stable branch); the cell is skipped and counted. Every other cell takes the evaluations as now. The skipped cell's result is bitwise the evaluated cell's ($e_{\rm floor} = e_k$, nothing written). Dial `PSAMR.ps_floor_pretest` (0 = as now; 1 = the table); counters `floor_pre_skip`, `floor_eval`. No constant: the grid's size is a resolution, not a threshold (a coarser grid skips fewer cells, never a wrong one). Bound: 28.8 s.
+
+### Item 3: the corridor probe asked only where the phase has changed
+The probe inverts the Corridor phase's $(\rho_k, e_k)$ on its own branch in every (Corridor, Independent) cell every sweep and, on this deck, keeps every one: the far field is a uniform state with a seeded trace, and the hydro leaves a uniform cell bitwise unchanged. The remedy of §11 (a): a per-level cache of the pair $(\rho_k, e_k)$ and the verdict for every cell, refilled at regrid; a cell whose pair is bitwise the cached one takes the cached verdict without the inversion. Exact by construction (the inversion is a pure function of the pair). Dial `PSAMR.ps_corridor_cache` (0 = as now; 1 = the cache); the `[PS-CORRIDOR]` line gains `cached =`. Memory: three reals per cell. Bound: 14.6 s less the changed cells' probes.
+
+### Item 4: the CPU load imbalance (§11 item 3)
+Not measurable on this level-0 bench (the `estTimeStep` wait is 1.1 to 2.3 s over ranks); a cost-aware distribution map is the standard remedy and waits for a three-level measurement. Parked here.
+
+## 3. Order and proof
+Items 1, 2, 3, each: the dial at 0 bitwise on the 22-run reference set and the battery (`refs/cycle.sh`); the dial at 1 bitwise on the bench's step-200 plotfile (every slot, UTEMP included) and on the reference set; then the cost on the bench and on the GPU (peart) and the counts. Marc decides each default on the record.
+
+## 4. Predictions and falsifiers
+1. Item 1 at 1: the step-200 plotfile bitwise the dial-0 run's, the reference set bitwise; the bench about 28 s cheaper after part 1a and about 40 s after part 1b (the `computeTemp` share), the GPU less than 2 % (its share there is small). Falsifier: any slot of any plotfile differing, or less than half the share recovered.
+2. Item 2 at 1: bitwise on the bench and the set; `floor_eval` below 1 % of the cells on the bench (the crater and the near-vacuum cells; the counts will say), the floor pass below 2 s from 28.8. Falsifier: a differing plotfile (the pre-test let a binding cell through, which the derivation forbids), or `floor_eval` above 10 %.
+3. Item 3 at 1: bitwise; `probed` falling from 131 072 per rank per sweep to the cells the hydro changed, below 10 % on this deck after the start-up; the classify region below 3 s from 14.6. Falsifier: a differing plotfile, or `probed` staying above half.
+4. All three at 1: the bench from 109 s to below 45 s (the hydro's 15, the remaining hygiene, the step's other work), and the hygiene share from 79 % below 40 %. Falsifier: above 55 s.
+5. Nothing of this moves the GPU's answer: the device at the Mac at the known levels on XC2D and the tube under each dial. Falsifier: beyond those levels.
